@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IPTV K10 TV</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;width:100%;overflow:hidden}
+body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixed;inset:0}
+.scr{display:none;position:fixed;inset:0}
+.scr.on{display:flex}
+#s-menu{background:#07090f}
+.m-side{width:300px;background:#0b0f1c;border-right:1px solid #1a2540;overflow-y:auto;display:flex;flex-direction:column;flex-shrink:0}
+.m-logo{padding:20px 18px 12px;border-bottom:1px solid #1a2540}
+.m-logo h1{font-size:24px;color:#38bdf8;font-weight:700}
+.m-logo p{font-size:11px;color:#475569;margin-top:3px}
+.m-grp{font-size:10px;color:#334155;font-weight:700;letter-spacing:2px;padding:12px 18px 4px;text-transform:uppercase}
+.m-item{display:flex;align-items:center;gap:10px;padding:11px 18px;cursor:pointer;border-left:3px solid transparent;user-select:none}
+.m-item:hover,.m-item.foc{background:#111e38;border-left-color:#38bdf8}
+.m-ico{font-size:19px;width:26px;text-align:center;flex-shrink:0}
+.m-lbl{font-size:14px;font-weight:600;color:#cbd5e1}
+.m-sub{font-size:11px;color:#475569;margin-top:1px}
+.m-hint{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+.m-hint .big{font-size:72px}
+.m-hint .t1{font-size:18px;color:#1e293b}
+.m-hint .t2{font-size:12px;color:#0f172a}
+#s-channels{flex-direction:column;background:#07090f}
+.c-head{display:flex;align-items:center;gap:12px;padding:12px 20px;background:#0b0f1c;border-bottom:1px solid #1a2540;flex-shrink:0}
+#c-back{background:#111e38;border:2px solid #38bdf8;color:#38bdf8;font-size:16px;padding:6px 14px;border-radius:7px;cursor:pointer;flex-shrink:0}
+#c-back.foc,#c-back:hover{background:#38bdf8;color:#07090f;outline:none}
+#c-title{font-size:20px;font-weight:700;color:#f1f5f9}
+#c-cnt{font-size:12px;color:#475569;margin-left:auto}
+.c-body{flex:1;overflow:hidden;position:relative}
+#c-load,#c-err{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+#c-load{display:flex}
+#c-err{display:none}
+.spin{width:44px;height:44px;border:4px solid #1a2540;border-top-color:#38bdf8;border-radius:50%;animation:sp .8s linear infinite}
+.ltxt{font-size:16px;color:#475569}
+.etxt{font-size:14px;color:#f87171;text-align:center;max-width:360px;padding:0 20px;line-height:1.5}
+#c-retry{background:#111e38;border:2px solid #38bdf8;color:#38bdf8;font-size:15px;padding:10px 24px;border-radius:8px;cursor:pointer}
+#c-retry.foc,#c-retry:hover{background:#38bdf8;color:#07090f}
+#c-list{position:absolute;inset:0;overflow-y:auto;padding:8px;display:none}
+.ch{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;cursor:pointer;margin-bottom:3px;border:2px solid transparent}
+.ch:hover,.ch.foc{background:#111e38;border-color:#38bdf8}
+.ch-fl{font-size:19px;width:28px;text-align:center;flex-shrink:0}
+.ch-lg{width:42px;height:26px;object-fit:contain;background:#1e293b;border-radius:3px;flex-shrink:0}
+.ch-nm{font-size:14px;font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:560px}
+.ch-ct{font-size:10px;color:#475569;margin-top:1px}
+#s-player{background:#000;position:relative}
+#vid{width:100%;height:100%;object-fit:contain}
+.p-ov{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;transition:opacity .4s}
+.p-ov.hide{opacity:0;pointer-events:none}
+.p-top{background:linear-gradient(#000b,transparent);padding:16px 24px}
+.p-top h2{font-size:24px;color:#fff;text-shadow:0 2px 6px #000}
+.p-top p{font-size:12px;color:#94a3b8;margin-top:2px}
+.p-bot{background:linear-gradient(transparent,#000b);padding:14px 24px;display:flex;justify-content:space-between;align-items:flex-end}
+.p-st{font-size:12px;color:#64748b}
+#p-back{background:#111e38;border:2px solid #38bdf8;color:#38bdf8;font-size:14px;padding:8px 18px;border-radius:7px;cursor:pointer}
+#p-back.foc,#p-back:hover{background:#38bdf8;color:#000}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div id="s-menu" class="scr on">
+  <div class="m-side" id="m-side">
+    <div class="m-logo"><h1>📺 IPTV K10</h1><p>TV ao vivo · ↑↓ navegar · ENTER selecionar</p></div>
+  </div>
+  <div class="m-hint">
+    <div class="big">📺</div>
+    <div class="t1">Selecione uma categoria</div>
+    <div class="t2">↑↓ navegar &nbsp;·&nbsp; ENTER selecionar &nbsp;·&nbsp; VOLTAR recuar</div>
+  </div>
+</div>
+
+<div id="s-channels" class="scr">
+  <div class="c-head">
+    <button id="c-back">◀ Voltar</button>
+    <span id="c-title">Canais</span>
+    <span id="c-cnt"></span>
+  </div>
+  <div class="c-body">
+    <div id="c-load"><div class="spin"></div><div class="ltxt" id="l-txt">Carregando...</div></div>
+    <div id="c-err"><div style="font-size:40px">⚠️</div><div class="etxt" id="e-txt"></div><button id="c-retry">↺ Tentar novamente</button></div>
+    <div id="c-list"></div>
+  </div>
+</div>
+
+<div id="s-player" class="scr">
+  <video id="vid" autoplay playsinline></video>
+  <div class="p-ov" id="p-ov">
+    <div class="p-top"><h2 id="p-nm">—</h2><p id="p-inf"></p></div>
+    <div class="p-bot"><span class="p-st" id="p-st">⏳ Conectando...</span><button id="p-back">◀ Voltar</button></div>
+  </div>
+</div>
+
+<script>
+var API=['https://iptv-org.github.io/api','https://cdn.jsdelivr.net/gh/iptv-org/api@gh-pages','https://raw.githubusercontent.com/iptv-org/api/gh-pages'];
+var PX=[
+  function(u){return 'https://corsproxy.io/?url='+encodeURIComponent(u)},
+  function(u){return 'https://api.allorigins.win/raw?url='+encodeURIComponent(u)},
+  function(u){return 'https://thingproxy.freeboard.io/fetch/'+u}
+];
+var CATS=[
+  {G:'🌍 ACESSO GERAL'},
+  {id:'mundial',e:'📺',n:'IPTV Mundial',s:'+10k canais · todos os países',t:'api',c:null},
+  {id:'freetv',e:'📡',n:'Free-TV',s:'Verificados & Estáveis',t:'m3u',u:['https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8','https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u']},
+  {id:'fluxus',e:'🔄',n:'Fluxustv',s:'Atualizada Diariamente',t:'m3u',u:['https://iptv-org.github.io/iptv/index.m3u','https://raw.githubusercontent.com/iptv-org/iptv/gh-pages/index.m3u']},
+  {G:'🇧🇷 BRASIL'},
+  {id:'brasil',e:'🇧🇷',n:'IPTV Brasil',s:'Canais abertos brasileiros',t:'m3u',u:['https://iptv-org.github.io/iptv/countries/br.m3u','https://raw.githubusercontent.com/rjpontes/iptv-brasil/main/lista.m3u','https://raw.githubusercontent.com/Greasy-Canteen/iptv-brasil/main/brasil.m3u']},
+  {G:'📰 INFORMAÇÃO'},
+  {id:'noti',e:'📰',n:'Notícias',s:'Jornalismo ao vivo',t:'api',c:['news']},
+  {id:'nego',e:'💼',n:'Negócios & Clima',s:'Business · economia · clima',t:'api',c:['business','weather']},
+  {id:'docs',e:'🎥',n:'Documentários',s:'Documentários do mundo',t:'api',c:['documentary']},
+  {G:'🎭 ENTRETENIMENTO'},
+  {id:'entr',e:'🎭',n:'Entretenimento',s:'Entretenimento · comédia · geral',t:'api',c:['entertainment','comedy','general']},
+  {id:'esp',e:'⚽',n:'Esportes',s:'Futebol · basquete · tênis',t:'api',c:['sports']},
+  {id:'mus',e:'🎵',n:'Música',s:'Canais de música ao vivo',t:'api',c:['music']},
+  {id:'fil',e:'🎬',n:'Filmes & Séries',s:'Filmes · séries · animação',t:'api',c:['movies','series','animation','classic']},
+  {id:'kids',e:'🧸',n:'Kids & Família',s:'Infantil · família · animação',t:'api',c:['kids','family','animation']},
+  {G:'🌿 ESTILO DE VIDA'},
+  {id:'edu',e:'🎓',n:'Educação & Cultura',s:'Educação · cultura · ciência',t:'api',c:['education','culture','science']},
+  {id:'life',e:'🌿',n:'Lifestyle',s:'Culinária · viagem · lifestyle',t:'api',c:['cooking','travel','lifestyle','outdoor']},
+  {id:'rel',e:'⛪',n:'Religioso',s:'Canais religiosos do mundo',t:'api',c:['religious']},
+  {id:'auto',e:'🚗',n:'Auto & Variedades',s:'Auto · compras · legislativo',t:'api',c:['auto','shop','legislative']}
+];
+var FL={BR:'🇧🇷',US:'🇺🇸',GB:'🇬🇧',FR:'🇫🇷',DE:'🇩🇪',ES:'🇪🇸',IT:'🇮🇹',PT:'🇵🇹',AR:'🇦🇷',MX:'🇲🇽',JP:'🇯🇵',KR:'🇰🇷',RU:'🇷🇺',IN:'🇮🇳',CN:'🇨🇳',AU:'🇦🇺',CA:'🇨🇦',NL:'🇳🇱',TR:'🇹🇷',SA:'🇸🇦',AE:'🇦🇪',PL:'🇵🇱'};
+
+var SCR='menu',mItems=[],mIdx=0,cItems=[],cIdx=0;
+var channels=[],retryFn=null,hls=null,hlsLoaded=false;
+var ovTmr=null,failTmr=null,playing=false,apiCache=null;
+
+// tela cheia na primeira interação
+function fs(){var e=document.documentElement,f=e.requestFullscreen||e.webkitRequestFullscreen||e.mozRequestFullScreen||e.msRequestFullscreen;try{if(f)f.call(e)}catch(x){}}
+document.addEventListener('keydown',fs,{once:true});
+document.addEventListener('click',fs,{once:true});
+
+// ── rede ──────────────────────────────────────────────────────
+function get(url,cb){
+  var x=new XMLHttpRequest();
+  x.open('GET',url);x.timeout=16000;
+  x.onreadystatechange=function(){if(x.readyState!==4)return;x.status>=200&&x.status<300?cb(null,x.responseText):cb('HTTP '+x.status)};
+  x.ontimeout=function(){cb('timeout')};
+  x.onerror=function(){cb('erro')};
+  try{x.send()}catch(e){cb(e.message)}
+}
+function getJSON(url,cb){get(url,function(e,t){if(e)return cb(e);try{cb(null,JSON.parse(t))}catch(x){cb('JSON inválido')}})}
+
+// ── api iptv-org ───────────────────────────────────────────────
+function getApi(cb){
+  if(apiCache)return cb(null,apiCache);
+  var si=0;
+  (function next(){
+    if(si>=API.length)return cb('Todos os servidores falharam');
+    var base=API[si++],done=0,chs,strs,err;
+    function check(){if(++done<2)return;if(err)return next();apiCache={chs:chs,strs:strs};cb(null,apiCache)}
+    getJSON(base+'/channels.json',function(e,d){if(e){err=e;check()}else{chs=d;check()}});
+    getJSON(base+'/streams.json',function(e,d){if(e){err=e;check()}else{strs=d;check()}});
+  })();
+}
+
+// ── m3u ───────────────────────────────────────────────────────
+function getM3u(urls,cb){
+  var tries=[];
+  for(var i=0;i<urls.length;i++){tries.push(urls[i]);for(var j=0;j<PX.length;j++)tries.push(PX[j](urls[i]))}
+  var ti=0;
+  (function next(){
+    if(ti>=tries.length)return cb('Todas as fontes falharam');
+    get(tries[ti++],function(e,t){(!e&&t&&(t.indexOf('#EXTM3U')!==-1||t.indexOf('#EXTINF')!==-1))?cb(null,t):next()});
+  })();
+}
+function parseM3u(txt){
+  var lines=txt.split('\n'),out=[],cur=null;
+  for(var i=0;i<lines.length&&out.length<1500;i++){
+    var l=lines[i].trim();
+    if(l.indexOf('#EXTINF:')===0){
+      var nm=l.match(/,(.+)$/),lg=l.match(/tvg-logo="([^"]+)"/),co=l.match(/tvg-country="([^"]+)"/),gr=l.match(/group-title="([^"]+)"/),c=co?co[1].split(';')[0].toUpperCase():'';
+      cur={name:nm?nm[1].trim():'Canal',logo:lg?lg[1]:'',country:c,flag:FL[c]||'🌐',cat:gr?gr[1]:''};
+    }else if(l&&l.indexOf('#')!==0&&cur){cur.url=l;out.push(cur);cur=null}
+  }
+  return out;
+}
+function buildApi(data,cats){
+  var sm={};
+  for(var i=0;i<data.strs.length;i++)if(!sm[data.strs[i].channel])sm[data.strs[i].channel]=data.strs[i].url;
+  var out=[];
+  for(var j=0;j<data.chs.length&&out.length<2000;j++){
+    var ch=data.chs[j];if(!sm[ch.id])continue;
+    if(cats){var ok=false;for(var k=0;k<(ch.categories||[]).length;k++)if(cats.indexOf(ch.categories[k])!==-1){ok=true;break}if(!ok)continue}
+    var co=(ch.country||'').toUpperCase();
+    out.push({name:ch.name,logo:ch.logo||'',country:co,flag:FL[co]||'🌐',cat:(ch.categories||[]).join(', '),url:sm[ch.id]});
+  }
+  return out;
+}
+
+// ── ui ────────────────────────────────────────────────────────
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function setState(s,msg){
+  document.getElementById('c-load').style.display=s==='load'?'flex':'none';
+  document.getElementById('c-err').style.display=s==='err'?'flex':'none';
+  document.getElementById('c-list').style.display=s==='list'?'block':'none';
+  if(s==='load')document.getElementById('l-txt').textContent=msg||'';
+  if(s==='err'){
+    document.getElementById('e-txt').textContent=msg||'';
+    cItems=[document.getElementById('c-back'),document.getElementById('c-retry')];
+    cIdx=1;setFoc(cItems[1]);
+  }
+}
+
+function loadCat(cat){
+  showScr('channels');
+  document.getElementById('c-title').textContent=cat.e+' '+cat.n;
+  document.getElementById('c-cnt').textContent='';
+  setState('load','Carregando canais...');
+  retryFn=function(){loadCat(cat)};
+  if(cat.t==='m3u'){
+    getM3u(cat.u,function(e,txt){
+      if(e)return setState('err','Falha M3U.\n'+e);
+      var chs=parseM3u(txt);
+      if(!chs.length)return setState('err','Nenhum canal encontrado.');
+      renderList(chs);
+    });
+  }else{
+    getApi(function(e,data){
+      if(e)return setState('err','Falha na API.\n'+e);
+      var chs=buildApi(data,cat.c);
+      if(!chs.length)return setState('err','Nenhum canal nesta categoria.');
+      renderList(chs);
+    });
+  }
+}
+
+function renderList(chs){
+  channels=chs;
+  var list=document.getElementById('c-list');
+  list.innerHTML='';
+  setState('list');
+  document.getElementById('c-cnt').textContent=chs.length+' canais';
+  cItems=[document.getElementById('c-back')];
+  for(var i=0;i<chs.length;i++){
+    var ch=chs[i],el=document.createElement('div');
+    el.className='ch';el.tabIndex=0;el.setAttribute('data-i',i);
+    el.innerHTML=(ch.logo?'<img class="ch-lg" src="'+esc(ch.logo)+'" onerror="this.style.display=\'none\'" alt="">':'<span class="ch-fl">'+ch.flag+'</span>')+
+      '<div><div class="ch-nm">'+esc(ch.name)+'</div>'+(ch.cat?'<div class="ch-ct">'+ch.flag+' '+esc(ch.cat)+'</div>':'')+'</div>';
+    (function(idx,item){
+      el.addEventListener('click',function(){play(idx)});
+      el.addEventListener('mouseover',function(){cIdx=cItems.indexOf(item);if(cIdx<0)cIdx=1;setFoc(item)});
+    })(i,el);
+    list.appendChild(el);cItems.push(el);
+  }
+  cIdx=1;setFoc(cItems[1]||cItems[0]);
+}
+
+// ── player ────────────────────────────────────────────────────
+function voltaCanais(){if(playing)return;clearTimeout(failTmr);stopHls();showScr('channels')}
+
+function play(idx){
+  var ch=channels[idx];if(!ch)return;
+  playing=false;clearTimeout(failTmr);
+  document.getElementById('p-nm').textContent=ch.flag+' '+ch.name;
+  document.getElementById('p-inf').textContent=ch.cat||ch.country||'';
+  document.getElementById('p-st').textContent='⏳ Conectando...';
+  showScr('player');showOv();
+  var vid=document.getElementById('vid');
+  stopHls();vid.src='';
+  failTmr=setTimeout(voltaCanais,10000);
+  var tried=false;
+  vid.onerror=function(){if(!tried){tried=true;tryHls()}else voltaCanais()};
+  vid.oncanplay=function(){playing=true;clearTimeout(failTmr);document.getElementById('p-st').textContent='▶ Ao vivo'};
+  vid.src=ch.url;try{vid.load();vid.play()}catch(e){}
+  function tryHls(){
+    if(typeof Hls==='undefined'){
+      if(hlsLoaded){voltaCanais();return}
+      hlsLoaded=true;
+      var s=document.createElement('script');
+      s.src='https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js';
+      s.onload=tryHls;s.onerror=voltaCanais;
+      document.head.appendChild(s);return;
+    }
+    if(!Hls.isSupported()){voltaCanais();return}
+    hls=new Hls();hls.loadSource(ch.url);hls.attachMedia(vid);
+    hls.on(Hls.Events.MANIFEST_PARSED,function(){try{vid.play()}catch(e){}});
+    hls.on(Hls.Events.ERROR,function(ev,d){if(d.fatal)voltaCanais()});
+  }
+}
+function stopHls(){if(hls){try{hls.destroy()}catch(e){}hls=null}}
+function showOv(){
+  var ov=document.getElementById('p-ov');
+  ov.classList.remove('hide');clearTimeout(ovTmr);
+  ovTmr=setTimeout(function(){ov.classList.add('hide')},4000);
+}
+
+// ── telas ─────────────────────────────────────────────────────
+function showScr(name){
+  ['menu','channels','player'].forEach(function(s){
+    document.getElementById('s-'+s).classList[s===name?'add':'remove']('on');
+  });
+  SCR=name;
+  if(name==='menu'&&mItems.length)setFoc(mItems[mIdx]);
+  if(name==='player')setFoc(document.getElementById('p-back'));
+}
+function setFoc(el){
+  if(!el)return;
+  document.querySelectorAll('.foc').forEach(function(x){x.classList.remove('foc')});
+  el.classList.add('foc');try{el.focus()}catch(e){}try{el.scrollIntoView({block:'nearest'})}catch(e){}
+}
+
+// ── teclado / controle remoto ──────────────────────────────────
+document.addEventListener('keydown',function(e){
+  var k=e.keyCode||e.which;
+  var UP=k===38,DN=k===40,OK=k===13||k===32;
+  var BK=k===8||k===27||k===36||k===88||k===166||k===196||k===457||k===461||k===1009||k===4||k===10009||k===10182;
+  if([4,8,13,27,32,36,37,38,39,40,88,166,196,457,461,1009,10009,10182].indexOf(k)!==-1)e.preventDefault();
+  if(SCR==='menu'){
+    if(UP&&mIdx>0){mIdx--;setFoc(mItems[mIdx])}
+    else if(DN&&mIdx<mItems.length-1){mIdx++;setFoc(mItems[mIdx])}
+    else if(OK&&mItems[mIdx]&&mItems[mIdx]._cat)loadCat(mItems[mIdx]._cat);
+  }else if(SCR==='channels'){
+    if(BK){stopHls();showScr('menu')}
+    else if(UP&&cIdx>0){cIdx--;setFoc(cItems[cIdx])}
+    else if(DN&&cIdx<cItems.length-1){cIdx++;setFoc(cItems[cIdx])}
+    else if(OK&&cItems[cIdx]){
+      var el=cItems[cIdx];
+      if(el.id==='c-back')showScr('menu');
+      else if(el.id==='c-retry'){if(retryFn)retryFn()}
+      else{var idx=parseInt(el.getAttribute('data-i')||'-1');if(idx>=0)play(idx)}
+    }
+  }else if(SCR==='player'){
+    if(BK){stopHls();showScr('channels')}else showOv();
+  }
+});
+
+// ── montar menu ────────────────────────────────────────────────
+(function(){
+  var side=document.getElementById('m-side');
+  for(var i=0;i<CATS.length;i++){
+    var d=CATS[i];
+    if(d.G){
+      var g=document.createElement('div');g.className='m-grp';g.textContent=d.G;side.appendChild(g);
+    }else{
+      var el=document.createElement('div');el.className='m-item';el.tabIndex=0;
+      el.innerHTML='<span class="m-ico">'+d.e+'</span><div><div class="m-lbl">'+esc(d.n)+'</div><div class="m-sub">'+esc(d.s)+'</div></div>';
+      el._cat=d;
+      (function(cat,item,i){
+        el.addEventListener('click',function(){loadCat(cat)});
+        el.addEventListener('mouseover',function(){mIdx=i;setFoc(item)});
+      })(d,el,mItems.length);
+      side.appendChild(el);mItems.push(el);
+    }
+  }
+  document.getElementById('c-back').addEventListener('click',function(){showScr('menu')});
+  document.getElementById('c-retry').addEventListener('click',function(){if(retryFn)retryFn()});
+  document.getElementById('p-back').addEventListener('click',function(){stopHls();showScr('channels')});
+  document.getElementById('s-player').addEventListener('mousemove',showOv);
+  if(mItems.length)setFoc(mItems[0]);
+})();
+</script>
+</body>
+</html>

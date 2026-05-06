@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IPTV K10 TV - Telemetria Avançada (5 falhas + relatório)</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;width:100%;overflow:hidden}
+body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixed;top:0;right:0;bottom:0;left:0}
+
+/* Barras de rolagem visíveis para usar o mouse em qualquer tela */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #07090f;
+}
+::-webkit-scrollbar-thumb {
+  background: #1a2540;
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #38bdf8;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #1a2540 #07090f;
+}
+
+
+.scr{display:none;position:fixed;top:0;right:0;bottom:0;left:0}
+.scr.on{display:flex;flex-direction:column}
+
+/* ----- MENU (CATEGORIAS) ----- */
+#s-menu{background:#07090f}
+.menu-header{flex-shrink:0;padding:20px;text-align:center;border-bottom:1px solid #1a2540}
+.menu-header h1{color:#38bdf8;font-size:24px}
+.menu-header p{font-size:11px;color:#475569;margin-top:5px}
+.menu-list-wrapper{flex:1;overflow-y:auto;position:relative;min-height:0;touch-action:pan-y}
+.menu-list{padding:10px}
+.m-item{background:#0b0f1c;margin-bottom:8px;padding:15px 20px;border-radius:12px;cursor:pointer;border-left:4px solid transparent}
+.m-item .m-ico{font-size:28px;margin-right:12px;display:inline-block;vertical-align:middle}
+.m-item .m-lbl{font-size:18px;font-weight:bold;color:#cbd5e1;display:inline-block;vertical-align:middle}
+.m-item .m-sub{font-size:12px;color:#475569;margin-top:4px}
+.m-item.foc{background:#111e38;border-left-color:#38bdf8}
+.m-grp{font-size:12px;color:#334155;font-weight:bold;padding:15px 10px 5px;text-transform:uppercase}
+
+/* Botões flutuantes de navegação (▲ ▼) */
+.nav-buttons{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:12px;z-index:100}
+.nav-btn{background:#111e38;border:2px solid #38bdf8;color:#38bdf8;font-size:28px;width:60px;height:60px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.nav-btn:active{background:#38bdf8;color:#000}
+
+/* ----- TELA DE CANAIS (com botão Voltar centralizado) ----- */
+#s-channels{background:#07090f}
+.c-head{display:flex;align-items:center;padding:12px 16px;background:#0b0f1c;border-bottom:1px solid #1a2540;flex-shrink:0}
+#c-title{font-size:20px;font-weight:700;color:#f1f5f9;flex:1}
+#c-cnt{font-size:12px;color:#475569}
+#c-reset-telemetry{background:#1a2540;border:1.5px solid #f59e0b;color:#f59e0b;padding:5px 12px;border-radius:20px;font-size:11px;cursor:pointer;margin-left:10px;transition:all 0.2s}
+#c-reset-telemetry:hover{background:#f59e0b;color:#07090f}
+#c-report-telemetry{background:#1a2540;border:1.5px solid #38bdf8;color:#38bdf8;padding:5px 12px;border-radius:20px;font-size:11px;cursor:pointer;margin-left:6px;transition:all 0.2s}
+#c-report-telemetry:hover{background:#38bdf8;color:#07090f}
+.c-body{flex:1;position:relative;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+#c-load,#c-err{position:absolute;top:0;right:0;bottom:0;left:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#07090f;z-index:2}
+#c-load{display:flex}
+#c-err{display:none}
+.spin{width:40px;height:40px;border:4px solid #1a2540;border-top-color:#38bdf8;border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ltxt{font-size:14px;color:#475569;margin-top:10px}
+.etxt{font-size:14px;color:#f87171;text-align:center;max-width:300px}
+#c-retry{margin-top:15px;background:#111e38;border:2px solid #38bdf8;color:#38bdf8;padding:8px 20px;border-radius:8px;cursor:pointer}
+#c-list{flex:1;overflow-y:auto;padding:8px;padding-bottom:100px;min-height:0;touch-action:pan-y}
+.ch{display:flex;align-items:center;padding:10px 12px;border-radius:8px;cursor:pointer;margin-bottom:4px;border:1px solid transparent;background:#0b0f1c}
+.ch.foc{background:#111e38;border-color:#38bdf8}
+.ch-fl{font-size:26px;width:44px;text-align:center}
+.ch-lg{width:48px;height:28px;background:#1e293b;border-radius:4px;object-fit:cover}
+.ch-info{flex:1;margin-left:10px}
+.ch-nm{font-size:14px;font-weight:600;color:#e2e8f0}
+.ch-details{display:flex;flex-wrap:wrap;margin-top:2px;gap:6px}
+.ch-lang{font-size:9px;padding:2px 6px;border-radius:10px;background:#1a2540;color:#94a3b8}
+.ch-country{font-size:9px;color:#10b981}
+.ch-actions{display:flex;gap:6px}
+.ch-fav{background:none;border:none;font-size:20px;cursor:pointer;color:#64748b}
+.ch-fav.active{color:#f59e0b}
+.ch-delete{background:none;border:none;font-size:18px;cursor:pointer;color:#64748b}
+
+/* Botão Voltar centralizado (canais) */
+.channels-bottom-center{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:999;display:flex;justify-content:center}
+#c-back-center{pointer-events:auto;background:#111e38;border:3px solid #38bdf8;color:#38bdf8;font-size:20px;font-weight:bold;padding:12px 32px;border-radius:50px;cursor:pointer;box-shadow:0 0 15px rgba(56,189,248,0.7);transition:0.1s;width:auto;min-width:200px;text-align:center;}
+#c-back-center.foc,#c-back-center:hover{background:#38bdf8;color:#000;transform:scale(1.02)}
+
+/* ----- PLAYER (botão Voltar já centralizado) ----- */
+#s-player{background:#000}
+#vid{width:100%;height:100%}
+.p-ov{position:absolute;top:0;right:0;bottom:0;left:0;display:flex;flex-direction:column;justify-content:space-between;transition:opacity 0.4s;pointer-events:none}
+.p-ov.hide{opacity:0}
+.p-ov .p-top, .p-ov .p-bottom-center{pointer-events:auto}
+.p-top{background:linear-gradient(rgba(0,0,0,0.7),transparent);padding:16px 24px}
+.p-top h2{font-size:22px;color:#fff;text-shadow:0 2px 6px #000}
+.p-top p{font-size:12px;color:#94a3b8}
+.p-bottom-center{position:absolute;bottom:30px;left:0;right:0;display:flex;justify-content:center}
+#p-back{background:#111e38;border:3px solid #38bdf8;color:#38bdf8;font-size:20px;font-weight:bold;padding:12px 32px;border-radius:50px;cursor:pointer;box-shadow:0 0 15px rgba(56,189,248,0.3);transition:0.1s}
+#p-back.foc,#p-back:hover{background:#38bdf8;color:#000;transform:scale(1.02)}
+.p-status{position:absolute;bottom:15px;left:15px;background:rgba(0,0,0,0.6);padding:5px 12px;border-radius:20px;font-size:11px;color:#cbd5e1;pointer-events:none}
+
+.verify-status{position:fixed;bottom:10px;right:10px;background:#111e38;padding:5px 12px;border-radius:20px;font-size:10px;color:#38bdf8;z-index:200}
+.telemetry-indicator{position:fixed;bottom:15px;left:15px;background:#0a2a1a;border-radius:20px;padding:5px 12px;display:flex;gap:8px;font-size:10px;z-index:200;border:1px solid #10b981}
+.telemetry-dot{width:8px;height:8px;border-radius:50%;background:#10b981;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+.mode-badge{position:fixed;bottom:15px;right:15px;background:#1a2540;border-radius:20px;padding:5px 12px;font-size:10px;border:1px solid #38bdf8;color:#38bdf8;z-index:200}
+</style>
+</head>
+<body>
+
+<div id="s-menu" class="scr on">
+  <div class="menu-header">
+    <h1>📺 IPTV K10</h1>
+    <p>Use os botões ▲ ▼ ou as setas do controle</p>
+  </div>
+  <div class="menu-list-wrapper">
+    <div class="menu-list" id="menu-list"></div>
+  </div>
+</div>
+
+<div id="s-channels" class="scr">
+  <div class="c-head">
+    <span id="c-title">Canais</span>
+    <span id="c-cnt"></span>
+    <button id="c-reset-telemetry" title="Limpar telemetria local (todos os canais voltam a aparecer)">🔄 Resetar</button>
+    <button id="c-report-telemetry" title="Gerar relatório da telemetria (baixar arquivo)">📊 Relatório</button>
+  </div>
+  <div class="c-body">
+    <div id="c-load"><div class="spin"></div><div class="ltxt">Carregando...</div></div>
+    <div id="c-err"><div style="font-size:40px">⚠</div><div class="etxt" id="e-txt"></div><button id="c-retry">⟳ Tentar novamente</button></div>
+    <div id="c-list"></div>
+    <div class="channels-bottom-center">
+      <button id="c-back-center">VOLTAR</button>
+    </div>
+  </div>
+</div>
+
+<div id="s-player" class="scr">
+  <video id="vid" autoplay crossorigin="anonymous"></video>
+  <div class="p-ov" id="p-ov">
+    <div class="p-top">
+      <h2 id="p-nm">—</h2>
+      <p id="p-inf"></p>
+    </div>
+    <div class="p-bottom-center">
+      <button id="p-back">VOLTAR</button>
+    </div>
+    <div class="p-status" id="p-st">⏳ Conectando...</div>
+  </div>
+</div>
+
+<!-- Botões flutuantes de navegação -->
+<div class="nav-buttons" id="navButtons">
+  <button class="nav-btn" id="btnUp">▲</button>
+  <button class="nav-btn" id="btnDown">▼</button>
+</div>
+
+<div class="verify-status" id="verifyStatus">✓ Pronto</div>
+<div class="telemetry-indicator"><div class="telemetry-dot"></div><span>📡 Telemetria</span></div>
+<div class="mode-badge" id="modeBadge">💻 Computador</div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
+<script>
+// ==================== POLYFILLS ====================
+if(!Element.prototype.closest){
+  Element.prototype.closest=function(s){
+    var el=this;
+    while(el&&el.nodeType===1){
+      if(el.matches?el.matches(s):(el.msMatchesSelector?el.msMatchesSelector(s):false))return el;
+      el=el.parentNode;
+    }
+    return null;
+  };
+}
+if(!String.prototype.includes){String.prototype.includes=function(s){return this.indexOf(s)!==-1};}
+if(typeof NodeList!=='undefined'&&NodeList.prototype&&!NodeList.prototype.forEach){
+  NodeList.prototype.forEach=function(cb){for(var i=0;i<this.length;i++)cb(this[i],i,this);};
+}
+
+// ==================== CONFIGURAÇÕES ====================
+var modoTV = /tv|smarttv|webos|tizen|android.tv/i.test(navigator.userAgent);
+document.getElementById('modeBadge').innerHTML = modoTV ? '📺 Modo TV' : '💻 Computador';
+
+var CORS_PROXIES = [
+  function(u){return 'https://corsproxy.io/?url='+encodeURIComponent(u);},
+  function(u){return 'https://api.allorigins.win/raw?url='+encodeURIComponent(u);},
+  function(u){return 'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u);}
+];
+
+var FL_EMOJI = {BR:'🇧🇷',US:'🇺🇸',GB:'🇬🇧',FR:'🇫🇷',DE:'🇩🇪',ES:'🇪🇸',IT:'🇮🇹',PT:'🇵🇹',AR:'🇦🇷',MX:'🇲🇽',JP:'🇯🇵',KR:'🇰🇷',RU:'🇷🇺',IN:'🇮🇳',CN:'🇨🇳',AU:'🇦🇺',CA:'🇨🇦',NL:'🇳🇱',TR:'🇹🇷',SA:'🇸🇦',AE:'🇦🇪',PL:'🇵🇱'};
+function getFlag(c){return FL_EMOJI[c]||'🌍';}
+
+var LANG_MAP = {
+  'portugu':'PT','portuguese':'PT','pt':'PT',
+  'ingl':'GB','english':'GB','en':'GB',
+  'espanh':'ES','spanish':'ES','es':'ES',
+  'fran':'FR','french':'FR','fr':'FR',
+  'alem':'DE','german':'DE','de':'DE',
+  'italian':'IT','it':'IT',
+  'russ':'RU','ru':'RU',
+  'japan':'JP','ja':'JP',
+  'chin':'CN','zh':'CN',
+  'arab':'SA','ar':'SA',
+  'hindi':'IN','hi':'IN'
+};
+function getIdiomaFlag(lang){
+  if(!lang) return '🌍';
+  var l=lang.toLowerCase();
+  for(var k in LANG_MAP) if(l.indexOf(k)!==-1) return getFlag(LANG_MAP[k]);
+  return '🌍';
+}
+
+// ==================== CATEGORIAS COMPLETAS ====================
+var CATS = [
+  {G:'ACESSO GERAL'},
+  {id:'mundial', e:'🌍', n:'IPTV Mundial', s:'+10k canais todos os paises', t:'api', c:null},
+  {id:'freetv', e:'📡', n:'Free-TV', s:'Verificados & Estaveis', t:'m3u', u:['https://iptv-org.github.io/iptv/index.m3u','https://raw.githubusercontent.com/iptv-org/iptv/gh-pages/index.m3u']},
+  {id:'fluxus', e:'🔄', n:'Fluxustv', s:'Atualizada Diariamente', t:'m3u', u:['https://iptv-org.github.io/iptv/index.m3u','https://raw.githubusercontent.com/iptv-org/iptv/gh-pages/index.m3u']},
+  {G:'BRASIL'},
+  {id:'brasil', e:'🇧🇷', n:'IPTV Brasil', s:'Canais abertos brasileiros', t:'m3u', u:['https://iptv-org.github.io/iptv/countries/br.m3u','https://raw.githubusercontent.com/iptv-org/iptv/master/streams/br.m3u']},
+  {G:'INFORMACAO'},
+  {id:'noti', e:'📰', n:'Noticias', s:'Jornalismo ao vivo', t:'api', c:['news']},
+  {id:'nego', e:'💼', n:'Negocios & Clima', s:'Business economia clima', t:'api', c:['business','weather']},
+  {id:'docs', e:'🎥', n:'Documentarios', s:'Documentarios do mundo', t:'api', c:['documentary']},
+  {G:'ENTRETENIMENTO'},
+  {id:'entr', e:'🎭', n:'Entretenimento', s:'Entretenimento comedia geral', t:'api', c:['entertainment','comedy','general']},
+  {id:'esp', e:'⚽', n:'Esportes', s:'Futebol basquete tenis', t:'api', c:['sports']},
+  {id:'mus', e:'🎵', n:'Musica', s:'Canais de musica ao vivo', t:'api', c:['music']},
+  {id:'fil', e:'🎬', n:'Filmes & Series', s:'Filmes series animacao', t:'api', c:['movies','series','animation','classic']},
+  {id:'kids', e:'🧒', n:'Kids & Familia', s:'Infantil familia animacao', t:'api', c:['kids','family','animation']},
+  {G:'ESTILO DE VIDA'},
+  {id:'edu', e:'📚', n:'Educacao & Cultura', s:'Educacao cultura ciencia', t:'api', c:['education','culture','science']},
+  {id:'life', e:'🌿', n:'Lifestyle', s:'Culinaria viagem lifestyle', t:'api', c:['cooking','travel','lifestyle','outdoor']},
+  {id:'rel', e:'⛪', n:'Religioso', s:'Canais religiosos do mundo', t:'api', c:['religious']},
+  {id:'auto', e:'🚗', n:'Auto & Variedades', s:'Auto compras legislativo', t:'api', c:['auto','shop','legislative']}
+];
+
+// ==================== ESTADO GLOBAL ====================
+var SCR = 'menu';
+var mItems = [], mIdx = 0;
+var channels = [], currentChannelsList = [], currentCategory = null;
+var favoritos = {}, excluidos = {}, canalStatus = {};
+var STORAGE_FAV = 'iptv_k10_fav', STORAGE_EXC = 'iptv_k10_exc', STORAGE_STAT = 'iptv_k10_stat_v2';
+try{ favoritos = JSON.parse(localStorage.getItem(STORAGE_FAV)||'{}'); }catch(e){}
+try{ excluidos = JSON.parse(localStorage.getItem(STORAGE_EXC)||'{}'); }catch(e){}
+try{ canalStatus = JSON.parse(localStorage.getItem(STORAGE_STAT)||'{}'); }catch(e){}
+function saveFav(){ localStorage.setItem(STORAGE_FAV,JSON.stringify(favoritos)); }
+function saveExc(){ localStorage.setItem(STORAGE_EXC,JSON.stringify(excluidos)); }
+function saveStat(){ localStorage.setItem(STORAGE_STAT,JSON.stringify(canalStatus)); }
+
+// Player
+var hls = null, playing = false, failTmr = null, ovTmr = null, currentPlayingChannel = null, channelStartTime = 0;
+var qualityTimer = null;
+
+// Reavaliação semanal (fila de testes HEAD)
+var filaReavaliacao = [];
+var processandoFila = false;
+var REAVALIAR_INTERVALO_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
+
+// ==================== FUNÇÕES GERAIS ====================
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function setFoc(el, fromMouse){
+  if(!el) return;
+  if(el.classList.contains('foc')) return;
+  document.querySelectorAll('.foc').forEach(function(e){ e.classList.remove('foc'); });
+  el.classList.add('foc');
+  try{ el.focus({preventScroll:true}); }catch(e){}
+  if(!fromMouse && el.scrollIntoView) el.scrollIntoView({block:'nearest', behavior:'smooth'});
+}
+
+function showScr(name){
+  document.getElementById('s-menu').classList.toggle('on', name==='menu');
+  document.getElementById('s-channels').classList.toggle('on', name==='channels');
+  document.getElementById('s-player').classList.toggle('on', name==='player');
+  SCR = name;
+  if(name==='menu' && mItems.length) setFoc(mItems[mIdx]);
+  if(name==='player') setFoc(document.getElementById('p-back'));
+  if(name==='channels') {
+    var first = document.querySelector('#c-list .ch');
+    if(first) setFoc(first);
+    else setFoc(document.getElementById('c-back-center'));
+    iniciarReavaliacaoPendente();
+  }
+}
+
+// ==================== REQUISIÇÕES ====================
+function req(url, cb){
+  var x = new XMLHttpRequest();
+  x.open('GET', url);
+  x.timeout = 15000;
+  x.onreadystatechange = function(){
+    if(x.readyState!==4) return;
+    if(x.status>=200 && x.status<300) cb(null, x.responseText);
+    else cb('HTTP '+x.status);
+  };
+  x.ontimeout = function(){ cb('timeout'); };
+  x.onerror = function(){ cb('erro rede'); };
+  try{ x.send(); }catch(e){ cb(e.message); }
+}
+
+function getWithProxy(urls, cb){
+  var tentativas = [];
+  urls.forEach(function(u){
+    tentativas.push(u);
+    CORS_PROXIES.forEach(function(p){ tentativas.push(p(u)); });
+  });
+  var idx=0;
+  (function next(){
+    if(idx>=tentativas.length) return cb('Todas as fontes falharam');
+    req(tentativas[idx++], function(err, data){
+      if(!err && data && data.length>10) cb(null, data);
+      else next();
+    });
+  })();
+}
+
+function getApi(cb){
+  var base = 'https://iptv-org.github.io/api';
+  var chUrl = base+'/channels.json';
+  var stUrl = base+'/streams.json';
+  var chs=null, strs=null, err=null, done=0;
+  function check(){
+    if(++done===2){
+      if(err) cb(err);
+      else cb(null, {chs:chs, strs:strs});
+    }
+  }
+  getWithProxy([chUrl], function(e,d){
+    if(e){ err=e; check(); return; }
+    try{ chs=JSON.parse(d); check(); }catch(e){ err='JSON inválido (canais)'; check(); }
+  });
+  getWithProxy([stUrl], function(e,d){
+    if(e){ err=e; check(); return; }
+    try{ strs=JSON.parse(d); check(); }catch(e){ err='JSON inválido (streams)'; check(); }
+  });
+}
+
+function getM3u(urls, cb){
+  getWithProxy(urls, function(err, data){
+    if(err) return cb(err);
+    if(data.indexOf('#EXTM3U')===-1 && data.indexOf('#EXTINF')===-1) return cb('Não é M3U');
+    cb(null, data);
+  });
+}
+
+function parseM3u(txt){
+  var linhas = txt.split('\n'), out = [], cur = null;
+  for(var i=0;i<linhas.length && out.length<2000;i++){
+    var l = linhas[i].trim();
+    if(l.indexOf('#EXTINF:')===0){
+      var nm = l.match(/,(.+)$/);
+      var lg = l.match(/tvg-logo="([^"]+)"/);
+      var co = l.match(/tvg-country="([^"]+)"/);
+      var pais = co ? co[1].split(';')[0].toUpperCase() : '';
+      cur = { name: nm ? nm[1].trim() : 'Canal', logo: lg ? lg[1] : '', country: pais, flag: getFlag(pais) };
+    } else if(l && l.indexOf('#')!==0 && cur){
+      cur.url = l;
+      out.push(cur);
+      cur = null;
+    }
+  }
+  return out;
+}
+
+function buildApi(data, cats){
+  var streams = {};
+  for(var i=0;i<data.strs.length;i++) if(data.strs[i].channel) streams[data.strs[i].channel] = data.strs[i].url;
+  var out = [];
+  for(var j=0;j<data.chs.length && out.length<2000;j++){
+    var ch = data.chs[j];
+    if(!streams[ch.id]) continue;
+    if(cats){
+      var ok = false;
+      for(var k=0;k<(ch.categories||[]).length;k++) if(cats.indexOf(ch.categories[k])!==-1){ ok=true; break; }
+      if(!ok) continue;
+    }
+    var lang = (ch.languages && ch.languages[0]) || '';
+    out.push({
+      id: ch.id,
+      name: ch.name,
+      logo: ch.logo || '',
+      country: (ch.country||'').toUpperCase(),
+      flag: getFlag(ch.country),
+      url: streams[ch.id],
+      language: lang,
+      langDisplay: lang ? getIdiomaFlag(lang)+' '+lang : '🌍'
+    });
+  }
+  return out;
+}
+
+function toggleFavorito(id, ev){
+  if(ev && ev.stopPropagation) ev.stopPropagation();
+  if(favoritos[id]) delete favoritos[id];
+  else favoritos[id]=true;
+  saveFav();
+  carregarCanaisFiltrados();
+}
+function excluirCanal(id, ev){
+  if(ev && ev.stopPropagation) ev.stopPropagation();
+  if(confirm('Excluir permanentemente?')){
+    excluidos[id]=true; saveExc();
+    carregarCanaisFiltrados();
+    document.getElementById('verifyStatus').innerHTML='Canal excluído';
+    setTimeout(function(){document.getElementById('verifyStatus').innerHTML='✓ Pronto';},2000);
+  }
+}
+
+// ========== TELEMETRIA AVANÇADA ==========
+function obterOuCriarStatusCanal(ch){
+  if(!canalStatus[currentCategory]) canalStatus[currentCategory] = {};
+  if(!canalStatus[currentCategory][ch.id]) {
+    canalStatus[currentCategory][ch.id] = {
+      status: 'bom',
+      falhas: 0,
+      lastCheck: 0,
+      nextTestDate: 0,
+      name: ch.name
+    };
+  }
+  return canalStatus[currentCategory][ch.id];
+}
+
+function registrarFalha(ch){
+  var st = obterOuCriarStatusCanal(ch);
+  st.falhas++;
+  st.lastCheck = Date.now();
+  if(st.falhas >= 5 && st.status !== 'ruim') {
+    st.status = 'ruim';
+    st.nextTestDate = Date.now() + REAVALIAR_INTERVALO_MS;
+    console.log(`📊 Canal ${ch.name} agora é RUIM (${st.falhas} falhas)`);
+    document.getElementById('verifyStatus').innerHTML = `❌ Canal ${ch.name.substring(0,25)} marcado como ruim (${st.falhas}/5)`;
+    setTimeout(() => { if(document.getElementById('verifyStatus').innerHTML.includes('marcado')) document.getElementById('verifyStatus').innerHTML = '✓ Pronto'; }, 3000);
+  } else if(st.falhas < 5) {
+    console.log(`📊 Canal ${ch.name} falha ${st.falhas}/5`);
+    document.getElementById('verifyStatus').innerHTML = `⚠️ Falha ${st.falhas}/5: ${ch.name.substring(0,25)}`;
+    setTimeout(() => { if(document.getElementById('verifyStatus').innerHTML.includes('Falha')) document.getElementById('verifyStatus').innerHTML = '✓ Pronto'; }, 2500);
+  }
+  saveStat();
+  atualizarIndicadorTelemetria(ch, false);
+}
+
+function registrarSucesso(ch){
+  var st = obterOuCriarStatusCanal(ch);
+  var eraRuim = (st.status === 'ruim');
+  st.falhas = 0;
+  st.status = 'bom';
+  st.lastCheck = Date.now();
+  st.nextTestDate = 0;
+  saveStat();
+  atualizarIndicadorTelemetria(ch, true);
+  console.log(`📊 Canal ${ch.name} está BOM (falhas zeradas)`);
+  if(eraRuim) {
+    document.getElementById('verifyStatus').innerHTML = `✅ Canal ${ch.name.substring(0,25)} reabilitado!`;
+    setTimeout(() => document.getElementById('verifyStatus').innerHTML = '✓ Pronto', 3000);
+  }
+}
+
+function atualizarIndicadorTelemetria(ch, isBom){
+  var telSpan = document.querySelector('.telemetry-indicator span');
+  if(telSpan) {
+    var nomeCurto = (ch.name || '').substring(0, 15);
+    telSpan.innerHTML = isBom ? `📡 ${nomeCurto} ✅` : `📡 ${nomeCurto} ⚠️`;
+    setTimeout(() => { telSpan.innerHTML = '📡 Telemetria'; }, 4000);
+  }
+}
+
+// Teste HEAD rápido (para reavaliação)
+function testarCanalHead(ch, callback){
+  var url = ch.url;
+  if(!url) return callback(false);
+  var tentativas = [url];
+  for(var i=0;i<CORS_PROXIES.length;i++) tentativas.push(CORS_PROXIES[i](url));
+  var idx = 0;
+  function testarProximo(){
+    if(idx >= tentativas.length) return callback(false);
+    var xhr = new XMLHttpRequest();
+    var timeoutId = setTimeout(function(){ if(xhr) xhr.abort(); testarProximo(); }, 8000);
+    xhr.open('HEAD', tentativas[idx++], true);
+    xhr.onload = function(){ clearTimeout(timeoutId); if(xhr.status >= 200 && xhr.status < 300) callback(true); else testarProximo(); };
+    xhr.onerror = function(){ clearTimeout(timeoutId); testarProximo(); };
+    xhr.ontimeout = function(){ clearTimeout(timeoutId); testarProximo(); };
+    try{ xhr.send(); }catch(e){ testarProximo(); }
+  }
+  testarProximo();
+}
+
+function adicionarReavaliacao(canal){
+  if(!canal || !canal.id) return;
+  for(var i=0;i<filaReavaliacao.length;i++) if(filaReavaliacao[i].id === canal.id) return;
+  filaReavaliacao.push(canal);
+  if(!processandoFila) processarFilaReavaliacao();
+}
+
+function processarFilaReavaliacao(){
+  if(filaReavaliacao.length === 0) {
+    processandoFila = false;
+    return;
+  }
+  processandoFila = true;
+  var canal = filaReavaliacao.shift();
+  console.log(`🔄 Reavaliando canal ${canal.name}`);
+  testarCanalHead(canal, function(ok){
+    var st = canalStatus[currentCategory] && canalStatus[currentCategory][canal.id];
+    if(ok && st && st.status === 'ruim') {
+      st.falhas = 0;
+      st.status = 'bom';
+      st.nextTestDate = 0;
+      saveStat();
+      if(currentCategory === (st.categoria || currentCategory)) carregarCanaisFiltrados();
+      console.log(`✅ Canal ${canal.name} reabilitado após reavaliação`);
+    } else if(!ok && st && st.status === 'ruim') {
+      st.lastCheck = Date.now();
+      st.nextTestDate = Date.now() + REAVALIAR_INTERVALO_MS;
+      saveStat();
+      console.log(`⏳ Canal ${canal.name} continua ruim, próximo teste em 7 dias`);
+    }
+    setTimeout(processarFilaReavaliacao, 1000);
+  });
+}
+
+function iniciarReavaliacaoPendente(){
+  if(!currentCategory) return;
+  var catStatus = canalStatus[currentCategory] || {};
+  var agora = Date.now();
+  for(var id in catStatus){
+    var st = catStatus[id];
+    if(st.status === 'ruim' && st.nextTestDate && st.nextTestDate <= agora){
+      var canalEncontrado = null;
+      for(var i=0;i<channels.length;i++) if(channels[i].id === id) { canalEncontrado = channels[i]; break; }
+      if(canalEncontrado) adicionarReavaliacao(canalEncontrado);
+    }
+  }
+}
+
+function carregarCanaisFiltrados(){
+  if(!currentCategory) return;
+  var catStatus = canalStatus[currentCategory] || {};
+  var agora = Date.now();
+  var filtrados = [];
+  for(var i=0;i<channels.length;i++){
+    var ch = channels[i];
+    if(excluidos[ch.id]) continue;
+    var st = catStatus[ch.id];
+    if(st && st.status === 'ruim' && st.nextTestDate && st.nextTestDate > agora) continue;
+    filtrados.push(ch);
+  }
+  filtrados.sort(function(a,b){
+    var af = favoritos[a.id]?1:0, bf = favoritos[b.id]?1:0;
+    if(af!==bf) return bf-af;
+    return (a.name||'').localeCompare(b.name||'');
+  });
+  currentChannelsList = filtrados;
+  renderListaCanais();
+}
+
+function renderListaCanais(){
+  var container = document.getElementById('c-list');
+  container.innerHTML = '';
+  for(var i=0;i<currentChannelsList.length;i++){
+    var ch = currentChannelsList[i];
+    var div = document.createElement('div');
+    div.className = 'ch';
+    div.setAttribute('data-idx', i);
+    var logoHtml = ch.logo ? '<img class="ch-lg" src="'+esc(ch.logo)+'" onerror="this.style.display=\'none\'">' : '<span class="ch-fl">'+ch.flag+'</span>';
+    div.innerHTML = logoHtml +
+      '<div class="ch-info">'+
+        '<div class="ch-nm">'+esc(ch.name)+'</div>'+
+        '<div class="ch-details">'+
+          '<span class="ch-lang">'+ch.langDisplay+'</span>'+
+          '<span class="ch-country">'+ch.flag+' '+(ch.country||'Mundo')+'</span>'+
+        '</div>'+
+      '</div>'+
+      '<div class="ch-actions">'+
+        '<button class="ch-fav'+(favoritos[ch.id]?' active':'')+'" data-id="'+esc(ch.id)+'">'+(favoritos[ch.id]?'★':'☆')+'</button>'+
+        '<button class="ch-delete" data-id="'+esc(ch.id)+'">🗑</button>'+
+      '</div>';
+    div.onclick = (function(idx){
+      return function(e){
+        var t = e.target;
+        if(t.classList && (t.classList.contains('ch-fav')||t.classList.contains('ch-delete'))) return;
+        play(idx);
+      };
+    })(i);
+    div.onmouseover = function(){ setFoc(div, true); };
+    var favBtn = div.querySelector('.ch-fav');
+    if(favBtn) favBtn.onclick = (function(id){ return function(e){ e.stopPropagation(); toggleFavorito(id,e); }; })(ch.id);
+    var delBtn = div.querySelector('.ch-delete');
+    if(delBtn) delBtn.onclick = (function(id){ return function(e){ e.stopPropagation(); excluirCanal(id,e); }; })(ch.id);
+    container.appendChild(div);
+  }
+  document.getElementById('c-cnt').innerHTML = currentChannelsList.length + ' canais';
+  var first = document.querySelector('#c-list .ch');
+  if(first) setFoc(first);
+  else setFoc(document.getElementById('c-back-center'));
+}
+
+// ========== RELATÓRIO DE TELEMETRIA ==========
+function gerarRelatorioTelemetria(){
+  var now = new Date();
+  var dataStr = now.toLocaleString('pt-BR');
+  var relatorio = "=== RELATÓRIO DE TELEMETRIA IPTV K10 ===\n";
+  relatorio += "Gerado em: " + dataStr + "\n";
+  relatorio += "Dispositivo: " + (modoTV ? "TV" : "Computador") + "\n";
+  relatorio += "Total de categorias com dados: " + Object.keys(canalStatus).length + "\n\n";
+  
+  for(var cat in canalStatus){
+    relatorio += "▶ CATEGORIA: " + cat + "\n";
+    var canaisCat = canalStatus[cat];
+    var totalCanais = Object.keys(canaisCat).length;
+    var bons = 0, ruins = 0;
+    for(var id in canaisCat){
+      if(canaisCat[id].status === 'bom') bons++;
+      else if(canaisCat[id].status === 'ruim') ruins++;
+    }
+    relatorio += "   Total canais monitorados: " + totalCanais + " (bons: "+bons+", ruins: "+ruins+")\n";
+    relatorio += "   Detalhes:\n";
+    for(var id in canaisCat){
+      var st = canaisCat[id];
+      var ultimoTeste = st.lastCheck ? new Date(st.lastCheck).toLocaleString('pt-BR') : 'nunca';
+      var proxTeste = st.nextTestDate ? new Date(st.nextTestDate).toLocaleString('pt-BR') : 'não agendado';
+      relatorio += "     • " + st.name + " (id: "+id+")\n";
+      relatorio += "       Status: " + st.status + " | Falhas: " + st.falhas + "\n";
+      relatorio += "       Último teste: " + ultimoTeste + "\n";
+      relatorio += "       Próximo teste: " + proxTeste + "\n";
+    }
+    relatorio += "\n";
+  }
+  
+  relatorio += "=== FIM DO RELATÓRIO ===\n";
+  
+  // criar blob e download
+  var blob = new Blob([relatorio], {type: 'text/plain;charset=utf-8'});
+  var link = document.createElement('a');
+  var url = URL.createObjectURL(blob);
+  link.href = url;
+  link.download = 'telemetria_iptv_k10_' + now.toISOString().slice(0,19).replace(/:/g, '-') + '.txt';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  
+  document.getElementById('verifyStatus').innerHTML = '📊 Relatório gerado!';
+  setTimeout(() => document.getElementById('verifyStatus').innerHTML = '✓ Pronto', 3000);
+}
+
+// ==================== PLAYER COM VERIFICAÇÃO DE QUALIDADE ====================
+function stopHls(){ if(hls){ try{ hls.destroy(); }catch(e){} hls=null; } }
+
+function cancelarQualidade(){ if(qualityTimer){ clearTimeout(qualityTimer); qualityTimer=null; } }
+
+function verificarQualidade(ch, vid){
+  cancelarQualidade();
+  qualityTimer = setTimeout(function(){
+    if(!playing) return;
+    var w = 64, h = 36;
+    var frame1 = null;
+    var audioBytes1 = (vid.webkitAudioDecodedByteCount !== undefined) ? vid.webkitAudioDecodedByteCount : 0;
+    try{
+      var c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      var ctx = c.getContext('2d');
+      ctx.drawImage(vid, 0, 0, w, h);
+      frame1 = ctx.getImageData(0,0,w,h).data;
+    }catch(e){ frame1 = null; }
+    qualityTimer = setTimeout(function(){
+      if(!playing) return;
+      var audioBytes2 = (vid.webkitAudioDecodedByteCount !== undefined) ? vid.webkitAudioDecodedByteCount : 0;
+      var temAudio = (typeof vid.webkitAudioDecodedByteCount !== 'undefined') ? (audioBytes2 - audioBytes1) > 100 : true;
+      var videoMovendo = true;
+      if(frame1){
+        try{
+          var c2 = document.createElement('canvas');
+          c2.width = w; c2.height = h;
+          var ctx2 = c2.getContext('2d');
+          ctx2.drawImage(vid, 0, 0, w, h);
+          var frame2 = ctx2.getImageData(0,0,w,h).data;
+          var diffPixels = 0;
+          for(var i=0;i<frame1.length;i+=4){
+            var d = Math.abs(frame1[i]-frame2[i])+Math.abs(frame1[i+1]-frame2[i+1])+Math.abs(frame1[i+2]-frame2[i+2]);
+            if(d>30) diffPixels++;
+          }
+          var pct = (diffPixels/(w*h))*100;
+          videoMovendo = pct > 0.5;
+        }catch(e){ videoMovendo = true; }
+      }
+      if(videoMovendo || temAudio){
+        document.getElementById('p-st').innerHTML = '▶ Ao vivo';
+        registrarSucesso(ch);
+      } else {
+        document.getElementById('p-st').innerHTML = '❌ Sem sinal (vídeo e áudio)';
+        registrarFalha(ch);
+        setTimeout(function(){ stopHls(); showScr('channels'); }, 2500);
+      }
+    }, 3000);
+  }, 4000);
+}
+
+function play(idx){
+  var ch = currentChannelsList[idx];
+  if(!ch) return;
+  playing = false;
+  clearTimeout(failTmr);
+  cancelarQualidade();
+  currentPlayingChannel = ch;
+  channelStartTime = Date.now();
+  document.getElementById('p-nm').innerHTML = ch.flag+' '+esc(ch.name);
+  document.getElementById('p-inf').innerHTML = (ch.country||'Mundo') + (ch.language?' · '+ch.language:'');
+  document.getElementById('p-st').innerHTML = '⏳ Conectando...';
+  showScr('player');
+  showOv();
+  var vid = document.getElementById('vid');
+  stopHls();
+  vid.src = '';
+  var url = ch.url;
+  if(!url){
+    document.getElementById('p-st').innerHTML = '❌ URL inválida';
+    registrarFalha(ch);
+    setTimeout(function(){ showScr('channels'); }, 2000);
+    return;
+  }
+  var failTimeout = setTimeout(function(){
+    if(!playing){
+      registrarFalha(ch);
+      showScr('channels');
+    }
+  }, 15000);
+  failTmr = failTimeout;
+  var tentouHls = false;
+  vid.onerror = function(){
+    if(!tentouHls){
+      tentouHls = true;
+      tentarHls();
+    } else {
+      document.getElementById('p-st').innerHTML = '❌ Falha total';
+      registrarFalha(ch);
+      setTimeout(function(){ showScr('channels'); }, 2000);
+    }
+  };
+  vid.oncanplay = function(){
+    playing = true;
+    clearTimeout(failTmr);
+    document.getElementById('p-st').innerHTML = '▶ Verificando qualidade...';
+    registrarSucesso(ch);
+    verificarQualidade(ch, vid);
+  };
+  vid.src = url;
+  vid.load();
+  var playPromise = vid.play();
+  if(playPromise && playPromise.catch) playPromise.catch(function(e){});
+  function tentarHls(){
+    if(typeof Hls === 'undefined'){
+      if(window.hlsLoadedOnce){ registrarFalha(ch); showScr('channels'); return; }
+      window.hlsLoadedOnce = true;
+      document.getElementById('p-st').innerHTML = '⏳ Carregando HLS...';
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js';
+      s.onload = tentarHls;
+      s.onerror = function(){ document.getElementById('p-st').innerHTML = '❌ HLS indisponível'; registrarFalha(ch); setTimeout(function(){ showScr('channels'); }, 2000); };
+      document.head.appendChild(s);
+      return;
+    }
+    if(!Hls.isSupported()){ registrarFalha(ch); showScr('channels'); return; }
+    hls = new Hls({ maxBufferLength: 30 });
+    hls.loadSource(url);
+    hls.attachMedia(vid);
+    hls.on(Hls.Events.MANIFEST_PARSED, function(){
+      clearTimeout(failTmr);
+      playing = true;
+      document.getElementById('p-st').innerHTML = '▶ Verificando qualidade...';
+      registrarSucesso(ch);
+      verificarQualidade(ch, vid);
+      vid.play().catch(function(e){});
+    });
+    hls.on(Hls.Events.ERROR, function(ev, d){
+      if(d.fatal){
+        document.getElementById('p-st').innerHTML = '❌ Erro HLS';
+        registrarFalha(ch);
+        setTimeout(function(){ showScr('channels'); }, 2000);
+      }
+    });
+  }
+}
+
+function showOv(){
+  var ov = document.getElementById('p-ov');
+  ov.classList.remove('hide');
+  clearTimeout(ovTmr);
+  ovTmr = setTimeout(function(){ ov.classList.add('hide'); }, 3500);
+}
+
+// ==================== CARREGAR CATEGORIA ====================
+function loadCat(cat){
+  currentCategory = cat.id;
+  showScr('channels');
+  document.getElementById('c-title').textContent = cat.n;
+  document.getElementById('c-cnt').textContent = '';
+  document.getElementById('c-load').style.display = 'flex';
+  document.getElementById('c-err').style.display = 'none';
+  document.getElementById('c-list').innerHTML = '';
+  function erro(msg){
+    document.getElementById('c-load').style.display = 'none';
+    document.getElementById('c-err').style.display = 'flex';
+    document.getElementById('e-txt').textContent = msg;
+  }
+  if(cat.t === 'm3u'){
+    getM3u(cat.u, function(err, data){
+      if(err) return erro('M3U: '+err);
+      var chs = parseM3u(data);
+      if(!chs.length) return erro('Nenhum canal encontrado');
+      for(var i=0;i<chs.length;i++) if(!chs[i].id) chs[i].id = 'ch_'+i+'_'+Date.now()+'_'+Math.random();
+      channels = chs;
+      carregarCanaisFiltrados();
+      document.getElementById('c-load').style.display = 'none';
+      iniciarReavaliacaoPendente();
+    });
+  } else {
+    getApi(function(err, data){
+      if(err) return erro('API: '+err);
+      var chs = buildApi(data, cat.c);
+      if(!chs.length) return erro('Nenhum canal nesta categoria');
+      channels = chs;
+      carregarCanaisFiltrados();
+      document.getElementById('c-load').style.display = 'none';
+      iniciarReavaliacaoPendente();
+    });
+  }
+}
+
+// ==================== MONTAR MENU ====================
+function buildMenu(){
+  var container = document.getElementById('menu-list');
+  container.innerHTML = '';
+  mItems = [];
+  for(var i=0;i<CATS.length;i++){
+    var d = CATS[i];
+    if(d.G){
+      var grp = document.createElement('div');
+      grp.className = 'm-grp';
+      grp.innerText = d.G;
+      container.appendChild(grp);
+    } else {
+      var item = document.createElement('div');
+      item.className = 'm-item';
+      item.innerHTML = '<div><span class="m-ico">'+d.e+'</span> <span class="m-lbl">'+esc(d.n)+'</span><div class="m-sub">'+esc(d.s)+'</div></div>';
+      item._cat = d;
+      (function(cat, el, idx){
+        el.onclick = function(){ loadCat(cat); };
+        el.onmouseover = function(){ mIdx=idx; setFoc(el, true); };
+      })(d, item, mItems.length);
+      container.appendChild(item);
+      mItems.push(item);
+    }
+  }
+  if(mItems.length) setFoc(mItems[0]);
+}
+
+// ==================== NAVEGAÇÃO POR BOTÕES ====================
+function navegarMenu(delta){
+  var novo = mIdx + delta;
+  if(novo>=0 && novo<mItems.length){
+    mIdx = novo;
+    setFoc(mItems[mIdx]);
+  }
+}
+function navegarCanais(delta){
+  var canais = document.querySelectorAll('#c-list .ch');
+  if(canais.length){
+    var idxAtual = -1;
+    for(var i=0;i<canais.length;i++) if(canais[i].classList.contains('foc')){ idxAtual=i; break; }
+    var novo = idxAtual + delta;
+    if(novo>=0 && novo<canais.length) setFoc(canais[novo]);
+    else {
+      if(delta>0 && idxAtual===canais.length-1) setFoc(document.getElementById('c-back-center'));
+      else if(delta<0 && idxAtual===0) setFoc(document.getElementById('c-back-center'));
+    }
+  } else {
+    setFoc(document.getElementById('c-back-center'));
+  }
+}
+function navegarGlobal(delta){
+  if(SCR === 'menu') navegarMenu(delta);
+  else if(SCR === 'channels') navegarCanais(delta);
+}
+function selecionarAtual(){
+  if(SCR === 'menu'){
+    if(mItems[mIdx] && mItems[mIdx]._cat) loadCat(mItems[mIdx]._cat);
+  } else if(SCR === 'channels'){
+    var foc = document.querySelector('#c-list .ch.foc');
+    if(foc){
+      var idx = parseInt(foc.getAttribute('data-idx'));
+      if(!isNaN(idx)) play(idx);
+    } else {
+      var back = document.getElementById('c-back-center');
+      if(back && back.classList.contains('foc')) showScr('menu');
+    }
+  }
+}
+
+// ==================== EVENTOS ====================
+document.getElementById('c-back-center').onclick = function(){ showScr('menu'); };
+document.getElementById('c-back-center').onmouseover = function(){ setFoc(this, true); };
+document.getElementById('c-retry').onclick = function(){ if(window.retryFn) window.retryFn(); };
+document.getElementById('p-back').onclick = function(){ currentPlayingChannel=null; stopHls(); showScr('channels'); };
+document.getElementById('p-back').onmouseover = function(){ setFoc(this, true); };
+document.getElementById('s-player').onmousemove = showOv;
+document.getElementById('btnUp').onclick = function(){ navegarGlobal(-1); };
+document.getElementById('btnDown').onclick = function(){ navegarGlobal(1); };
+document.getElementById('c-reset-telemetry').onclick = function(){
+  if(confirm('Limpar toda a telemetria? Todos os canais ruins voltarão a aparecer.')){
+    localStorage.removeItem(STORAGE_STAT);
+    canalStatus = {};
+    saveStat();
+    if(currentCategory) carregarCanaisFiltrados();
+    document.getElementById('verifyStatus').innerHTML = '🔄 Telemetria resetada!';
+    setTimeout(function(){ document.getElementById('verifyStatus').innerHTML = '✓ Pronto'; }, 3000);
+  }
+};
+document.getElementById('c-report-telemetry').onclick = function(){
+  gerarRelatorioTelemetria();
+};
+
+document.onkeydown = function(e){
+  e = e || window.event;
+  var k = e.keyCode || e.which;
+  var UP = (k===38), DN = (k===40), OK = (k===13||k===32);
+  var BK = (k===8||k===27||k===36||k===461);
+  var block = [8,13,27,32,36,37,38,39,40,461];
+  if(block.indexOf(k)!==-1){ if(e.preventDefault) e.preventDefault(); else e.returnValue=false; }
+  if(UP) navegarGlobal(-1);
+  else if(DN) navegarGlobal(1);
+  else if(OK) selecionarAtual();
+  else if(BK){
+    if(SCR === 'channels') showScr('menu');
+    else if(SCR === 'player'){ currentPlayingChannel=null; stopHls(); showScr('channels'); }
+  }
+  if(SCR === 'player') showOv();
+};
+
+// Auto-hide cursor
+var cursorTimer;
+document.onmousemove = function(){
+  document.body.classList.remove('cursor-off');
+  clearTimeout(cursorTimer);
+  cursorTimer = setTimeout(function(){
+    if(SCR === 'player') document.body.classList.add('cursor-off');
+  }, 4000);
+};
+
+// Inicialização
+buildMenu();
+window.retryFn = function(){ if(currentCategory) loadCat(CATS.find(function(c){return c.id===currentCategory;})); };
+console.log('IPTV K10 - Telemetria avançada com relatório e botões centralizados');
+</script>
+</body>
+</html>

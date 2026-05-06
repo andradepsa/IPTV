@@ -40,7 +40,7 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 .etxt{font-size:14px;color:#f87171;text-align:center;max-width:360px;padding:0 20px;line-height:1.5}
 #c-retry{background:#111e38;border:2px solid #38bdf8;color:#38bdf8;font-size:15px;padding:10px 24px;border-radius:8px;cursor:pointer}
 #c-retry.foc,#c-retry:hover{background:#38bdf8;color:#07090f}
-#c-list{position:absolute;inset:0;overflow-y:auto;padding:8px;display:none}
+#c-list{position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:scroll;overflow-x:hidden;padding:8px 16px 8px 8px;display:none;scrollbar-width:thin;scrollbar-color:#38bdf8 #0b0f1c}
 .ch{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:7px;cursor:pointer;margin-bottom:3px;border:2px solid transparent}
 .ch:hover,.ch.foc{background:#111e38;border-color:#38bdf8}
 .ch-fl{font-size:22px;width:36px;text-align:center;flex-shrink:0}
@@ -120,10 +120,11 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 /* ====== SUPORTE A MOUSE / TOUCH PARA TV ====== */
 .m-item,.ch,.ch-fav,.ch-delete,#c-back,#c-retry,#p-back,button{cursor:pointer}
 #c-list{scroll-behavior:smooth}
-#c-list::-webkit-scrollbar{width:8px}
-#c-list::-webkit-scrollbar-track{background:#0b0f1c}
-#c-list::-webkit-scrollbar-thumb{background:#38bdf8;border-radius:4px}
+#c-list::-webkit-scrollbar{width:12px;display:block}
+#c-list::-webkit-scrollbar-track{background:#0b0f1c;border-radius:4px}
+#c-list::-webkit-scrollbar-thumb{background:#38bdf8;border-radius:4px;min-height:40px}
 #c-list::-webkit-scrollbar-thumb:hover{background:#7dd3fc}
+#c-list::-webkit-scrollbar-button{display:none}
 .m-side::-webkit-scrollbar{width:6px}
 .m-side::-webkit-scrollbar-track{background:#07090f}
 .m-side::-webkit-scrollbar-thumb{background:#1a2540;border-radius:3px}
@@ -161,6 +162,8 @@ body.cursor-off,body.cursor-off *{cursor:none!important}
     <div class="scroll-zone top" id="sz-top"></div>
     <div id="c-list"></div>
     <div class="scroll-zone bot" id="sz-bot"></div>
+    <button id="btn-scroll-up" onclick="document.getElementById('c-list').scrollTop-=200" title="Rolar para cima" style="display:none;position:absolute;right:4px;top:8px;z-index:20;background:#38bdf8;color:#07090f;border:none;border-radius:6px;width:32px;height:44px;font-size:18px;cursor:pointer;font-weight:bold">▲</button>
+    <button id="btn-scroll-dn" onclick="document.getElementById('c-list').scrollTop+=200" title="Rolar para baixo" style="display:none;position:absolute;right:4px;bottom:8px;z-index:20;background:#38bdf8;color:#07090f;border:none;border-radius:6px;width:32px;height:44px;font-size:18px;cursor:pointer;font-weight:bold">▼</button>
   </div>
 </div>
 
@@ -589,6 +592,10 @@ function showScr(name){
   if(name==='channels' && cItems && cItems.length > 0 && cIdx < cItems.length) {
     setTimeout(function() { setFoc(cItems[cIdx]); }, 50);
   }
+  var btnUp=document.getElementById('btn-scroll-up');
+  var btnDn=document.getElementById('btn-scroll-dn');
+  if(btnUp) btnUp.style.display = name==='channels' ? 'block' : 'none';
+  if(btnDn) btnDn.style.display = name==='channels' ? 'block' : 'none';
 }
 
 function setFoc(el){

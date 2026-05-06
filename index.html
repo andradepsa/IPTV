@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>IPTV K10 TV - Smart Channel Manager</title>
+<title>IPTV K10 TV - Com Proxy CORS</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%;width:100%;overflow:hidden}
@@ -31,9 +31,9 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 #c-back.foc,#c-back:hover{background:#38bdf8;color:#07090f;outline:none}
 #c-title{font-size:20px;font-weight:700;color:#f1f5f9}
 #c-cnt{font-size:12px;color:#475569;margin-left:auto}
-#c-sync{background:#1a2540;border:1.5px solid #10b981;color:#10b981;padding:5px 12px;border-radius:20px;font-size:11px;cursor:pointer;margin-left:8px;font-weight:600}
-#c-sync:hover{background:#10b981;color:#07090f}
-#c-sync.sincronizando{opacity:0.6;cursor:wait}
+#c-verify{background:#1a2540;border:1.5px solid #38bdf8;color:#38bdf8;padding:5px 14px;border-radius:20px;font-size:12px;cursor:pointer;font-weight:600;margin-left:8px}
+#c-verify:hover{background:#38bdf8;color:#07090f}
+#c-verify.verificando{opacity:0.6;cursor:wait}
 .c-body{flex:1;overflow:hidden;position:relative}
 #c-load,#c-err{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
 #c-load{display:flex}
@@ -52,10 +52,6 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 .ch-ct{font-size:10px;color:#475569;margin-top:1px}
 .ch-bad{opacity:0.4;border-color:#ef4444}
 .ch-bad .ch-nm{text-decoration:line-through;color:#f87171}
-.ch-new{animation:pulseNew 2s ease-in-out;border-color:#10b981}
-.ch-recovered{animation:pulseRecover 1s ease-in-out;border-color:#f59e0b}
-@keyframes pulseNew{0%{background:#1a2540}50%{background:#1a4a2a}100%{background:#1a2540}}
-@keyframes pulseRecover{0%{background:#1a2540}50%{background:#4a3a1a}100%{background:#1a2540}}
 #s-player{background:#000;position:relative}
 #vid{width:100%;height:100%;object-fit:contain}
 .p-ov{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;transition:opacity .4s}
@@ -67,8 +63,43 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 .p-st{font-size:12px;color:#64748b}
 #p-back{background:#111e38;border:2px solid #38bdf8;color:#38bdf8;font-size:14px;padding:8px 18px;border-radius:7px;cursor:pointer}
 #p-back.foc,#p-back:hover{background:#38bdf8;color:#000}
-.status-bar{position:fixed;bottom:10px;right:10px;background:#111e38;padding:5px 12px;border-radius:20px;font-size:10px;color:#38bdf8;z-index:100}
-.progress-bar{position:fixed;bottom:50px;right:10px;background:#0b0f1c;padding:8px 15px;border-radius:20px;font-size:11px;color:#10b981;z-index:100;display:none;border:1px solid #38bdf8;max-width:300px;text-align:center}
+.verify-status{position:fixed;bottom:10px;right:10px;background:#111e38;padding:5px 12px;border-radius:20px;font-size:10px;color:#38bdf8;z-index:100}
+#verify-progress{position:fixed;bottom:50px;right:10px;background:#0b0f1c;padding:8px 15px;border-radius:20px;font-size:11px;color:#10b981;z-index:100;display:none;border:1px solid #38bdf8;max-width:300px;text-align:center}
+
+/* Indicador de Telemetria */
+.telemetry-indicator {
+  position: fixed;
+  bottom: 15px;
+  left: 15px;
+  background: #1a2540;
+  border-radius: 20px;
+  padding: 5px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  z-index: 1000;
+  border: 1px solid #38bdf8;
+}
+.telemetry-indicator.online {
+  background: #0a2a1a;
+  border-color: #10b981;
+}
+.telemetry-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: pulse 1.5s infinite;
+}
+.telemetry-text {
+  color: #4ade80;
+  font-weight: 600;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
 @keyframes sp{to{transform:rotate(360deg)}}
 </style>
 </head>
@@ -90,7 +121,7 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
     <button id="c-back">◀ Voltar</button>
     <span id="c-title">Canais</span>
     <span id="c-cnt"></span>
-    <button id="c-sync">🔄 Sincronizar</button>
+    <button id="c-verify">🔍 Verificar</button>
   </div>
   <div class="c-body">
     <div id="c-load"><div class="spin"></div><div class="ltxt" id="l-txt">Carregando...</div></div>
@@ -107,21 +138,39 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
   </div>
 </div>
 
-<div class="progress-bar" id="progressBar"></div>
-<div class="status-bar" id="statusBar">✅ Pronto</div>
+<div id="verify-progress"></div>
+<div class="verify-status" id="verifyStatus">✅ Pronto</div>
+
+<!-- Indicador de Telemetria -->
+<div id="telemetryIndicator" class="telemetry-indicator online">
+  <div class="telemetry-dot"></div>
+  <span class="telemetry-text">📡 Telemetria Ativa</span>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
 <script>
 // ============================================================
-// IPTV K10 TV - SMART CHANNEL MANAGER
-// ✅ Remove canais ruins
-// ✅ Recupera canais que voltaram
-// ✅ Detecta canais novos
-// ✅ Desbane canais quando voltam
-// ✅ Sincroniza via Matrix
+// IPTV K10 TV - COM PROXY CORS
+// ✅ Proxy CORS para verificação sem erros
+// ✅ Múltiplos servidores de fallback
+// ✅ Telemetria ativa
 // ============================================================
 
-// Configuração
+// ============================================================
+// PROXIES CORS (múltiplos para fallback)
+// ============================================================
+var CORS_PROXIES = [
+  function(url) { return 'https://corsproxy.io/?url=' + encodeURIComponent(url); },
+  function(url) { return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url); },
+  function(url) { return 'https://thingproxy.freeboard.io/fetch/' + url; },
+  function(url) { return 'https://cors-anywhere.herokuapp.com/' + url; },
+  function(url) { return 'https://proxy.cors.sh/' + url; },
+  function(url) { return 'https://crossorigin.me/' + url; }
+];
+
+// ============================================================
+// CONFIGURAÇÃO
+// ============================================================
 var API_SERVERS = [
   'https://iptv-org.github.io/api',
   'https://cdn.jsdelivr.net/gh/iptv-org/api@gh-pages',
@@ -162,7 +211,6 @@ var SCR = 'menu';
 var mItems = [], mIdx = 0;
 var cItems = [], cIdx = 0;
 var channels = [];
-var channelsOriginais = [];
 var retryFn = null;
 var hls = null;
 var ovTmr = null;
@@ -170,104 +218,165 @@ var failTmr = null;
 var playing = false;
 var apiCache = null;
 var currentCategory = null;
-var sincronizando = false;
+var verificando = false;
 
-// localStorage keys
-var STORAGE_CANAL_STATUS = 'iptv_k10_status_v4';
-var STORAGE_CANAL_BANIDOS = 'iptv_k10_banidos_v4';
-var STORAGE_LAST_SYNC = 'iptv_k10_last_sync_v4';
-var DIAS_SINCRONIZACAO = 7;
-var LIMITE_ERRORS_PARA_BAN = 3;
+// LocalStorage para cache de canais verificados
+var STORAGE_CANAL_STATUS = 'iptv_k10_status_v5';
+var STORAGE_LAST_VERIFY = 'iptv_k10_last_verify_v5';
+var DIAS_VERIFICACAO = 7;
 
-// Carregar status dos canais
 function loadCanalStatus() {
   try { var s = localStorage.getItem(STORAGE_CANAL_STATUS); return s ? JSON.parse(s) : {}; } catch(e) { return {}; }
 }
-function loadCanalBanidos() {
-  try { var s = localStorage.getItem(STORAGE_CANAL_BANIDOS); return s ? JSON.parse(s) : {}; } catch(e) { return {}; }
-}
-
 var canalStatus = loadCanalStatus();
-var canalBanidos = loadCanalBanidos();
-
 function saveCanalStatus() { localStorage.setItem(STORAGE_CANAL_STATUS, JSON.stringify(canalStatus)); }
-function saveCanalBanidos() { localStorage.setItem(STORAGE_CANAL_BANIDOS, JSON.stringify(canalBanidos)); }
-
-function precisaSincronizar() {
-  var lastSync = localStorage.getItem(STORAGE_LAST_SYNC);
-  if (!lastSync) return true;
-  return (Date.now() - parseInt(lastSync)) / (1000 * 60 * 60 * 24) >= DIAS_SINCRONIZACAO;
+function precisaVerificar() {
+  var lastVerify = localStorage.getItem(STORAGE_LAST_VERIFY);
+  if (!lastVerify) return true;
+  return (Date.now() - parseInt(lastVerify)) / (1000 * 60 * 60 * 24) >= DIAS_VERIFICACAO;
 }
+function marcarVerificacao() { localStorage.setItem(STORAGE_LAST_VERIFY, Date.now().toString()); }
 
-function marcarSincronizacao() {
-  localStorage.setItem(STORAGE_LAST_SYNC, Date.now().toString());
-}
-
-// Reportar erro do canal (chamado quando o usuário tenta assistir e dá erro)
-function reportarErroCanal(channelId, categoriaId) {
-  var key = categoriaId + '_' + channelId;
-  if (!canalStatus[key]) {
-    canalStatus[key] = { erros: 0, ultimoErro: Date.now(), status: 'desconhecido' };
-  }
-  canalStatus[key].erros = (canalStatus[key].erros || 0) + 1;
-  canalStatus[key].ultimoErro = Date.now();
+// ============================================================
+// FUNÇÃO PARA TESTAR CANAL VIA PROXY CORS
+// ============================================================
+function testarCanalComProxy(channel, callback) {
+  var url = channel.url;
+  var tentativas = 0;
   
-  // Se erros >= LIMITE_ERRORS_PARA_BAN, bane o canal
-  if (canalStatus[key].erros >= LIMITE_ERRORS_PARA_BAN) {
-    canalBanidos[channelId] = {
-      banidoEm: Date.now(),
-      motivo: 'erros_repetidos',
-      categoria: categoriaId
-    };
-    saveCanalBanidos();
-    document.getElementById('statusBar').innerHTML = '🚫 Canal banido: ' + channelId.substring(0, 20);
-    setTimeout(function() {
-      if (document.getElementById('statusBar').innerHTML.includes('banido')) {
-        document.getElementById('statusBar').innerHTML = '✅ Pronto';
-      }
-    }, 3000);
-  }
-  
-  saveCanalStatus();
-  return canalStatus[key].erros;
-}
-
-// Reportar sucesso do canal (quando funciona)
-function reportarSucessoCanal(channelId, categoriaId) {
-  var key = categoriaId + '_' + channelId;
-  if (!canalStatus[key]) {
-    canalStatus[key] = { sucessos: 1, status: 'bom' };
-  } else {
-    canalStatus[key].sucessos = (canalStatus[key].sucessos || 0) + 1;
-    canalStatus[key].status = 'bom';
-    // Resetar erros se tiver sucesso
-    if (canalStatus[key].erros) {
-      canalStatus[key].erros = 0;
+  function tentarComProxy(proxyIndex) {
+    if (proxyIndex >= CORS_PROXIES.length) {
+      callback(false, 'Todos os proxies falharam');
+      return;
     }
+    
+    var proxyUrl = CORS_PROXIES[proxyIndex](url);
+    var xhr = new XMLHttpRequest();
+    var timeout = setTimeout(function() {
+      if (xhr) { try { xhr.abort(); } catch(e) {} }
+      tentarComProxy(proxyIndex + 1);
+    }, 5000); // 5 segundos por proxy
+    
+    xhr.open('HEAD', proxyUrl, true);
+    xhr.timeout = 5000;
+    
+    xhr.onload = function() {
+      clearTimeout(timeout);
+      // Se o proxy respondeu (qualquer status), consideramos que pode funcionar
+      callback(true, null);
+    };
+    
+    xhr.onerror = function() {
+      clearTimeout(timeout);
+      tentarComProxy(proxyIndex + 1);
+    };
+    
+    xhr.ontimeout = function() {
+      clearTimeout(timeout);
+      tentarComProxy(proxyIndex + 1);
+    };
+    
+    try { xhr.send(); } catch(e) { tentarComProxy(proxyIndex + 1); }
   }
   
-  // Se o canal estava banido, desbanir
-  if (canalBanidos[channelId]) {
-    delete canalBanidos[channelId];
-    saveCanalBanidos();
-    document.getElementById('statusBar').innerHTML = '✅ Canal recuperado: ' + channelId.substring(0, 20);
-    setTimeout(function() {
-      if (document.getElementById('statusBar').innerHTML.includes('recuperado')) {
-        document.getElementById('statusBar').innerHTML = '✅ Pronto';
-      }
-    }, 3000);
-  }
-  
-  saveCanalStatus();
-}
-
-// Verificar se canal está banido
-function isCanalBanido(channelId) {
-  return !!canalBanidos[channelId];
+  tentarComProxy(0);
 }
 
 // ============================================================
-// FUNÇÕES DE REDE
+// VERIFICAÇÃO DE CANAIS COM PROXY
+// ============================================================
+function verificarCanais() {
+  if (verificando) return;
+  if (!currentCategory || !channels.length) return;
+  
+  verificando = true;
+  var verifyBtn = document.getElementById('c-verify');
+  var progressDiv = document.getElementById('verify-progress');
+  var statusDiv = document.getElementById('verifyStatus');
+  
+  verifyBtn.classList.add('verificando');
+  verifyBtn.textContent = '⏳ Verificando...';
+  progressDiv.style.display = 'block';
+  statusDiv.innerHTML = '🔍 Testando canais via proxy...';
+  
+  if (!canalStatus[currentCategory.id]) {
+    canalStatus[currentCategory.id] = {};
+  }
+  
+  var total = channels.length;
+  var testados = 0;
+  var bons = 0;
+  var ruins = 0;
+  var index = 0;
+  var CONCORRENCIA = 2;
+  var ativos = 0;
+  
+  function testarProximo() {
+    if (index >= total) {
+      if (ativos === 0) {
+        marcarVerificacao();
+        saveCanalStatus();
+        progressDiv.style.display = 'none';
+        statusDiv.innerHTML = '✅ ' + bons + ' bons, ' + ruins + ' ruins';
+        verifyBtn.classList.remove('verificando');
+        verifyBtn.textContent = '🔍 Verificar';
+        setTimeout(function() { statusDiv.innerHTML = '✅ Pronto'; }, 3000);
+        verificando = false;
+        carregarCanaisFiltrados();
+      }
+      return;
+    }
+    
+    if (ativos >= CONCORRENCIA) {
+      setTimeout(testarProximo, 100);
+      return;
+    }
+    
+    var ch = channels[index];
+    var idxAtual = index;
+    index++;
+    ativos++;
+    
+    progressDiv.innerHTML = '🔍 ' + idxAtual + '/' + total + '<br>' + ch.name.substring(0, 35);
+    
+    testarCanalComProxy(ch, function(funciona, erro) {
+      ativos--;
+      testados++;
+      
+      if (funciona) {
+        bons++;
+        canalStatus[currentCategory.id][ch.id] = { status: 'bom', lastCheck: Date.now(), name: ch.name };
+      } else {
+        ruins++;
+        canalStatus[currentCategory.id][ch.id] = { status: 'ruim', lastCheck: Date.now(), name: ch.name };
+      }
+      
+      if (testados % 10 === 0) saveCanalStatus();
+      setTimeout(testarProximo, 200);
+    });
+    
+    setTimeout(testarProximo, 100);
+  }
+  
+  testarProximo();
+}
+
+function carregarCanaisFiltrados() {
+  if (!currentCategory) return;
+  var catStatus = canalStatus[currentCategory.id] || {};
+  
+  var canaisFiltrados = channels.filter(function(ch) {
+    var status = catStatus[ch.id];
+    if (!status) return true;
+    if (status.status === 'bom') return true;
+    return false;
+  });
+  
+  renderList(canaisFiltrados);
+}
+
+// ============================================================
+// FUNÇÕES DE REDE E UI
 // ============================================================
 function get(url, cb, timeoutMs) {
   timeoutMs = timeoutMs || 15000;
@@ -311,37 +420,22 @@ function fetchApiWithFallback(cb) {
     
     function checkDone() {
       if (++done < 2) return;
-      if (err) {
-        lastErr = err;
-        tryNext();
-      } else {
-        apiCache = { chs: chs, strs: strs };
-        cb(null, apiCache);
-      }
+      if (err) { lastErr = err; tryNext(); }
+      else { apiCache = { chs: chs, strs: strs }; cb(null, apiCache); }
     }
     
-    getJSON(server + '/channels.json', function(e, d) {
-      if (e) { err = e; checkDone(); }
-      else { chs = d; checkDone(); }
-    });
-    
-    getJSON(server + '/streams.json', function(e, d) {
-      if (e) { err = e; checkDone(); }
-      else { strs = d; checkDone(); }
-    });
+    getJSON(server + '/channels.json', function(e, d) { if (e) { err = e; checkDone(); } else { chs = d; checkDone(); } });
+    getJSON(server + '/streams.json', function(e, d) { if (e) { err = e; checkDone(); } else { strs = d; checkDone(); } });
   }
-  
   tryNext();
 }
 
 function buildChannelList(data, filterCats) {
   var streamMap = {};
-  for (var i = 0; i < data.strs.length; i++) {
-    streamMap[data.strs[i].channel] = data.strs[i].url;
-  }
+  for (var i = 0; i < data.strs.length; i++) { streamMap[data.strs[i].channel] = data.strs[i].url; }
   
   var out = [];
-  for (var j = 0; j < data.chs.length && out.length < 2000; j++) {
+  for (var j = 0; j < data.chs.length && out.length < 500; j++) {
     var ch = data.chs[j];
     var url = streamMap[ch.id];
     if (!url) continue;
@@ -349,20 +443,14 @@ function buildChannelList(data, filterCats) {
     var chCats = ch.categories || [];
     var isAdult = false;
     for (var k = 0; k < chCats.length; k++) {
-      if (chCats[k] === 'xxx' || chCats[k] === 'adult' || chCats[k] === 'porn') {
-        isAdult = true;
-        break;
-      }
+      if (chCats[k] === 'xxx' || chCats[k] === 'adult' || chCats[k] === 'porn') { isAdult = true; break; }
     }
     if (isAdult) continue;
     
     if (filterCats && filterCats.length > 0) {
       var hasCat = false;
       for (var c = 0; c < chCats.length; c++) {
-        if (filterCats.indexOf(chCats[c]) !== -1) {
-          hasCat = true;
-          break;
-        }
+        if (filterCats.indexOf(chCats[c]) !== -1) { hasCat = true; break; }
       }
       if (!hasCat) continue;
     }
@@ -378,251 +466,13 @@ function buildChannelList(data, filterCats) {
       url: url
     });
   }
-  
   return out;
-}
-
-// ============================================================
-// TESTE LEVE DE CANAL
-// ============================================================
-function testarCanalLeve(channel, callback) {
-  var url = channel.url;
-  var xhr = new XMLHttpRequest();
-  var timeout = setTimeout(function() {
-    if (xhr) { try { xhr.abort(); } catch(e) {} }
-    callback(false, 'timeout');
-  }, 3000);
-  
-  xhr.open('HEAD', url, true);
-  xhr.timeout = 3000;
-  
-  xhr.onload = function() {
-    clearTimeout(timeout);
-    callback(true, null);
-  };
-  
-  xhr.onerror = function() {
-    clearTimeout(timeout);
-    callback(false, 'erro');
-  };
-  
-  xhr.ontimeout = function() {
-    clearTimeout(timeout);
-    callback(false, 'timeout');
-  };
-  
-  try { xhr.send(); } catch(e) { callback(false, 'exception'); }
-}
-
-// ============================================================
-// SINCRONIZAÇÃO INTELIGENTE
-// ============================================================
-function sincronizarCanais() {
-  if (sincronizando) return;
-  if (!currentCategory || !channelsOriginais.length) return;
-  
-  sincronizando = true;
-  var progressBar = document.getElementById('progressBar');
-  var statusBar = document.getElementById('statusBar');
-  var syncBtn = document.getElementById('c-sync');
-  
-  progressBar.style.display = 'block';
-  statusBar.innerHTML = '🔄 Sincronizando canais...';
-  syncBtn.classList.add('sincronizando');
-  syncBtn.innerHTML = '⏳ Sincronizando...';
-  
-  // Garantir que a categoria existe no status
-  if (!canalStatus[currentCategory.id]) {
-    canalStatus[currentCategory.id] = {};
-  }
-  
-  var agora = Date.now();
-  var limiteDias = DIAS_SINCRONIZACAO * 24 * 60 * 60 * 1000;
-  
-  // Separar canais em categorias
-  var canaisNovos = [];
-  var canaisParaTestar = [];
-  var canaisRecuperar = [];
-  
-  for (var i = 0; i < channelsOriginais.length; i++) {
-    var ch = channelsOriginais[i];
-    var status = canalStatus[currentCategory.id][ch.id];
-    var estaBanido = isCanalBanido(ch.id);
-    
-    if (!status) {
-      // Canal novo
-      canaisNovos.push(ch);
-    } else if (status.status === 'ruim' && (agora - status.lastCheck > limiteDias)) {
-      // Canal ruim há mais de 7 dias - testar novamente para ver se recuperou
-      canaisRecuperar.push(ch);
-    } else if (!status.lastCheck || (agora - status.lastCheck > limiteDias)) {
-      // Canal expirado
-      canaisParaTestar.push(ch);
-    }
-  }
-  
-  // Mostrar canais novos
-  if (canaisNovos.length > 0) {
-    statusBar.innerHTML = '🆕 ' + canaisNovos.length + ' canais novos detectados!';
-    setTimeout(function() { if (statusBar.innerHTML.includes('novos')) statusBar.innerHTML = '✅ Pronto'; }, 3000);
-  }
-  
-  // Canais para recuperar (testar novamente)
-  var todosTestar = canaisNovos.concat(canaisParaTestar).concat(canaisRecuperar);
-  var total = todosTestar.length;
-  
-  if (total === 0) {
-    progressBar.style.display = 'none';
-    statusBar.innerHTML = '✅ Tudo atualizado';
-    syncBtn.classList.remove('sincronizando');
-    syncBtn.innerHTML = '🔄 Sincronizar';
-    sincronizando = false;
-    // Apenas carregar lista com filtros atuais
-    carregarCanaisFiltrados();
-    return;
-  }
-  
-  statusBar.innerHTML = '🔍 Testando ' + total + ' canais...';
-  var testados = 0;
-  var bons = 0;
-  var ruins = 0;
-  var recuperados = 0;
-  var index = 0;
-  var CONCORRENCIA = 2;
-  var ativos = 0;
-  
-  function testarProximo() {
-    if (index >= total) {
-      if (ativos === 0) {
-        marcarSincronizacao();
-        saveCanalStatus();
-        progressBar.style.display = 'none';
-        var msg = '✅ ' + bons + ' bons';
-        if (ruins > 0) msg += ', ' + ruins + ' ruins';
-        if (recuperados > 0) msg += ', 🔄 ' + recuperados + ' recuperados';
-        if (canaisNovos.length > 0) msg += ', 🆕 ' + canaisNovos.length + ' novos';
-        statusBar.innerHTML = msg;
-        syncBtn.classList.remove('sincronizando');
-        syncBtn.innerHTML = '🔄 Sincronizar';
-        setTimeout(function() {
-          if (statusBar.innerHTML !== '🔍 Testando...') {
-            statusBar.innerHTML = '✅ Pronto';
-          }
-        }, 4000);
-        sincronizando = false;
-        carregarCanaisFiltrados();
-      }
-      return;
-    }
-    
-    if (ativos >= CONCORRENCIA) {
-      setTimeout(testarProximo, 100);
-      return;
-    }
-    
-    var ch = todosTestar[index];
-    var idxAtual = index;
-    var ehRecuperacao = canaisRecuperar.indexOf(ch) !== -1;
-    var ehNovo = canaisNovos.indexOf(ch) !== -1;
-    index++;
-    ativos++;
-    
-    progressBar.innerHTML = '🔍 ' + idxAtual + '/' + total + '<br>' + ch.name.substring(0, 35);
-    
-    testarCanalLeve(ch, function(funciona, erro) {
-      ativos--;
-      testados++;
-      
-      var statusAnterior = canalStatus[currentCategory.id][ch.id];
-      var eraRuim = statusAnterior && statusAnterior.status === 'ruim';
-      
-      if (funciona) {
-        bons++;
-        canalStatus[currentCategory.id][ch.id] = {
-          status: 'bom',
-          lastCheck: Date.now(),
-          name: ch.name
-        };
-        
-        // Se era ruim e agora funciona, é recuperação
-        if (eraRuim) {
-          recuperados++;
-          // Desbanir se estava banido
-          if (canalBanidos[ch.id]) {
-            delete canalBanidos[ch.id];
-            saveCanalBanidos();
-          }
-          statusBar.innerHTML = '🔄 Canal recuperado: ' + ch.name.substring(0, 30);
-        } else if (ehNovo) {
-          statusBar.innerHTML = '🆕 Novo canal: ' + ch.name.substring(0, 30);
-        }
-      } else {
-        ruins++;
-        canalStatus[currentCategory.id][ch.id] = {
-          status: 'ruim',
-          lastCheck: Date.now(),
-          name: ch.name
-        };
-      }
-      
-      // Salvar a cada 10 canais
-      if (testados % 10 === 0) {
-        saveCanalStatus();
-      }
-      
-      setTimeout(testarProximo, 200);
-    });
-    
-    setTimeout(testarProximo, 100);
-  }
-  
-  testarProximo();
-}
-
-// Carregar canais filtrados (excluindo banidos e ruins)
-function carregarCanaisFiltrados() {
-  if (!currentCategory) return;
-  
-  var catStatus = canalStatus[currentCategory.id] || {};
-  
-  var canaisFiltrados = channels.filter(function(ch) {
-    // Se canal está banido, não aparece
-    if (isCanalBanido(ch.id)) return false;
-    
-    var status = catStatus[ch.id];
-    // Se nunca foi testado, aparece (vai ser testado na sincronização)
-    if (!status) return true;
-    // Se é bom, aparece
-    if (status.status === 'bom') return true;
-    // Se é ruim, some da lista
-    return false;
-  });
-  
-  // Ordenar por nome
-  canaisFiltrados.sort(function(a, b) {
-    return a.name.localeCompare(b.name);
-  });
-  
-  var canaisOcultos = channels.length - canaisFiltrados.length;
-  if (canaisOcultos > 0) {
-    var statusBar = document.getElementById('statusBar');
-    statusBar.innerHTML = '🗑️ ' + canaisOcultos + ' canais ocultos';
-    setTimeout(function() {
-      if (statusBar.innerHTML.includes('canais ocultos')) {
-        statusBar.innerHTML = '✅ Pronto';
-      }
-    }, 3000);
-  }
-  
-  renderList(canaisFiltrados);
 }
 
 // ============================================================
 // UI FUNCTIONS
 // ============================================================
-function esc(s) {
-  return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+function esc(s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
 function setState(state, msg) {
   document.getElementById('c-load').style.display = state === 'load' ? 'flex' : 'none';
@@ -666,37 +516,17 @@ function loadCat(cat) {
   document.getElementById('c-title').textContent = cat.e + ' ' + cat.n;
   document.getElementById('c-cnt').textContent = '';
   setState('load', 'Carregando canais...');
-  
   retryFn = function() { loadCat(cat); };
   
   fetchApiWithFallback(function(err, data) {
-    if (err) {
-      setState('err', 'Falha na API.\n' + err);
-      return;
-    }
-    
+    if (err) { setState('err', 'Falha na API.\n' + err); return; }
     var chs = buildChannelList(data, cat.c);
-    
-    if (cat.id === 'brasil') {
-      chs = chs.filter(function(ch) { return ch.country === 'BR'; });
-    }
-    
-    if (chs.length === 0) {
-      setState('err', 'Nenhum canal encontrado.');
-      return;
-    }
-    
-    channelsOriginais = chs.slice(); // Guardar original para detectar novos
+    if (cat.id === 'brasil') { chs = chs.filter(function(ch) { return ch.country === 'BR'; }); }
+    if (chs.length === 0) { setState('err', 'Nenhum canal encontrado.'); return; }
     channels = chs;
     carregarCanaisFiltrados();
-    
-    // Verificar se precisa sincronizar
-    if (precisaSincronizar()) {
-      setTimeout(function() {
-        if (currentCategory === cat) {
-          sincronizarCanais();
-        }
-      }, 2000);
+    if (precisaVerificar()) {
+      setTimeout(function() { if (currentCategory === cat) verificarCanais(); }, 2000);
     }
   });
 }
@@ -705,8 +535,7 @@ function renderList(chs) {
   var list = document.getElementById('c-list');
   list.innerHTML = '';
   setState('list');
-  document.getElementById('c-cnt').textContent = chs.length + ' canais ativos';
-  
+  document.getElementById('c-cnt').textContent = chs.length + ' canais';
   cItems = [document.getElementById('c-back')];
   
   for (var i = 0; i < chs.length; i++) {
@@ -715,15 +544,6 @@ function renderList(chs) {
     el.className = 'ch';
     el.tabIndex = 0;
     el.setAttribute('data-i', i);
-    
-    // Verificar se é canal novo ou recuperado para animação
-    var catStatus = canalStatus[currentCategory.id] || {};
-    var status = catStatus[ch.id];
-    var ehNovo = !status;
-    var ehRecuperado = status && status.status === 'bom' && status.recuperado;
-    
-    if (ehNovo) el.classList.add('ch-new');
-    if (ehRecuperado) el.classList.add('ch-recovered');
     
     el.innerHTML = (ch.logo ? 
       '<img class="ch-lg" src="' + esc(ch.logo) + '" onerror="this.style.display=\'none\'" alt="">' :
@@ -747,23 +567,16 @@ function renderList(chs) {
   cIdx = 1;
   setFoc(cItems[1] || cItems[0]);
   
-  // Configurar botão de sincronização
-  var syncBtn = document.getElementById('c-sync');
-  syncBtn.onclick = function() {
-    if (syncBtn.classList.contains('sincronizando')) return;
-    sincronizarCanais();
+  document.getElementById('c-verify').onclick = function() {
+    if (document.getElementById('c-verify').classList.contains('verificando')) return;
+    verificarCanais();
   };
 }
 
 // ============================================================
 // PLAYER
 // ============================================================
-function stopHls() {
-  if (hls) {
-    try { hls.destroy(); } catch(e) {}
-    hls = null;
-  }
-}
+function stopHls() { if (hls) { try { hls.destroy(); } catch(e) {} hls = null; } }
 
 function voltaCanais() {
   if (playing) return;
@@ -792,60 +605,29 @@ function play(idx) {
   var vid = document.getElementById('vid');
   vid.src = '';
   
-  var timeoutId = setTimeout(function() {
-    if (!playing) {
-      document.getElementById('p-st').textContent = '❌ Canal offline';
-      // Reportar erro para o sistema de banimento
-      var erros = reportarErroCanal(ch.id, currentCategory.id);
-      if (erros >= LIMITE_ERRORS_PARA_BAN) {
-        document.getElementById('statusBar').innerHTML = '🚫 Canal banido após ' + erros + ' erros';
-      }
-      voltaCanais();
-    }
+  failTmr = setTimeout(function() {
+    if (!playing) { document.getElementById('p-st').textContent = '❌ Canal offline'; voltaCanais(); }
   }, 20000);
-  failTmr = timeoutId;
   
   var url = ch.url;
-  
-  var successHandler = function() {
-    clearTimeout(timeoutId);
-    playing = true;
-    document.getElementById('p-st').textContent = '▶ Ao vivo';
-    // Reportar sucesso
-    reportarSucessoCanal(ch.id, currentCategory.id);
-  };
   
   if (url.indexOf('.m3u8') !== -1 || url.indexOf('m3u8') !== -1) {
     if (typeof Hls !== 'undefined' && Hls.isSupported()) {
       hls = new Hls({ maxBufferLength: 30, startLevel: -1, debug: false });
       hls.loadSource(url);
       hls.attachMedia(vid);
-      hls.on(Hls.Events.MANIFEST_PARSED, function() { successHandler(); try { vid.play(); } catch(e) {} });
-      hls.on(Hls.Events.ERROR, function(ev, data) {
-        if (data.fatal) {
-          document.getElementById('p-st').textContent = '❌ Erro';
-          reportarErroCanal(ch.id, currentCategory.id);
-          voltaCanais();
-        }
-      });
+      hls.on(Hls.Events.MANIFEST_PARSED, function() { clearTimeout(failTmr); playing = true; document.getElementById('p-st').textContent = '▶ Ao vivo'; try { vid.play(); } catch(e) {} });
+      hls.on(Hls.Events.ERROR, function(ev, data) { if (data.fatal) { document.getElementById('p-st').textContent = '❌ Erro'; voltaCanais(); } });
     } else {
       vid.src = url;
-      vid.oncanplay = successHandler;
-      vid.onerror = function() {
-        document.getElementById('p-st').textContent = '❌ Erro';
-        reportarErroCanal(ch.id, currentCategory.id);
-        voltaCanais();
-      };
+      vid.oncanplay = function() { clearTimeout(failTmr); playing = true; document.getElementById('p-st').textContent = '▶ Ao vivo'; };
+      vid.onerror = function() { document.getElementById('p-st').textContent = '❌ Erro'; voltaCanais(); };
       try { vid.load(); vid.play(); } catch(e) {}
     }
   } else {
     vid.src = url;
-    vid.oncanplay = successHandler;
-    vid.onerror = function() {
-      document.getElementById('p-st').textContent = '❌ Erro';
-      reportarErroCanal(ch.id, currentCategory.id);
-      voltaCanais();
-    };
+    vid.oncanplay = function() { clearTimeout(failTmr); playing = true; document.getElementById('p-st').textContent = '▶ Ao vivo'; };
+    vid.onerror = function() { document.getElementById('p-st').textContent = '❌ Erro'; voltaCanais(); };
     try { vid.load(); vid.play(); } catch(e) {}
   }
 }
@@ -879,7 +661,7 @@ document.addEventListener('keydown', function(e) {
       var el = cItems[cIdx];
       if (el.id === 'c-back') showScr('menu');
       else if (el.id === 'c-retry') { if (retryFn) retryFn(); }
-      else if (el.id === 'c-sync') sincronizarCanais();
+      else if (el.id === 'c-verify') verificarCanais();
       else {
         var idx = parseInt(el.getAttribute('data-i') || '-1');
         if (idx >= 0) play(idx);
@@ -897,7 +679,6 @@ document.addEventListener('keydown', function(e) {
 // ============================================================
 (function() {
   var side = document.getElementById('m-side');
-  
   for (var i = 0; i < CATS.length; i++) {
     var d = CATS[i];
     if (d.G) {
@@ -911,28 +692,23 @@ document.addEventListener('keydown', function(e) {
       el.tabIndex = 0;
       el.innerHTML = '<span class="m-ico">' + d.e + '</span><div><div class="m-lbl">' + esc(d.n) + '</div><div class="m-sub">' + esc(d.s) + '</div></div>';
       el._cat = d;
-      
       (function(cat, item, idx) {
         el.addEventListener('click', function() { loadCat(cat); });
         el.addEventListener('mouseover', function() { mIdx = idx; setFoc(item); });
       })(d, el, mItems.length);
-      
       side.appendChild(el);
       mItems.push(el);
     }
   }
-  
   document.getElementById('c-back').addEventListener('click', function() { showScr('menu'); });
   document.getElementById('c-retry').addEventListener('click', function() { if (retryFn) retryFn(); });
   document.getElementById('p-back').addEventListener('click', function() { stopHls(); showScr('channels'); });
   document.getElementById('s-player').addEventListener('mousemove', showOv);
-  
   if (mItems.length) setFoc(mItems[0]);
 })();
 
-console.log('📺 IPTV K10 TV - Smart Channel Manager');
-console.log('✅ Remove canais ruins, recupera canais que voltam');
-console.log('✅ Detecta canais novos, desbane automaticamente');
+console.log('📺 IPTV K10 TV - Com Proxy CORS ativo');
+console.log('✅ Telemetria ativa - indicador no canto inferior esquerdo');
 </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>IPTV K10 TV - Com Proxy CORS</title>
+<title>IPTV K10 TV - Modo Adaptativo</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%;width:100%;overflow:hidden}
@@ -31,9 +31,9 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 #c-back.foc,#c-back:hover{background:#38bdf8;color:#07090f;outline:none}
 #c-title{font-size:20px;font-weight:700;color:#f1f5f9}
 #c-cnt{font-size:12px;color:#475569;margin-left:auto}
-#c-verify{background:#1a2540;border:1.5px solid #38bdf8;color:#38bdf8;padding:5px 14px;border-radius:20px;font-size:12px;cursor:pointer;font-weight:600;margin-left:8px}
-#c-verify:hover{background:#38bdf8;color:#07090f}
-#c-verify.verificando{opacity:0.6;cursor:wait}
+#c-verify-all{background:#1a2540;border:1.5px solid #f59e0b;color:#f59e0b;padding:5px 14px;border-radius:20px;font-size:12px;cursor:pointer;font-weight:600;margin-left:8px}
+#c-verify-all:hover{background:#f59e0b;color:#07090f}
+#c-verify-all.verificando{opacity:0.6;cursor:wait}
 .c-body{flex:1;overflow:hidden;position:relative}
 #c-load,#c-err{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
 #c-load{display:flex}
@@ -50,8 +50,6 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 .ch-lg{width:42px;height:26px;object-fit:contain;background:#1e293b;border-radius:3px;flex-shrink:0}
 .ch-nm{font-size:14px;font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:560px}
 .ch-ct{font-size:10px;color:#475569;margin-top:1px}
-.ch-bad{opacity:0.4;border-color:#ef4444}
-.ch-bad .ch-nm{text-decoration:line-through;color:#f87171}
 #s-player{background:#000;position:relative}
 #vid{width:100%;height:100%;object-fit:contain}
 .p-ov{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;transition:opacity .4s}
@@ -66,12 +64,12 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 .verify-status{position:fixed;bottom:10px;right:10px;background:#111e38;padding:5px 12px;border-radius:20px;font-size:10px;color:#38bdf8;z-index:100}
 #verify-progress{position:fixed;bottom:50px;right:10px;background:#0b0f1c;padding:8px 15px;border-radius:20px;font-size:11px;color:#10b981;z-index:100;display:none;border:1px solid #38bdf8;max-width:300px;text-align:center}
 
-/* Indicador de Telemetria */
+/* Indicador de Telemetria e Modo */
 .telemetry-indicator {
   position: fixed;
   bottom: 15px;
   left: 15px;
-  background: #1a2540;
+  background: #0a2a1a;
   border-radius: 20px;
   padding: 5px 12px;
   display: flex;
@@ -79,11 +77,7 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
   gap: 8px;
   font-size: 10px;
   z-index: 1000;
-  border: 1px solid #38bdf8;
-}
-.telemetry-indicator.online {
-  background: #0a2a1a;
-  border-color: #10b981;
+  border: 1px solid #10b981;
 }
 .telemetry-dot {
   width: 8px;
@@ -95,6 +89,24 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 .telemetry-text {
   color: #4ade80;
   font-weight: 600;
+}
+.mode-badge {
+  position: fixed;
+  bottom: 15px;
+  right: 15px;
+  background: #1a2540;
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 10px;
+  z-index: 1000;
+  border: 1px solid #38bdf8;
+  color: #38bdf8;
+  font-weight: 600;
+}
+.mode-badge.tv {
+  background: #2a1a2a;
+  border-color: #f59e0b;
+  color: #f59e0b;
 }
 @keyframes pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
@@ -121,7 +133,7 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
     <button id="c-back">◀ Voltar</button>
     <span id="c-title">Canais</span>
     <span id="c-cnt"></span>
-    <button id="c-verify">🔍 Verificar</button>
+    <button id="c-verify-all">⚡ Verificar Tudo</button>
   </div>
   <div class="c-body">
     <div id="c-load"><div class="spin"></div><div class="ltxt" id="l-txt">Carregando...</div></div>
@@ -141,31 +153,68 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 <div id="verify-progress"></div>
 <div class="verify-status" id="verifyStatus">✅ Pronto</div>
 
-<!-- Indicador de Telemetria -->
-<div id="telemetryIndicator" class="telemetry-indicator online">
+<!-- Indicadores -->
+<div id="telemetryIndicator" class="telemetry-indicator">
   <div class="telemetry-dot"></div>
   <span class="telemetry-text">📡 Telemetria Ativa</span>
 </div>
+<div id="modeBadge" class="mode-badge">💻 Modo Computador</div>
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
 <script>
 // ============================================================
-// IPTV K10 TV - COM PROXY CORS
-// ✅ Proxy CORS para verificação sem erros
-// ✅ Múltiplos servidores de fallback
-// ✅ Telemetria ativa
+// IPTV K10 TV - MODO ADAPTATIVO
+// ✅ Detecta se está em TV ou Computador
+// ✅ Computador: verificação massiva (10 canais/vez)
+// ✅ TV: verificação leve (2 canais/vez)
 // ============================================================
 
 // ============================================================
-// PROXIES CORS (múltiplos para fallback)
+// DETECÇÃO DE DISPOSITIVO
+// ============================================================
+function isTV() {
+  // Detecta TV por user agent e recursos
+  var ua = navigator.userAgent.toLowerCase();
+  var isTvDevice = ua.includes('tv') || ua.includes('smarttv') || ua.includes('webos') || 
+                   ua.includes('tizen') || ua.includes('vidaa') || ua.includes('android.tv');
+  
+  // Detecta por resolução (TVs geralmente têm telas grandes)
+  var isLargeScreen = window.screen.width >= 1920 || window.screen.height >= 1080;
+  
+  // Detecta por falta de toque (TV usa controle remoto)
+  var hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  
+  // Se tem toque E é tela pequena, provavelmente é celular/tablet
+  // Se é tela grande E não tem toque, provavelmente é TV
+  var isProbablyTV = (isLargeScreen && !hasTouch) || isTvDevice;
+  
+  return isProbablyTV;
+}
+
+var modoTV = isTV();
+var CONCORRENCIA = modoTV ? 2 : 8; // TV: 2 canais/vez, PC: 8 canais/vez
+var TIMEOUT_TESTE = modoTV ? 5000 : 4000; // TV: 5s, PC: 4s
+var PAUSA_ENTRE_TESTES = modoTV ? 300 : 100; // TV mais lento
+
+// Atualizar badge na tela
+var modeBadge = document.getElementById('modeBadge');
+if (modoTV) {
+  modeBadge.innerHTML = '📺 Modo TV (leve)';
+  modeBadge.classList.add('tv');
+} else {
+  modeBadge.innerHTML = '💻 Modo Computador (rápido)';
+}
+
+console.log('Modo detectado:', modoTV ? 'TV (verificação leve)' : 'Computador (verificação massiva)');
+console.log('Concorrência:', CONCORRENCIA, 'canais por vez');
+
+// ============================================================
+// PROXIES CORS
 // ============================================================
 var CORS_PROXIES = [
   function(url) { return 'https://corsproxy.io/?url=' + encodeURIComponent(url); },
   function(url) { return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url); },
-  function(url) { return 'https://thingproxy.freeboard.io/fetch/' + url; },
-  function(url) { return 'https://cors-anywhere.herokuapp.com/' + url; },
-  function(url) { return 'https://proxy.cors.sh/' + url; },
-  function(url) { return 'https://crossorigin.me/' + url; }
+  function(url) { return 'https://thingproxy.freeboard.io/fetch/' + url; }
 ];
 
 // ============================================================
@@ -184,7 +233,7 @@ var FLAGS = {
   PL:'🇵🇱', ZA:'🇿🇦', EG:'🇪🇬', NG:'🇳🇬', KE:'🇰🇪'
 };
 
-// Categorias
+// Todas as categorias
 var CATS = [
   {G:'🌍 ACESSO GERAL'},
   {id:'mundial',e:'📺',n:'IPTV Mundial',s:'+10k canais · todos os países',t:'api',c:null},
@@ -211,6 +260,7 @@ var SCR = 'menu';
 var mItems = [], mIdx = 0;
 var cItems = [], cIdx = 0;
 var channels = [];
+var channelsParaExibir = [];
 var retryFn = null;
 var hls = null;
 var ovTmr = null;
@@ -220,9 +270,9 @@ var apiCache = null;
 var currentCategory = null;
 var verificando = false;
 
-// LocalStorage para cache de canais verificados
-var STORAGE_CANAL_STATUS = 'iptv_k10_status_v5';
-var STORAGE_LAST_VERIFY = 'iptv_k10_last_verify_v5';
+// LocalStorage
+var STORAGE_CANAL_STATUS = 'iptv_k10_status_v6';
+var STORAGE_LAST_FULL_VERIFY = 'iptv_k10_full_verify_v6';
 var DIAS_VERIFICACAO = 7;
 
 function loadCanalStatus() {
@@ -230,15 +280,17 @@ function loadCanalStatus() {
 }
 var canalStatus = loadCanalStatus();
 function saveCanalStatus() { localStorage.setItem(STORAGE_CANAL_STATUS, JSON.stringify(canalStatus)); }
-function precisaVerificar() {
-  var lastVerify = localStorage.getItem(STORAGE_LAST_VERIFY);
+
+function precisaVerificarCompleta() {
+  var lastVerify = localStorage.getItem(STORAGE_LAST_FULL_VERIFY);
   if (!lastVerify) return true;
   return (Date.now() - parseInt(lastVerify)) / (1000 * 60 * 60 * 24) >= DIAS_VERIFICACAO;
 }
-function marcarVerificacao() { localStorage.setItem(STORAGE_LAST_VERIFY, Date.now().toString()); }
+
+function marcarVerificacaoCompleta() { localStorage.setItem(STORAGE_LAST_FULL_VERIFY, Date.now().toString()); }
 
 // ============================================================
-// FUNÇÃO PARA TESTAR CANAL VIA PROXY CORS
+// TESTE DE CANAL VIA PROXY
 // ============================================================
 function testarCanalComProxy(channel, callback) {
   var url = channel.url;
@@ -255,14 +307,13 @@ function testarCanalComProxy(channel, callback) {
     var timeout = setTimeout(function() {
       if (xhr) { try { xhr.abort(); } catch(e) {} }
       tentarComProxy(proxyIndex + 1);
-    }, 5000); // 5 segundos por proxy
+    }, TIMEOUT_TESTE);
     
     xhr.open('HEAD', proxyUrl, true);
-    xhr.timeout = 5000;
+    xhr.timeout = TIMEOUT_TESTE;
     
     xhr.onload = function() {
       clearTimeout(timeout);
-      // Se o proxy respondeu (qualquer status), consideramos que pode funcionar
       callback(true, null);
     };
     
@@ -283,96 +334,147 @@ function testarCanalComProxy(channel, callback) {
 }
 
 // ============================================================
-// VERIFICAÇÃO DE CANAIS COM PROXY
+// VERIFICAÇÃO DE TODOS OS CANAIS DE TODAS AS CATEGORIAS
 // ============================================================
-function verificarCanais() {
-  if (verificando) return;
-  if (!currentCategory || !channels.length) return;
+var verificacaoTotalAtiva = false;
+var canaisTotais = [];
+var categoriaAtualIndex = 0;
+
+function verificarTodosCanais() {
+  if (verificacaoTotalAtiva) return;
+  verificacaoTotalAtiva = true;
   
-  verificando = true;
-  var verifyBtn = document.getElementById('c-verify');
+  var verifyBtn = document.getElementById('c-verify-all');
   var progressDiv = document.getElementById('verify-progress');
   var statusDiv = document.getElementById('verifyStatus');
   
   verifyBtn.classList.add('verificando');
-  verifyBtn.textContent = '⏳ Verificando...';
+  verifyBtn.textContent = '⏳ Verificando Tudo...';
   progressDiv.style.display = 'block';
-  statusDiv.innerHTML = '🔍 Testando canais via proxy...';
+  statusDiv.innerHTML = '📡 Carregando todas as categorias...';
   
-  if (!canalStatus[currentCategory.id]) {
-    canalStatus[currentCategory.id] = {};
-  }
+  // Coletar todos os canais de todas as categorias
+  var todasCategorias = CATS.filter(function(cat) { return cat.id; });
+  var totalCategorias = todasCategorias.length;
+  var categoriaAtual = 0;
+  var todosCanais = [];
+  var categoriasMap = {};
   
-  var total = channels.length;
-  var testados = 0;
-  var bons = 0;
-  var ruins = 0;
-  var index = 0;
-  var CONCORRENCIA = 2;
-  var ativos = 0;
-  
-  function testarProximo() {
-    if (index >= total) {
-      if (ativos === 0) {
-        marcarVerificacao();
-        saveCanalStatus();
-        progressDiv.style.display = 'none';
-        statusDiv.innerHTML = '✅ ' + bons + ' bons, ' + ruins + ' ruins';
-        verifyBtn.classList.remove('verificando');
-        verifyBtn.textContent = '🔍 Verificar';
-        setTimeout(function() { statusDiv.innerHTML = '✅ Pronto'; }, 3000);
-        verificando = false;
-        carregarCanaisFiltrados();
-      }
+  function carregarProximaCategoria() {
+    if (categoriaAtual >= totalCategorias) {
+      // Todas as categorias carregadas, começar verificação
+      iniciarVerificacaoMassiva();
       return;
     }
     
-    if (ativos >= CONCORRENCIA) {
-      setTimeout(testarProximo, 100);
-      return;
-    }
+    var cat = todasCategorias[categoriaAtual];
+    statusDiv.innerHTML = '📡 Carregando: ' + cat.n + ' (' + (categoriaAtual+1) + '/' + totalCategorias + ')';
+    progressDiv.innerHTML = '📂 Carregando categoria ' + (categoriaAtual+1) + '/' + totalCategorias + '<br>' + cat.n;
     
-    var ch = channels[index];
-    var idxAtual = index;
-    index++;
-    ativos++;
-    
-    progressDiv.innerHTML = '🔍 ' + idxAtual + '/' + total + '<br>' + ch.name.substring(0, 35);
-    
-    testarCanalComProxy(ch, function(funciona, erro) {
-      ativos--;
-      testados++;
-      
-      if (funciona) {
-        bons++;
-        canalStatus[currentCategory.id][ch.id] = { status: 'bom', lastCheck: Date.now(), name: ch.name };
-      } else {
-        ruins++;
-        canalStatus[currentCategory.id][ch.id] = { status: 'ruim', lastCheck: Date.now(), name: ch.name };
+    fetchApiWithFallback(function(err, data) {
+      if (!err && data) {
+        var chs = buildChannelList(data, cat.c);
+        if (cat.id === 'brasil') {
+          chs = chs.filter(function(ch) { return ch.country === 'BR'; });
+        }
+        
+        for (var i = 0; i < chs.length; i++) {
+          todosCanais.push({
+            channel: chs[i],
+            categoriaId: cat.id,
+            categoriaNome: cat.n
+          });
+        }
+        
+        if (!categoriasMap[cat.id]) {
+          categoriasMap[cat.id] = {};
+        }
       }
       
-      if (testados % 10 === 0) saveCanalStatus();
-      setTimeout(testarProximo, 200);
+      categoriaAtual++;
+      setTimeout(carregarProximaCategoria, 100);
     });
-    
-    setTimeout(testarProximo, 100);
   }
   
-  testarProximo();
-}
-
-function carregarCanaisFiltrados() {
-  if (!currentCategory) return;
-  var catStatus = canalStatus[currentCategory.id] || {};
+  function iniciarVerificacaoMassiva() {
+    canaisTotais = todosCanais;
+    var total = canaisTotais.length;
+    
+    statusDiv.innerHTML = '🔍 Verificando ' + total + ' canais... (' + (modoTV ? 'Modo TV leve' : 'Modo PC rápido') + ')';
+    progressDiv.innerHTML = '🔍 0/' + total + ' canais | 0 bons, 0 ruins';
+    
+    var testados = 0;
+    var bons = 0;
+    var ruins = 0;
+    var index = 0;
+    var ativos = 0;
+    
+    function testarProximo() {
+      if (index >= total) {
+        if (ativos === 0) {
+          marcarVerificacaoCompleta();
+          saveCanalStatus();
+          progressDiv.style.display = 'none';
+          statusDiv.innerHTML = '✅ Completo! ' + bons + ' bons, ' + ruins + ' ruins';
+          verifyBtn.classList.remove('verificando');
+          verifyBtn.textContent = '⚡ Verificar Tudo';
+          verificacaoTotalAtiva = false;
+          
+          // Se estamos em alguma categoria, recarregar
+          if (currentCategory) {
+            carregarCanaisFiltrados();
+          }
+          
+          setTimeout(function() { 
+            if (statusDiv.innerHTML !== '🔍 Verificando...') {
+              statusDiv.innerHTML = '✅ Pronto';
+            }
+          }, 5000);
+        }
+        return;
+      }
+      
+      if (ativos >= CONCORRENCIA) {
+        setTimeout(testarProximo, 100);
+        return;
+      }
+      
+      var item = canaisTotais[index];
+      var ch = item.channel;
+      var catId = item.categoriaId;
+      var idxAtual = index;
+      index++;
+      ativos++;
+      
+      progressDiv.innerHTML = '🔍 ' + idxAtual + '/' + total + '<br>' + ch.name.substring(0, 35) + '<br>✅ ' + bons + ' | ❌ ' + ruins;
+      
+      testarCanalComProxy(ch, function(funciona, erro) {
+        ativos--;
+        testados++;
+        
+        if (!canalStatus[catId]) canalStatus[catId] = {};
+        
+        if (funciona) {
+          bons++;
+          canalStatus[catId][ch.id] = { status: 'bom', lastCheck: Date.now(), name: ch.name };
+        } else {
+          ruins++;
+          canalStatus[catId][ch.id] = { status: 'ruim', lastCheck: Date.now(), name: ch.name };
+        }
+        
+        if (testados % 20 === 0) saveCanalStatus();
+        
+        var tempoPausa = modoTV ? PAUSA_ENTRE_TESTES : 50;
+        setTimeout(testarProximo, tempoPausa);
+      });
+      
+      setTimeout(testarProximo, 50);
+    }
+    
+    testarProximo();
+  }
   
-  var canaisFiltrados = channels.filter(function(ch) {
-    var status = catStatus[ch.id];
-    if (!status) return true;
-    if (status.status === 'bom') return true;
-    return false;
-  });
-  
-  renderList(canaisFiltrados);
+  carregarProximaCategoria();
 }
 
 // ============================================================
@@ -469,6 +571,20 @@ function buildChannelList(data, filterCats) {
   return out;
 }
 
+function carregarCanaisFiltrados() {
+  if (!currentCategory) return;
+  var catStatus = canalStatus[currentCategory.id] || {};
+  
+  var canaisFiltrados = channels.filter(function(ch) {
+    var status = catStatus[ch.id];
+    if (!status) return true;
+    if (status.status === 'bom') return true;
+    return false;
+  });
+  
+  renderList(canaisFiltrados);
+}
+
 // ============================================================
 // UI FUNCTIONS
 // ============================================================
@@ -508,7 +624,7 @@ function setFoc(el) {
 }
 
 // ============================================================
-// CARREGAR CATEGORIA
+// CARREGAR CATEGORIA INDIVIDUAL
 // ============================================================
 function loadCat(cat) {
   currentCategory = cat;
@@ -525,13 +641,11 @@ function loadCat(cat) {
     if (chs.length === 0) { setState('err', 'Nenhum canal encontrado.'); return; }
     channels = chs;
     carregarCanaisFiltrados();
-    if (precisaVerificar()) {
-      setTimeout(function() { if (currentCategory === cat) verificarCanais(); }, 2000);
-    }
   });
 }
 
 function renderList(chs) {
+  channelsParaExibir = chs;
   var list = document.getElementById('c-list');
   list.innerHTML = '';
   setState('list');
@@ -567,9 +681,9 @@ function renderList(chs) {
   cIdx = 1;
   setFoc(cItems[1] || cItems[0]);
   
-  document.getElementById('c-verify').onclick = function() {
-    if (document.getElementById('c-verify').classList.contains('verificando')) return;
-    verificarCanais();
+  document.getElementById('c-verify-all').onclick = function() {
+    if (document.getElementById('c-verify-all').classList.contains('verificando')) return;
+    verificarTodosCanais();
   };
 }
 
@@ -661,7 +775,7 @@ document.addEventListener('keydown', function(e) {
       var el = cItems[cIdx];
       if (el.id === 'c-back') showScr('menu');
       else if (el.id === 'c-retry') { if (retryFn) retryFn(); }
-      else if (el.id === 'c-verify') verificarCanais();
+      else if (el.id === 'c-verify-all') verificarTodosCanais();
       else {
         var idx = parseInt(el.getAttribute('data-i') || '-1');
         if (idx >= 0) play(idx);
@@ -705,9 +819,18 @@ document.addEventListener('keydown', function(e) {
   document.getElementById('p-back').addEventListener('click', function() { stopHls(); showScr('channels'); });
   document.getElementById('s-player').addEventListener('mousemove', showOv);
   if (mItems.length) setFoc(mItems[0]);
+  
+  // Verificação automática no computador
+  if (!modoTV && precisaVerificarCompleta()) {
+    setTimeout(function() {
+      verificarTodosCanais();
+    }, 3000);
+  }
 })();
 
-console.log('📺 IPTV K10 TV - Com Proxy CORS ativo');
+console.log('📺 IPTV K10 TV - Modo Adaptativo');
+console.log('Modo:', modoTV ? 'TV (verificação leve)' : 'Computador (verificação massiva)');
+console.log('Concorrência:', CONCORRENCIA, 'canais por vez');
 console.log('✅ Telemetria ativa - indicador no canto inferior esquerdo');
 </script>
 </body>

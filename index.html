@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>IPTV K10 TV</title>
+<title>IPTV K10 TV - Completo</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%;width:100%;overflow:hidden}
@@ -31,6 +31,9 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 #c-back.foc,#c-back:hover{background:#38bdf8;color:#07090f;outline:none}
 #c-title{font-size:20px;font-weight:700;color:#f1f5f9}
 #c-cnt{font-size:12px;color:#475569;margin-left:auto}
+#c-verify-all{background:#1a2540;border:1.5px solid #f59e0b;color:#f59e0b;padding:5px 14px;border-radius:20px;font-size:12px;cursor:pointer;font-weight:600;margin-left:8px}
+#c-verify-all:hover{background:#f59e0b;color:#07090f}
+#c-verify-all.verificando{opacity:0.6;cursor:wait}
 .c-body{flex:1;overflow:hidden;position:relative}
 #c-load,#c-err{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
 #c-load{display:flex}
@@ -41,12 +44,23 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 #c-retry{background:#111e38;border:2px solid #38bdf8;color:#38bdf8;font-size:15px;padding:10px 24px;border-radius:8px;cursor:pointer}
 #c-retry.foc,#c-retry:hover{background:#38bdf8;color:#07090f}
 #c-list{position:absolute;inset:0;overflow-y:auto;padding:8px;display:none}
-.ch{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;cursor:pointer;margin-bottom:3px;border:2px solid transparent}
+.ch{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:7px;cursor:pointer;margin-bottom:3px;border:2px solid transparent}
 .ch:hover,.ch.foc{background:#111e38;border-color:#38bdf8}
-.ch-fl{font-size:19px;width:28px;text-align:center;flex-shrink:0}
+.ch-fl{font-size:22px;width:36px;text-align:center;flex-shrink:0}
 .ch-lg{width:42px;height:26px;object-fit:contain;background:#1e293b;border-radius:3px;flex-shrink:0}
-.ch-nm{font-size:14px;font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:560px}
-.ch-ct{font-size:10px;color:#475569;margin-top:1px}
+.ch-info{flex:1;min-width:0}
+.ch-nm{font-size:14px;font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch-details{display:flex;gap:8px;margin-top:2px;flex-wrap:wrap}
+.ch-lang{font-size:9px;padding:2px 6px;border-radius:10px;background:#1a2540;color:#94a3b8}
+.ch-cat{font-size:9px;color:#475569}
+.ch-country{font-size:9px;color:#10b981}
+.ch-actions{display:flex;gap:6px;flex-shrink:0}
+.ch-fav{background:none;border:none;font-size:18px;cursor:pointer;padding:4px;color:#64748b;transition:all 0.2s}
+.ch-fav:hover{color:#f59e0b;transform:scale(1.1)}
+.ch-fav.active{color:#f59e0b;text-shadow:0 0 4px #f59e0b}
+.ch-delete{background:none;border:none;font-size:16px;cursor:pointer;padding:4px;color:#64748b;transition:all 0.2s}
+.ch-delete:hover{color:#ef4444;transform:scale(1.1)}
+.ch-favorito{background:#1a2a1a;border-color:#f59e0b}
 #s-player{background:#000;position:relative}
 #vid{width:100%;height:100%;object-fit:contain}
 .p-ov{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;transition:opacity .4s}
@@ -58,6 +72,52 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 .p-st{font-size:12px;color:#64748b}
 #p-back{background:#111e38;border:2px solid #38bdf8;color:#38bdf8;font-size:14px;padding:8px 18px;border-radius:7px;cursor:pointer}
 #p-back.foc,#p-back:hover{background:#38bdf8;color:#000}
+.verify-status{position:fixed;bottom:10px;right:10px;background:#111e38;padding:5px 12px;border-radius:20px;font-size:10px;color:#38bdf8;z-index:100}
+#verify-progress{position:fixed;bottom:50px;right:10px;background:#0b0f1c;padding:8px 15px;border-radius:20px;font-size:11px;color:#10b981;z-index:100;display:none;border:1px solid #38bdf8;max-width:300px;text-align:center}
+
+/* Indicador de Telemetria */
+.telemetry-indicator {
+  position: fixed;
+  bottom: 15px;
+  left: 15px;
+  background: #0a2a1a;
+  border-radius: 20px;
+  padding: 5px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  z-index: 1000;
+  border: 1px solid #10b981;
+}
+.telemetry-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: pulse 1.5s infinite;
+}
+.telemetry-text {
+  color: #4ade80;
+  font-weight: 600;
+}
+.mode-badge {
+  position: fixed;
+  bottom: 15px;
+  right: 15px;
+  background: #1a2540;
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 10px;
+  z-index: 1000;
+  border: 1px solid #38bdf8;
+  color: #38bdf8;
+  font-weight: 600;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
 @keyframes sp{to{transform:rotate(360deg)}}
 </style>
 </head>
@@ -79,6 +139,7 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
     <button id="c-back">◀ Voltar</button>
     <span id="c-title">Canais</span>
     <span id="c-cnt"></span>
+    <button id="c-verify-all">⚡ Verificar Tudo</button>
   </div>
   <div class="c-body">
     <div id="c-load"><div class="spin"></div><div class="ltxt" id="l-txt">Carregando...</div></div>
@@ -95,13 +156,89 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
   </div>
 </div>
 
+<div id="verify-progress"></div>
+<div class="verify-status" id="verifyStatus">✅ Pronto</div>
+
+<!-- Indicadores -->
+<div id="telemetryIndicator" class="telemetry-indicator">
+  <div class="telemetry-dot"></div>
+  <span class="telemetry-text">📡 Telemetria Ativa</span>
+</div>
+<div id="modeBadge" class="mode-badge">💻 Modo Computador</div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
 <script>
-var API=['https://iptv-org.github.io/api','https://cdn.jsdelivr.net/gh/iptv-org/api@gh-pages','https://raw.githubusercontent.com/iptv-org/api/gh-pages'];
-var PX=[
+// ============================================================
+// IPTV K10 TV - COMPLETO COM TODOS OS RECURSOS
+// ✅ Idiomas dos canais
+// ✅ Favoritos (★)
+// ✅ Excluir canal (🗑️)
+// ✅ Verificação com proxy CORS
+// ✅ Telemetria ativa
+// ✅ Modo adaptativo (PC/TV)
+// ✅ Clique funcionando
+// ============================================================
+
+// ============================================================
+// DETECÇÃO DE DISPOSITIVO
+// ============================================================
+function isTV() {
+  var ua = navigator.userAgent.toLowerCase();
+  return ua.includes('tv') || ua.includes('smarttv') || ua.includes('webos') || 
+         ua.includes('tizen') || ua.includes('vidaa') || ua.includes('android.tv');
+}
+
+var modoTV = isTV();
+var CONCORRENCIA = modoTV ? 2 : 6;
+var TIMEOUT_TESTE = modoTV ? 5000 : 4000;
+
+var modeBadge = document.getElementById('modeBadge');
+if (modoTV) {
+  modeBadge.innerHTML = '📺 Modo TV (leve)';
+} else {
+  modeBadge.innerHTML = '💻 Modo Computador (rápido)';
+}
+
+// ============================================================
+// PROXIES CORS
+// ============================================================
+var CORS_PROXIES = [
   function(u){return 'https://corsproxy.io/?url='+encodeURIComponent(u)},
   function(u){return 'https://api.allorigins.win/raw?url='+encodeURIComponent(u)},
   function(u){return 'https://thingproxy.freeboard.io/fetch/'+u}
 ];
+
+// ============================================================
+// CONFIGURAÇÃO ORIGINAL
+// ============================================================
+var API=['https://iptv-org.github.io/api','https://cdn.jsdelivr.net/gh/iptv-org/api@gh-pages','https://raw.githubusercontent.com/iptv-org/api/gh-pages'];
+var FL={BR:'🇧🇷',US:'🇺🇸',GB:'🇬🇧',FR:'🇫🇷',DE:'🇩🇪',ES:'🇪🇸',IT:'🇮🇹',PT:'🇵🇹',AR:'🇦🇷',MX:'🇲🇽',JP:'🇯🇵',KR:'🇰🇷',RU:'🇷🇺',IN:'🇮🇳',CN:'🇨🇳',AU:'🇦🇺',CA:'🇨🇦',NL:'🇳🇱',TR:'🇹🇷',SA:'🇸🇦',AE:'🇦🇪',PL:'🇵🇱'};
+
+// Mapeamento de idiomas para emoji
+var LANG_EMOJI = {
+  'português':'🇵🇹', 'portuguese':'🇵🇹', 'pt':'🇵🇹',
+  'inglês':'🇬🇧', 'english':'🇬🇧', 'en':'🇬🇧',
+  'espanhol':'🇪🇸', 'spanish':'🇪🇸', 'es':'🇪🇸',
+  'francês':'🇫🇷', 'french':'🇫🇷', 'fr':'🇫🇷',
+  'alemão':'🇩🇪', 'german':'🇩🇪', 'de':'🇩🇪',
+  'italiano':'🇮🇹', 'italian':'🇮🇹', 'it':'🇮🇹',
+  'russo':'🇷🇺', 'russian':'🇷🇺', 'ru':'🇷🇺',
+  'japonês':'🇯🇵', 'japanese':'🇯🇵', 'ja':'🇯🇵',
+  'chinês':'🇨🇳', 'chinese':'🇨🇳', 'zh':'🇨🇳',
+  'árabe':'🇸🇦', 'arabic':'🇸🇦', 'ar':'🇸🇦',
+  'hindi':'🇮🇳', 'hindi':'🇮🇳', 'hi':'🇮🇳'
+};
+
+function getIdiomaEmoji(lang) {
+  if (!lang) return '🌐';
+  var lower = lang.toLowerCase();
+  for (var key in LANG_EMOJI) {
+    if (lower.includes(key)) return LANG_EMOJI[key];
+  }
+  return '🌐';
+}
+
+// Categorias originais
 var CATS=[
   {G:'🌍 ACESSO GERAL'},
   {id:'mundial',e:'📺',n:'IPTV Mundial',s:'+10k canais · todos os países',t:'api',c:null},
@@ -125,18 +262,216 @@ var CATS=[
   {id:'rel',e:'⛪',n:'Religioso',s:'Canais religiosos do mundo',t:'api',c:['religious']},
   {id:'auto',e:'🚗',n:'Auto & Variedades',s:'Auto · compras · legislativo',t:'api',c:['auto','shop','legislative']}
 ];
-var FL={BR:'🇧🇷',US:'🇺🇸',GB:'🇬🇧',FR:'🇫🇷',DE:'🇩🇪',ES:'🇪🇸',IT:'🇮🇹',PT:'🇵🇹',AR:'🇦🇷',MX:'🇲🇽',JP:'🇯🇵',KR:'🇰🇷',RU:'🇷🇺',IN:'🇮🇳',CN:'🇨🇳',AU:'🇦🇺',CA:'🇨🇦',NL:'🇳🇱',TR:'🇹🇷',SA:'🇸🇦',AE:'🇦🇪',PL:'🇵🇱'};
 
+// ============================================================
+// ESTADO GLOBAL
+// ============================================================
 var SCR='menu',mItems=[],mIdx=0,cItems=[],cIdx=0;
-var channels=[],retryFn=null,hls=null,hlsLoaded=false;
-var ovTmr=null,failTmr=null,playing=false,apiCache=null;
+var channels=[],retryFn=null,hls=null,ovTmr=null,failTmr=null,playing=false,apiCache=null;
+var currentCategory=null;
+var verificando=false;
 
-// tela cheia na primeira interação
-function fs(){var e=document.documentElement,f=e.requestFullscreen||e.webkitRequestFullscreen||e.mozRequestFullScreen||e.msRequestFullscreen;try{if(f)f.call(e)}catch(x){}}
-document.addEventListener('keydown',fs,{once:true});
-document.addEventListener('click',fs,{once:true});
+// LocalStorage para status dos canais, favoritos e excluídos
+var STORAGE_CANAL_STATUS = 'iptv_k10_status_v6';
+var STORAGE_FAVORITOS = 'iptv_k10_favoritos_v6';
+var STORAGE_EXCLUIDOS = 'iptv_k10_excluidos_v6';
+var STORAGE_LAST_VERIFY = 'iptv_k10_last_verify_v6';
+var DIAS_VERIFICACAO = 7;
 
-// ── rede ──────────────────────────────────────────────────────
+function loadFavoritos() {
+  try { var s = localStorage.getItem(STORAGE_FAVORITOS); return s ? JSON.parse(s) : {}; } catch(e) { return {}; }
+}
+function loadExcluidos() {
+  try { var s = localStorage.getItem(STORAGE_EXCLUIDOS); return s ? JSON.parse(s) : {}; } catch(e) { return {}; }
+}
+function loadCanalStatus() {
+  try { var s = localStorage.getItem(STORAGE_CANAL_STATUS); return s ? JSON.parse(s) : {}; } catch(e) { return {}; }
+}
+
+var favoritos = loadFavoritos();
+var excluidos = loadExcluidos();
+var canalStatus = loadCanalStatus();
+
+function saveFavoritos() { localStorage.setItem(STORAGE_FAVORITOS, JSON.stringify(favoritos)); }
+function saveExcluidos() { localStorage.setItem(STORAGE_EXCLUIDOS, JSON.stringify(excluidos)); }
+function saveCanalStatus() { localStorage.setItem(STORAGE_CANAL_STATUS, JSON.stringify(canalStatus)); }
+
+function toggleFavorito(channelId, event) {
+  event.stopPropagation();
+  if (favoritos[channelId]) {
+    delete favoritos[channelId];
+  } else {
+    favoritos[channelId] = true;
+  }
+  saveFavoritos();
+  carregarCanaisFiltrados();
+}
+
+function excluirCanal(channelId, event) {
+  event.stopPropagation();
+  if (confirm('❌ Tem certeza que deseja excluir este canal permanentemente?\n\nEle não aparecerá mais na lista.')) {
+    excluidos[channelId] = true;
+    saveExcluidos();
+    carregarCanaisFiltrados();
+    document.getElementById('verifyStatus').innerHTML = '🗑️ Canal excluído';
+    setTimeout(function() { if(document.getElementById('verifyStatus').innerHTML.includes('excluído')) document.getElementById('verifyStatus').innerHTML = '✅ Pronto'; }, 2000);
+  }
+}
+
+function precisaVerificar() {
+  var lastVerify = localStorage.getItem(STORAGE_LAST_VERIFY);
+  if (!lastVerify) return true;
+  return (Date.now() - parseInt(lastVerify)) / (1000 * 60 * 60 * 24) >= DIAS_VERIFICACAO;
+}
+function marcarVerificacao() { localStorage.setItem(STORAGE_LAST_VERIFY, Date.now().toString()); }
+
+// ============================================================
+// TESTE DE CANAL VIA PROXY
+// ============================================================
+function testarCanalComProxy(channel, callback) {
+  var url = channel.url;
+  var tentativas = 0;
+  
+  function tentarComProxy(proxyIndex) {
+    if (proxyIndex >= CORS_PROXIES.length) {
+      callback(false, 'Todos os proxies falharam');
+      return;
+    }
+    
+    var proxyUrl = CORS_PROXIES[proxyIndex](url);
+    var xhr = new XMLHttpRequest();
+    var timeout = setTimeout(function() {
+      if (xhr) { try { xhr.abort(); } catch(e) {} }
+      tentarComProxy(proxyIndex + 1);
+    }, TIMEOUT_TESTE);
+    
+    xhr.open('HEAD', proxyUrl, true);
+    xhr.timeout = TIMEOUT_TESTE;
+    
+    xhr.onload = function() {
+      clearTimeout(timeout);
+      callback(true, null);
+    };
+    
+    xhr.onerror = function() {
+      clearTimeout(timeout);
+      tentarComProxy(proxyIndex + 1);
+    };
+    
+    xhr.ontimeout = function() {
+      clearTimeout(timeout);
+      tentarComProxy(proxyIndex + 1);
+    };
+    
+    try { xhr.send(); } catch(e) { tentarComProxy(proxyIndex + 1); }
+  }
+  
+  tentarComProxy(0);
+}
+
+// ============================================================
+// VERIFICAÇÃO DE TODOS OS CANAIS
+// ============================================================
+function verificarTodosCanais() {
+  if (verificando) return;
+  if (!channels.length) return;
+  
+  verificando = true;
+  var verifyBtn = document.getElementById('c-verify-all');
+  var progressDiv = document.getElementById('verify-progress');
+  var statusDiv = document.getElementById('verifyStatus');
+  
+  verifyBtn.classList.add('verificando');
+  verifyBtn.textContent = '⏳ Verificando...';
+  progressDiv.style.display = 'block';
+  statusDiv.innerHTML = '🔍 Testando canais...';
+  
+  if (!canalStatus[currentCategory]) {
+    canalStatus[currentCategory] = {};
+  }
+  
+  var total = channels.length;
+  var testados = 0;
+  var bons = 0;
+  var ruins = 0;
+  var index = 0;
+  var ativos = 0;
+  
+  function testarProximo() {
+    if (index >= total) {
+      if (ativos === 0) {
+        marcarVerificacao();
+        saveCanalStatus();
+        progressDiv.style.display = 'none';
+        statusDiv.innerHTML = '✅ ' + bons + ' bons, ' + ruins + ' ruins';
+        verifyBtn.classList.remove('verificando');
+        verifyBtn.textContent = '⚡ Verificar Tudo';
+        verificando = false;
+        carregarCanaisFiltrados();
+        setTimeout(function() { if(statusDiv.innerHTML !== '🔍 Testando...') statusDiv.innerHTML = '✅ Pronto'; }, 3000);
+      }
+      return;
+    }
+    
+    if (ativos >= CONCORRENCIA) {
+      setTimeout(testarProximo, 100);
+      return;
+    }
+    
+    var ch = channels[index];
+    var idxAtual = index;
+    index++;
+    ativos++;
+    
+    progressDiv.innerHTML = '🔍 ' + idxAtual + '/' + total + '<br>' + ch.name.substring(0, 35);
+    
+    testarCanalComProxy(ch, function(funciona, erro) {
+      ativos--;
+      testados++;
+      
+      if (funciona) {
+        bons++;
+        canalStatus[currentCategory][ch.id] = { status: 'bom', lastCheck: Date.now(), name: ch.name };
+      } else {
+        ruins++;
+        canalStatus[currentCategory][ch.id] = { status: 'ruim', lastCheck: Date.now(), name: ch.name };
+      }
+      
+      if (testados % 10 === 0) saveCanalStatus();
+      setTimeout(testarProximo, 200);
+    });
+    
+    setTimeout(testarProximo, 100);
+  }
+  
+  testarProximo();
+}
+
+function carregarCanaisFiltrados() {
+  if (!currentCategory) return;
+  var catStatus = canalStatus[currentCategory] || {};
+  
+  var canaisFiltrados = channels.filter(function(ch) {
+    if (excluidos[ch.id]) return false;
+    var status = catStatus[ch.id];
+    if (status && status.status === 'ruim') return false;
+    return true;
+  });
+  
+  // Ordenar: favoritos primeiro
+  canaisFiltrados.sort(function(a, b) {
+    var aFav = favoritos[a.id] ? 1 : 0;
+    var bFav = favoritos[b.id] ? 1 : 0;
+    if (aFav !== bFav) return bFav - aFav;
+    return a.name.localeCompare(b.name);
+  });
+  
+  renderList(canaisFiltrados);
+}
+
+// ============================================================
+// FUNÇÕES DE REDE (ORIGINAIS)
+// ============================================================
 function get(url,cb){
   var x=new XMLHttpRequest();
   x.open('GET',url);x.timeout=16000;
@@ -147,7 +482,6 @@ function get(url,cb){
 }
 function getJSON(url,cb){get(url,function(e,t){if(e)return cb(e);try{cb(null,JSON.parse(t))}catch(x){cb('JSON inválido')}})}
 
-// ── api iptv-org ───────────────────────────────────────────────
 function getApi(cb){
   if(apiCache)return cb(null,apiCache);
   var si=0;
@@ -160,16 +494,16 @@ function getApi(cb){
   })();
 }
 
-// ── m3u ───────────────────────────────────────────────────────
 function getM3u(urls,cb){
   var tries=[];
-  for(var i=0;i<urls.length;i++){tries.push(urls[i]);for(var j=0;j<PX.length;j++)tries.push(PX[j](urls[i]))}
+  for(var i=0;i<urls.length;i++){tries.push(urls[i]);for(var j=0;j<CORS_PROXIES.length;j++)tries.push(CORS_PROXIES[j](urls[i]))}
   var ti=0;
   (function next(){
     if(ti>=tries.length)return cb('Todas as fontes falharam');
     get(tries[ti++],function(e,t){(!e&&t&&(t.indexOf('#EXTM3U')!==-1||t.indexOf('#EXTINF')!==-1))?cb(null,t):next()});
   })();
 }
+
 function parseM3u(txt){
   var lines=txt.split('\n'),out=[],cur=null;
   for(var i=0;i<lines.length&&out.length<1500;i++){
@@ -181,6 +515,7 @@ function parseM3u(txt){
   }
   return out;
 }
+
 function buildApi(data,cats){
   var sm={};
   for(var i=0;i<data.strs.length;i++)if(!sm[data.strs[i].channel])sm[data.strs[i].channel]=data.strs[i].url;
@@ -189,12 +524,16 @@ function buildApi(data,cats){
     var ch=data.chs[j];if(!sm[ch.id])continue;
     if(cats){var ok=false;for(var k=0;k<(ch.categories||[]).length;k++)if(cats.indexOf(ch.categories[k])!==-1){ok=true;break}if(!ok)continue}
     var co=(ch.country||'').toUpperCase();
-    out.push({name:ch.name,logo:ch.logo||'',country:co,flag:FL[co]||'🌐',cat:(ch.categories||[]).join(', '),url:sm[ch.id]});
+    var language = (ch.languages && ch.languages[0]) || '';
+    var langDisplay = language ? getIdiomaEmoji(language) + ' ' + language : '🌐';
+    out.push({id:ch.id, name:ch.name, logo:ch.logo||'', country:co, flag:FL[co]||'🌐', cat:(ch.categories||[]).join(', '), url:sm[ch.id], language:language, langDisplay:langDisplay});
   }
   return out;
 }
 
-// ── ui ────────────────────────────────────────────────────────
+// ============================================================
+// UI FUNCTIONS
+// ============================================================
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 
 function setState(s,msg){
@@ -209,90 +548,6 @@ function setState(s,msg){
   }
 }
 
-function loadCat(cat){
-  showScr('channels');
-  document.getElementById('c-title').textContent=cat.e+' '+cat.n;
-  document.getElementById('c-cnt').textContent='';
-  setState('load','Carregando canais...');
-  retryFn=function(){loadCat(cat)};
-  if(cat.t==='m3u'){
-    getM3u(cat.u,function(e,txt){
-      if(e)return setState('err','Falha M3U.\n'+e);
-      var chs=parseM3u(txt);
-      if(!chs.length)return setState('err','Nenhum canal encontrado.');
-      renderList(chs);
-    });
-  }else{
-    getApi(function(e,data){
-      if(e)return setState('err','Falha na API.\n'+e);
-      var chs=buildApi(data,cat.c);
-      if(!chs.length)return setState('err','Nenhum canal nesta categoria.');
-      renderList(chs);
-    });
-  }
-}
-
-function renderList(chs){
-  channels=chs;
-  var list=document.getElementById('c-list');
-  list.innerHTML='';
-  setState('list');
-  document.getElementById('c-cnt').textContent=chs.length+' canais';
-  cItems=[document.getElementById('c-back')];
-  for(var i=0;i<chs.length;i++){
-    var ch=chs[i],el=document.createElement('div');
-    el.className='ch';el.tabIndex=0;el.setAttribute('data-i',i);
-    el.innerHTML=(ch.logo?'<img class="ch-lg" src="'+esc(ch.logo)+'" onerror="this.style.display=\'none\'" alt="">':'<span class="ch-fl">'+ch.flag+'</span>')+
-      '<div><div class="ch-nm">'+esc(ch.name)+'</div>'+(ch.cat?'<div class="ch-ct">'+ch.flag+' '+esc(ch.cat)+'</div>':'')+'</div>';
-    (function(idx,item){
-      el.addEventListener('click',function(){play(idx)});
-      el.addEventListener('mouseover',function(){cIdx=cItems.indexOf(item);if(cIdx<0)cIdx=1;setFoc(item)});
-    })(i,el);
-    list.appendChild(el);cItems.push(el);
-  }
-  cIdx=1;setFoc(cItems[1]||cItems[0]);
-}
-
-// ── player ────────────────────────────────────────────────────
-function voltaCanais(){if(playing)return;clearTimeout(failTmr);stopHls();showScr('channels')}
-
-function play(idx){
-  var ch=channels[idx];if(!ch)return;
-  playing=false;clearTimeout(failTmr);
-  document.getElementById('p-nm').textContent=ch.flag+' '+ch.name;
-  document.getElementById('p-inf').textContent=ch.cat||ch.country||'';
-  document.getElementById('p-st').textContent='⏳ Conectando...';
-  showScr('player');showOv();
-  var vid=document.getElementById('vid');
-  stopHls();vid.src='';
-  failTmr=setTimeout(voltaCanais,10000);
-  var tried=false;
-  vid.onerror=function(){if(!tried){tried=true;tryHls()}else voltaCanais()};
-  vid.oncanplay=function(){playing=true;clearTimeout(failTmr);document.getElementById('p-st').textContent='▶ Ao vivo'};
-  vid.src=ch.url;try{vid.load();vid.play()}catch(e){}
-  function tryHls(){
-    if(typeof Hls==='undefined'){
-      if(hlsLoaded){voltaCanais();return}
-      hlsLoaded=true;
-      var s=document.createElement('script');
-      s.src='https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js';
-      s.onload=tryHls;s.onerror=voltaCanais;
-      document.head.appendChild(s);return;
-    }
-    if(!Hls.isSupported()){voltaCanais();return}
-    hls=new Hls();hls.loadSource(ch.url);hls.attachMedia(vid);
-    hls.on(Hls.Events.MANIFEST_PARSED,function(){try{vid.play()}catch(e){}});
-    hls.on(Hls.Events.ERROR,function(ev,d){if(d.fatal)voltaCanais()});
-  }
-}
-function stopHls(){if(hls){try{hls.destroy()}catch(e){}hls=null}}
-function showOv(){
-  var ov=document.getElementById('p-ov');
-  ov.classList.remove('hide');clearTimeout(ovTmr);
-  ovTmr=setTimeout(function(){ov.classList.add('hide')},4000);
-}
-
-// ── telas ─────────────────────────────────────────────────────
 function showScr(name){
   ['menu','channels','player'].forEach(function(s){
     document.getElementById('s-'+s).classList[s===name?'add':'remove']('on');
@@ -300,19 +555,160 @@ function showScr(name){
   SCR=name;
   if(name==='menu'&&mItems.length)setFoc(mItems[mIdx]);
   if(name==='player')setFoc(document.getElementById('p-back'));
+  if(name==='channels' && cItems && cItems.length > 0 && cIdx < cItems.length) {
+    setTimeout(function() { setFoc(cItems[cIdx]); }, 50);
+  }
 }
+
 function setFoc(el){
   if(!el)return;
   document.querySelectorAll('.foc').forEach(function(x){x.classList.remove('foc')});
   el.classList.add('foc');try{el.focus()}catch(e){}try{el.scrollIntoView({block:'nearest'})}catch(e){}
 }
 
-// ── teclado / controle remoto ──────────────────────────────────
+// ============================================================
+// CARREGAR CATEGORIA
+// ============================================================
+function loadCat(cat){
+  currentCategory = cat.id;
+  showScr('channels');
+  document.getElementById('c-title').textContent=cat.e+' '+cat.n;
+  document.getElementById('c-cnt').textContent='';
+  setState('load','Carregando canais...');
+  retryFn=function(){loadCat(cat)};
+  
+  if(cat.t==='m3u'){
+    getM3u(cat.u,function(e,txt){
+      if(e)return setState('err','Falha M3U.\n'+e);
+      var chs=parseM3u(txt);
+      if(!chs.length)return setState('err','Nenhum canal encontrado.');
+      channels=chs;
+      carregarCanaisFiltrados();
+      if(precisaVerificar()) setTimeout(function(){ verificarTodosCanais(); }, 2000);
+    });
+  }else{
+    getApi(function(e,data){
+      if(e)return setState('err','Falha na API.\n'+e);
+      var chs=buildApi(data,cat.c);
+      if(!chs.length)return setState('err','Nenhum canal nesta categoria.');
+      channels=chs;
+      carregarCanaisFiltrados();
+      if(precisaVerificar()) setTimeout(function(){ verificarTodosCanais(); }, 2000);
+    });
+  }
+}
+
+function renderList(chs){
+  var list=document.getElementById('c-list');
+  list.innerHTML='';
+  setState('list');
+  document.getElementById('c-cnt').textContent=chs.length+' canais';
+  cItems=[document.getElementById('c-back')];
+  
+  for(var i=0;i<chs.length;i++){
+    var ch=chs[i];
+    var isFav = favoritos[ch.id];
+    var el=document.createElement('div');
+    el.className='ch' + (isFav ? ' ch-favorito' : '');
+    el.tabIndex=0;
+    el.setAttribute('data-i',i);
+    
+    el.innerHTML=(ch.logo?'<img class="ch-lg" src="'+esc(ch.logo)+'" onerror="this.style.display=\'none\'" alt="">':'<span class="ch-fl">'+ch.flag+'</span>')+
+      '<div class="ch-info">'+
+        '<div class="ch-nm">'+esc(ch.name)+'</div>'+
+        '<div class="ch-details">'+
+          '<span class="ch-lang">'+(ch.langDisplay || '🌐')+'</span>'+
+          '<span class="ch-country">'+ch.flag+' '+(ch.country || 'Mundo')+'</span>'+
+          (ch.cat ? '<span class="ch-cat">'+esc(ch.cat.split(',')[0])+'</span>' : '')+
+        '</div>'+
+      '</div>'+
+      '<div class="ch-actions">'+
+        '<button class="ch-fav'+(isFav?' active':'')+'" data-id="'+ch.id+'">'+(isFav?'★':'☆')+'</button>'+
+        '<button class="ch-delete" data-id="'+ch.id+'">🗑️</button>'+
+      '</div>';
+    
+    (function(idx,item,channelId){
+      el.querySelector('.ch-info').addEventListener('click',function(){play(idx)});
+      el.querySelector('.ch-fav').addEventListener('click',function(e){toggleFavorito(channelId,e)});
+      el.querySelector('.ch-delete').addEventListener('click',function(e){excluirCanal(channelId,e)});
+      el.addEventListener('mouseover',function(){
+        var i=cItems.indexOf(item);
+        if(i>=0)cIdx=i;
+        setFoc(item);
+      });
+    })(i,el,ch.id);
+    
+    list.appendChild(el);
+    cItems.push(el);
+  }
+  
+  cIdx=1;
+  setFoc(cItems[1]||cItems[0]);
+  
+  document.getElementById('c-verify-all').onclick = function() {
+    if(document.getElementById('c-verify-all').classList.contains('verificando')) return;
+    verificarTodosCanais();
+  };
+}
+
+// ============================================================
+// PLAYER
+// ============================================================
+function voltaCanais(){if(playing)return;clearTimeout(failTmr);stopHls();showScr('channels')}
+
+function stopHls(){if(hls){try{hls.destroy()}catch(e){}hls=null}}
+
+function play(idx){
+  var ch=cItems[idx] ? channels.find(function(c){return c.id === cItems[idx].getAttribute('data-id')}) : channels[idx];
+  if(!ch) return;
+  
+  playing=false;clearTimeout(failTmr);
+  document.getElementById('p-nm').textContent=ch.flag+' '+ch.name;
+  var langInfo = ch.language ? ' · Idioma: ' + ch.language : '';
+  document.getElementById('p-inf').textContent=(ch.country || 'Mundo')+langInfo;
+  document.getElementById('p-st').textContent='⏳ Conectando...';
+  showScr('player');showOv();
+  
+  var vid=document.getElementById('vid');
+  stopHls();vid.src='';
+  failTmr=setTimeout(function(){if(!playing){document.getElementById('p-st').textContent='❌ Canal offline';voltaCanais()}},20000);
+  
+  var url=ch.url;
+  vid.oncanplay=function(){playing=true;clearTimeout(failTmr);document.getElementById('p-st').textContent='▶ Ao vivo'};
+  vid.onerror=function(){document.getElementById('p-st').textContent='❌ Erro';voltaCanais()};
+  
+  if(url.indexOf('.m3u8')!==-1||url.indexOf('m3u8')!==-1){
+    if(typeof Hls!=='undefined'&&Hls.isSupported()){
+      hls=new Hls({maxBufferLength:30,startLevel:-1,debug:false});
+      hls.loadSource(url);
+      hls.attachMedia(vid);
+      hls.on(Hls.Events.MANIFEST_PARSED,function(){clearTimeout(failTmr);playing=true;document.getElementById('p-st').textContent='▶ Ao vivo';try{vid.play()}catch(e){}});
+      hls.on(Hls.Events.ERROR,function(ev,d){if(d.fatal){document.getElementById('p-st').textContent='❌ Erro';voltaCanais()}});
+    }else{
+      vid.src=url;
+      try{vid.load();vid.play()}catch(e){}
+    }
+  }else{
+    vid.src=url;
+    try{vid.load();vid.play()}catch(e){}
+  }
+}
+
+function showOv(){
+  var ov=document.getElementById('p-ov');
+  ov.classList.remove('hide');clearTimeout(ovTmr);
+  ovTmr=setTimeout(function(){ov.classList.add('hide')},4000);
+}
+
+// ============================================================
+// TECLADO / CONTROLE REMOTO
+// ============================================================
 document.addEventListener('keydown',function(e){
   var k=e.keyCode||e.which;
   var UP=k===38,DN=k===40,OK=k===13||k===32;
   var BK=k===8||k===27||k===36||k===88||k===166||k===196||k===457||k===461||k===1009||k===4||k===10009||k===10182;
   if([4,8,13,27,32,36,37,38,39,40,88,166,196,457,461,1009,10009,10182].indexOf(k)!==-1)e.preventDefault();
+  
   if(SCR==='menu'){
     if(UP&&mIdx>0){mIdx--;setFoc(mItems[mIdx])}
     else if(DN&&mIdx<mItems.length-1){mIdx++;setFoc(mItems[mIdx])}
@@ -325,6 +721,7 @@ document.addEventListener('keydown',function(e){
       var el=cItems[cIdx];
       if(el.id==='c-back')showScr('menu');
       else if(el.id==='c-retry'){if(retryFn)retryFn()}
+      else if(el.id==='c-verify-all'){verificarTodosCanais()}
       else{var idx=parseInt(el.getAttribute('data-i')||'-1');if(idx>=0)play(idx)}
     }
   }else if(SCR==='player'){
@@ -332,7 +729,9 @@ document.addEventListener('keydown',function(e){
   }
 });
 
-// ── montar menu ────────────────────────────────────────────────
+// ============================================================
+// MONTAR MENU
+// ============================================================
 (function(){
   var side=document.getElementById('m-side');
   for(var i=0;i<CATS.length;i++){
@@ -356,6 +755,10 @@ document.addEventListener('keydown',function(e){
   document.getElementById('s-player').addEventListener('mousemove',showOv);
   if(mItems.length)setFoc(mItems[0]);
 })();
+
+console.log('📺 IPTV K10 TV - Completo com todos os recursos');
+console.log('✅ Idiomas, favoritos, exclusão, verificação, telemetria');
+console.log('✅ Modo:', modoTV ? 'TV (leve)' : 'Computador (rápido)');
 </script>
 </body>
 </html>

@@ -116,6 +116,24 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
   50% { opacity: 0.5; transform: scale(0.8); }
 }
 @keyframes sp{to{transform:rotate(360deg)}}
+
+/* ====== SUPORTE A MOUSE / TOUCH PARA TV ====== */
+.m-item,.ch,.ch-fav,.ch-delete,#c-back,#c-retry,#p-back,button{cursor:pointer}
+#c-list{scroll-behavior:smooth}
+#c-list::-webkit-scrollbar{width:8px}
+#c-list::-webkit-scrollbar-track{background:#0b0f1c}
+#c-list::-webkit-scrollbar-thumb{background:#38bdf8;border-radius:4px}
+#c-list::-webkit-scrollbar-thumb:hover{background:#7dd3fc}
+.m-side::-webkit-scrollbar{width:6px}
+.m-side::-webkit-scrollbar-track{background:#07090f}
+.m-side::-webkit-scrollbar-thumb{background:#1a2540;border-radius:3px}
+body.cursor-off,body.cursor-off *{cursor:none!important}
+.scroll-zone{position:absolute;left:0;right:0;height:70px;z-index:10;pointer-events:none;opacity:0;transition:opacity .3s}
+.scroll-zone.top{top:0;background:linear-gradient(#0b0f1c,transparent)}
+.scroll-zone.bot{bottom:0;background:linear-gradient(transparent,#0b0f1c)}
+.scroll-zone.active{opacity:1;pointer-events:auto}
+.ch{transition:transform .1s}
+.ch:hover{transform:scale(1.005)}
 </style>
 </head>
 <body>
@@ -140,7 +158,9 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
   <div class="c-body">
     <div id="c-load"><div class="spin"></div><div class="ltxt" id="l-txt">Carregando...</div></div>
     <div id="c-err"><div style="font-size:40px">⚠️</div><div class="etxt" id="e-txt"></div><button id="c-retry">↺ Tentar novamente</button></div>
+    <div class="scroll-zone top" id="sz-top"></div>
     <div id="c-list"></div>
+    <div class="scroll-zone bot" id="sz-bot"></div>
   </div>
 </div>
 
@@ -607,57 +627,118 @@ function loadCat(cat){
   }
 }
 
-function renderList(chs){
-  var list=document.getElementById('c-list');
-  list.innerHTML='';
-  setState('list');
-  document.getElementById('c-cnt').textContent=chs.length+' canais';
-  cItems=[document.getElementById('c-back')];
-  
-  for(var i=0;i<chs.length;i++){
-    var ch=chs[i];
-    var isFav = favoritos[ch.id];
-    var el=document.createElement('div');
-    el.className='ch' + (isFav ? ' ch-favorito' : '');
-    el.setAttribute('data-idx',i);
-    
-    var logoHtml = ch.logo ? '<img class="ch-lg" src="'+esc(ch.logo)+'" onerror="this.style.display=\'none\'" alt="">' : '<span class="ch-fl">'+ch.flag+'</span>';
-    var langHtml = '<span class="ch-lang">'+(ch.langDisplay || '🌐')+'</span>';
-    var countryHtml = '<span class="ch-country">'+ch.flag+' '+(ch.country || 'Mundo')+'</span>';
-    var catHtml = ch.cat ? '<span class="ch-cat">'+esc(ch.cat.split(',')[0])+'</span>' : '';
-    
-    el.innerHTML= logoHtml +
-      '<div class="ch-info">'+
-        '<div class="ch-nm">'+esc(ch.name)+'</div>'+
-        '<div class="ch-details">'+langHtml+countryHtml+catHtml+'</div>'+
-      '</div>'+
-      '<div class="ch-actions">'+
-        '<button class="ch-fav'+(isFav?' active':'')+'" data-id="'+ch.id+'">'+(isFav?'★':'☆')+'</button>'+
-        '<button class="ch-delete" data-id="'+ch.id+'">🗑️</button>'+
-      '</div>';
-    
-    (function(idx,item,channelId){
-      // O CLICK PRINCIPAL É NO CANAL TODO
-      el.addEventListener('click', function(e) {
-        // Se clicou no botão de favorito ou delete, não executar o play
-        if(e.target.classList && (e.target.classList.contains('ch-fav') || e.target.classList.contains('ch-delete'))) return;
-        play(idx);
-      });
-      el.querySelector('.ch-fav').addEventListener('click',function(e){toggleFavorito(channelId,e)});
-      el.querySelector('.ch-delete').addEventListener('click',function(e){excluirCanal(channelId,e)});
-      el.addEventListener('mouseover',function(){
-        var i=cItems.indexOf(item);
-        if(i>=0)cIdx=i;
-        setFoc(item);
-      });
-    })(i,el,ch.id);
-    
+// ============================================================
+// CARREGAMENTO PROGRESSIVO (10 canais por vez)
+// ============================================================
+var BATCH_SIZE = 10;
+var renderAllChannels = [];   // lista completa atual
+var renderOffset = 0;         // quantos já foram renderizados
+var batchSentinel = null;     // div sentinela para IntersectionObserver
+var batchObserver = null;     // IntersectionObserver
+
+function criarElementoCanal(ch, i) {
+  var isFav = favoritos[ch.id];
+  var el = document.createElement('div');
+  el.className = 'ch' + (isFav ? ' ch-favorito' : '');
+  el.setAttribute('data-idx', i);
+
+  var logoHtml = ch.logo
+    ? '<img class="ch-lg" src="'+esc(ch.logo)+'" onerror="this.style.display=\'none\'" alt="">'
+    : '<span class="ch-fl">'+ch.flag+'</span>';
+  var langHtml    = '<span class="ch-lang">'+(ch.langDisplay || '🌐')+'</span>';
+  var countryHtml = '<span class="ch-country">'+ch.flag+' '+(ch.country || 'Mundo')+'</span>';
+  var catHtml     = ch.cat ? '<span class="ch-cat">'+esc(ch.cat.split(',')[0])+'</span>' : '';
+
+  el.innerHTML = logoHtml +
+    '<div class="ch-info">'+
+      '<div class="ch-nm">'+esc(ch.name)+'</div>'+
+      '<div class="ch-details">'+langHtml+countryHtml+catHtml+'</div>'+
+    '</div>'+
+    '<div class="ch-actions">'+
+      '<button class="ch-fav'+(isFav?' active':'')+'" data-id="'+ch.id+'">'+(isFav?'★':'☆')+'</button>'+
+      '<button class="ch-delete" data-id="'+ch.id+'">🗑️</button>'+
+    '</div>';
+
+  (function(idx, item, channelId){
+    el.addEventListener('click', function(e){
+      if(e.target.classList && (e.target.classList.contains('ch-fav') || e.target.classList.contains('ch-delete'))) return;
+      play(idx);
+    });
+    el.querySelector('.ch-fav').addEventListener('click', function(e){ toggleFavorito(channelId, e); });
+    el.querySelector('.ch-delete').addEventListener('click', function(e){ excluirCanal(channelId, e); });
+    el.addEventListener('mouseover', function(){
+      var pos = cItems.indexOf(item);
+      if(pos >= 0) cIdx = pos;
+      setFoc(item);
+    });
+  })(i, el, ch.id);
+
+  return el;
+}
+
+function removerSentinela() {
+  if(batchObserver){ batchObserver.disconnect(); batchObserver = null; }
+  if(batchSentinel && batchSentinel.parentNode){ batchSentinel.parentNode.removeChild(batchSentinel); }
+  batchSentinel = null;
+}
+
+function adicionarSentinela(list) {
+  removerSentinela();
+  if(renderOffset >= renderAllChannels.length) return; // tudo renderizado
+
+  batchSentinel = document.createElement('div');
+  batchSentinel.style.cssText = 'height:40px;display:flex;align-items:center;justify-content:center;color:#334155;font-size:12px;';
+  batchSentinel.textContent = '⏳ Carregando mais canais...';
+  list.appendChild(batchSentinel);
+
+  if(typeof IntersectionObserver !== 'undefined'){
+    batchObserver = new IntersectionObserver(function(entries){
+      if(entries[0].isIntersecting) renderProximoLote();
+    }, { root: list, threshold: 0.1 });
+    batchObserver.observe(batchSentinel);
+  }
+}
+
+function renderProximoLote() {
+  var list = document.getElementById('c-list');
+  removerSentinela();
+
+  var fim = Math.min(renderOffset + BATCH_SIZE, renderAllChannels.length);
+  for(var i = renderOffset; i < fim; i++){
+    var el = criarElementoCanal(renderAllChannels[i], i);
     list.appendChild(el);
     cItems.push(el);
   }
-  
-  cIdx=1;
-  setFoc(cItems[1]||cItems[0]);
+  renderOffset = fim;
+
+  // Atualiza contador
+  document.getElementById('c-cnt').textContent =
+    renderOffset + (renderOffset < renderAllChannels.length ? '/'+renderAllChannels.length : '') + ' canais';
+
+  if(renderOffset < renderAllChannels.length){
+    adicionarSentinela(list);
+  } else {
+    document.getElementById('c-cnt').textContent = renderAllChannels.length + ' canais';
+  }
+}
+
+function renderList(chs){
+  var list = document.getElementById('c-list');
+  list.innerHTML = '';
+  removerSentinela();
+
+  renderAllChannels = chs;
+  renderOffset = 0;
+
+  setState('list');
+  document.getElementById('c-cnt').textContent = '0/'+chs.length+' canais';
+  cItems = [document.getElementById('c-back')];
+
+  // Renderiza primeiro lote
+  renderProximoLote();
+
+  cIdx = 1;
+  setFoc(cItems[1] || cItems[0]);
 }
 
 // ============================================================
@@ -751,7 +832,10 @@ document.addEventListener('keydown',function(e){
   }else if(SCR==='channels'){
     if(BK){stopHls();showScr('menu')}
     else if(UP&&cIdx>0){cIdx--;setFoc(cItems[cIdx])}
-    else if(DN&&cIdx<cItems.length-1){cIdx++;setFoc(cItems[cIdx])}
+    else if(DN){
+      if(cIdx>=cItems.length-3&&renderOffset<renderAllChannels.length)renderProximoLote();
+      if(cIdx<cItems.length-1){cIdx++;setFoc(cItems[cIdx]);}
+    }
     else if(OK&&cItems[cIdx]){
       var el=cItems[cIdx];
       if(el.id==='c-back')showScr('menu');
@@ -787,7 +871,133 @@ document.addEventListener('keydown',function(e){
   document.getElementById('c-retry').addEventListener('click',function(){if(retryFn)retryFn()});
   document.getElementById('p-back').addEventListener('click',function(){currentPlayingChannel=null;stopHls();showScr('channels')});
   document.getElementById('s-player').addEventListener('mousemove',showOv);
+  document.getElementById('s-player').addEventListener('pointermove',showOv);
   if(mItems.length)setFoc(mItems[0]);
+})();
+
+// ============================================================
+// SUPORTE A MOUSE / PONTEIRO / TOUCH NA TV
+// ============================================================
+(function(){
+  // --- 1. AUTO-HIDE DO CURSOR após 4s de inatividade ---
+  var cursorTimer=null;
+  function mostrarCursor(){
+    document.body.classList.remove('cursor-off');
+    clearTimeout(cursorTimer);
+    cursorTimer=setTimeout(function(){
+      if(SCR==='player') document.body.classList.add('cursor-off');
+    },4000);
+  }
+  document.addEventListener('mousemove',mostrarCursor);
+  document.addEventListener('pointermove',mostrarCursor);
+
+  // --- 2. AUTO-SCROLL nas bordas da lista ao mover o mouse ---
+  var listEl=document.getElementById('c-list');
+  var szTop=document.getElementById('sz-top');
+  var szBot=document.getElementById('sz-bot');
+  var autoScrollTimer=null;
+
+  function pararAutoScroll(){
+    clearInterval(autoScrollTimer);autoScrollTimer=null;
+    szTop.classList.remove('active');
+    szBot.classList.remove('active');
+  }
+
+  function iniciarAutoScroll(dir){
+    if(autoScrollTimer)return;
+    autoScrollTimer=setInterval(function(){
+      listEl.scrollTop+=dir*18;
+      // Carrega mais se rolar perto do fim
+      if(dir>0){
+        var restante=listEl.scrollHeight-listEl.scrollTop-listEl.clientHeight;
+        if(restante<200&&renderOffset<renderAllChannels.length) renderProximoLote();
+      }
+    },30);
+  }
+
+  if(szTop){
+    szTop.addEventListener('mouseenter',function(){szTop.classList.add('active');iniciarAutoScroll(-1)});
+    szTop.addEventListener('mouseleave',pararAutoScroll);
+    szTop.addEventListener('pointerenter',function(){szTop.classList.add('active');iniciarAutoScroll(-1)});
+    szTop.addEventListener('pointerleave',pararAutoScroll);
+  }
+  if(szBot){
+    szBot.addEventListener('mouseenter',function(){szBot.classList.add('active');iniciarAutoScroll(1)});
+    szBot.addEventListener('mouseleave',pararAutoScroll);
+    szBot.addEventListener('pointerenter',function(){szBot.classList.add('active');iniciarAutoScroll(1)});
+    szBot.addEventListener('pointerleave',pararAutoScroll);
+  }
+
+  // --- 3. SCROLL por roda do mouse / trackpad ---
+  listEl.addEventListener('wheel',function(e){
+    e.preventDefault();
+    listEl.scrollTop+=e.deltaY>0?80:-80;
+    // Carrega mais se perto do fim
+    var restante=listEl.scrollHeight-listEl.scrollTop-listEl.clientHeight;
+    if(restante<300&&renderOffset<renderAllChannels.length) renderProximoLote();
+  },{passive:false});
+
+  // --- 4. TOUCH — swipe vertical na lista de canais ---
+  var touchStartY=0,touchStartScroll=0,touchMoved=false;
+  listEl.addEventListener('touchstart',function(e){
+    touchStartY=e.touches[0].clientY;
+    touchStartScroll=listEl.scrollTop;
+    touchMoved=false;
+  },{passive:true});
+  listEl.addEventListener('touchmove',function(e){
+    var dy=touchStartY-e.touches[0].clientY;
+    listEl.scrollTop=touchStartScroll+dy;
+    if(Math.abs(dy)>5) touchMoved=true;
+    // Carrega mais se perto do fim
+    var restante=listEl.scrollHeight-listEl.scrollTop-listEl.clientHeight;
+    if(restante<300&&renderOffset<renderAllChannels.length) renderProximoLote();
+  },{passive:true});
+
+  // --- 5. TOUCH tap na lista (sem arrastar) dispara play ---
+  listEl.addEventListener('touchend',function(e){
+    if(touchMoved) return; // foi swipe, não tap
+    var target=e.changedTouches[0];
+    var el=document.elementFromPoint(target.clientX,target.clientY);
+    if(!el) return;
+    var ch=el.closest('.ch');
+    if(ch){
+      var fav=el.closest('.ch-fav');
+      var del=el.closest('.ch-delete');
+      if(fav){ fav.click(); return; }
+      if(del){ del.click(); return; }
+      var idx=parseInt(ch.getAttribute('data-idx')||'-1');
+      if(idx>=0) play(idx);
+    }
+  },{passive:true});
+
+  // --- 6. TOUCH no menu lateral ---
+  var menuSide=document.getElementById('m-side');
+  var menuTouchMoved=false,menuTouchStartY=0;
+  menuSide.addEventListener('touchstart',function(e){menuTouchStartY=e.touches[0].clientY;menuTouchMoved=false;},{passive:true});
+  menuSide.addEventListener('touchmove',function(e){if(Math.abs(e.touches[0].clientY-menuTouchStartY)>5)menuTouchMoved=true;},{passive:true});
+  menuSide.addEventListener('touchend',function(e){
+    if(menuTouchMoved) return;
+    var el=document.elementFromPoint(e.changedTouches[0].clientX,e.changedTouches[0].clientY);
+    if(!el) return;
+    var item=el.closest('.m-item');
+    if(item&&item._cat) loadCat(item._cat);
+  },{passive:true});
+
+  // --- 7. POINTER (TV Magic Remote LG, Tizen, etc.) ---
+  // Garante que pointerdown em elementos interativos dispara click
+  document.addEventListener('pointerdown',function(e){
+    if(e.pointerType==='mouse') return; // mouse já tem click nativo
+    var target=e.target;
+    // botões já têm click, só precisamos do canal
+    var ch=target.closest&&target.closest('.ch');
+    if(ch&&!target.closest('.ch-fav')&&!target.closest('.ch-delete')){
+      var idx=parseInt(ch.getAttribute('data-idx')||'-1');
+      if(idx>=0){ e.preventDefault(); play(idx); }
+    }
+    var mitem=target.closest&&target.closest('.m-item');
+    if(mitem&&mitem._cat){ e.preventDefault(); loadCat(mitem._cat); }
+  });
+
 })();
 
 console.log('📺 IPTV K10 TV - Corrigido');

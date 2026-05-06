@@ -53,7 +53,7 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 .ltxt{font-size:14px;color:#475569;margin-top:10px}
 .etxt{font-size:14px;color:#f87171;text-align:center;max-width:300px}
 #c-retry{margin-top:15px;background:#111e38;border:2px solid #38bdf8;color:#38bdf8;padding:8px 20px;border-radius:8px;cursor:pointer}
-#c-list{flex:1;overflow-y:auto;padding:8px}
+#c-list{flex:1;overflow-y:auto;padding:8px;padding-bottom:100px}
 .ch{display:flex;align-items:center;padding:10px 12px;border-radius:8px;cursor:pointer;margin-bottom:4px;border:1px solid transparent;background:#0b0f1c}
 .ch.foc{background:#111e38;border-color:#38bdf8}
 .ch-fl{font-size:26px;width:44px;text-align:center}
@@ -69,8 +69,8 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 .ch-delete{background:none;border:none;font-size:18px;cursor:pointer;color:#64748b}
 
 /* Botão Voltar centralizado (canais) */
-.channels-bottom-center{position:relative;flex-shrink:0;display:flex;justify-content:center;padding:15px 0;background:#07090f;border-top:1px solid #1a2540}
-#c-back-center{background:#111e38;border:3px solid #38bdf8;color:#38bdf8;font-size:20px;font-weight:bold;padding:12px 32px;border-radius:50px;cursor:pointer;box-shadow:0 0 15px rgba(56,189,248,0.3);transition:0.1s}
+.channels-bottom-center{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:999;display:flex;justify-content:center}
+#c-back-center{pointer-events:auto;background:#111e38;border:3px solid #38bdf8;color:#38bdf8;font-size:20px;font-weight:bold;padding:12px 32px;border-radius:50px;cursor:pointer;box-shadow:0 0 15px rgba(56,189,248,0.7);transition:0.1s;width:auto;min-width:200px;text-align:center;}
 #c-back-center.foc,#c-back-center:hover{background:#38bdf8;color:#000;transform:scale(1.02)}
 
 /* ----- PLAYER (botão Voltar já centralizado) ----- */
@@ -118,7 +118,7 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
     <div id="c-err"><div style="font-size:40px">⚠</div><div class="etxt" id="e-txt"></div><button id="c-retry">⟳ Tentar novamente</button></div>
     <div id="c-list"></div>
     <div class="channels-bottom-center">
-      <button id="c-back-center">◀  VOLTAR  ▶</button>
+      <button id="c-back-center">VOLTAR</button>
     </div>
   </div>
 </div>
@@ -131,7 +131,7 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
       <p id="p-inf"></p>
     </div>
     <div class="p-bottom-center">
-      <button id="p-back">◀  VOLTAR  ▶</button>
+      <button id="p-back">VOLTAR</button>
     </div>
     <div class="p-status" id="p-st">⏳ Conectando...</div>
   </div>

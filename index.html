@@ -27,8 +27,7 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 .m-hint .t2{font-size:12px;color:#0f172a}
 #s-channels{flex-direction:column;background:#07090f}
 .c-head{display:flex;align-items:center;gap:12px;padding:12px 20px;background:#0b0f1c;border-bottom:1px solid #1a2540;flex-shrink:0}
-#c-back{background:#111e38;border:2px solid #38bdf8;color:#38bdf8;font-size:16px;padding:6px 14px;border-radius:7px;cursor:pointer;flex-shrink:0}
-#c-back.foc,#c-back:hover{background:#38bdf8;color:#07090f;outline:none}
+
 #c-title{font-size:20px;font-weight:700;color:#f1f5f9}
 #c-cnt{font-size:12px;color:#475569;margin-left:auto}
 .c-body{flex:1;overflow:hidden;position:relative}
@@ -61,8 +60,7 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 .p-st{font-size:12px;color:#64748b}
 .p-badge{font-size:13px;color:#38bdf8;font-family:monospace;font-weight:700}
 .p-hint{font-size:10px;color:#1e293b}
-#p-back{background:#111e38;border:2px solid #38bdf8;color:#38bdf8;font-size:14px;padding:8px 18px;border-radius:7px;cursor:pointer}
-#p-back.foc,#p-back:hover{background:#38bdf8;color:#000}
+
 /* OSD canal — canto superior direito, igual TV */
 #ch-osd{position:fixed;top:20px;right:24px;background:rgba(7,9,15,.94);border:2px solid #38bdf8;border-radius:12px;padding:14px 24px;z-index:9999;min-width:170px;text-align:center;display:none;box-shadow:0 0 28px #38bdf830}
 #ch-osd.show{display:block;animation:osdIn .2s ease}
@@ -126,7 +124,6 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 
 <div id="s-channels" class="scr">
   <div class="c-head">
-    <button id="c-back">◀ Voltar</button>
     <span id="c-title">Canais</span>
     <span id="c-cnt"></span>
   </div>
@@ -147,7 +144,6 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
         <span class="p-badge" id="p-badge"></span>
         <span class="p-hint">CH+ CH− · 0-9 digitar canal · VOLTAR = lista</span>
       </div>
-      <button id="p-back">◀ Voltar</button>
     </div>
   </div>
 </div>
@@ -262,8 +258,8 @@ function setState(s,msg){
   if(s==='load')document.getElementById('l-txt').textContent=msg||'';
   if(s==='err'){
     document.getElementById('e-txt').textContent=msg||'';
-    cItems=[document.getElementById('c-back'),document.getElementById('c-retry')];
-    cIdx=1;setFoc(cItems[1]);
+    cItems=[document.getElementById('c-retry')];
+    cIdx=0;setFoc(cItems[0]);
   }
 }
 
@@ -296,7 +292,7 @@ function renderList(chs){
   list.innerHTML='';
   setState('list');
   document.getElementById('c-cnt').textContent=chs.length+' canais';
-  cItems=[document.getElementById('c-back')];
+  cItems=[];
   for(var i=0;i<chs.length;i++){
     var ch=chs[i],el=document.createElement('div');
     el.className='ch';el.tabIndex=0;el.setAttribute('data-i',i);
@@ -310,7 +306,7 @@ function renderList(chs){
     })(i,el);
     list.appendChild(el);cItems.push(el);
   }
-  cIdx=1;setFoc(cItems[1]||cItems[0]);
+  cIdx=0;setFoc(cItems[0]);
 }
 
 // ── OSD (display de canal igual TV, canto superior direito) ──
@@ -393,7 +389,6 @@ function showScr(name){
   });
   SCR=name;
   if(name==='menu'){if(mItems.length)setFoc(mItems[mIdx]);hideFloatBack()}
-  if(name==='player')setFoc(document.getElementById('p-back'));
 }
 function setFoc(el){
   if(!el)return;
@@ -453,8 +448,7 @@ document.addEventListener('keydown',function(e){
     else if(DN&&cIdx<cItems.length-1){cIdx++;setFoc(cItems[cIdx])}
     else if(OK&&cItems[cIdx]){
       var el=cItems[cIdx];
-      if(el.id==='c-back')showScr('menu');
-      else if(el.id==='c-retry'){if(retryFn)retryFn()}
+      if(el.id==='c-retry'){if(retryFn)retryFn()}
       else{var idx=parseInt(el.getAttribute('data-i')||'-1');if(idx>=0)play(idx)}
     }
     else if(isNum&&channels.length)pressNum(numVal);
@@ -485,9 +479,7 @@ document.addEventListener('keydown',function(e){
       side.appendChild(el);mItems.push(el);
     }
   }
-  document.getElementById('c-back').addEventListener('click',function(){showScr('menu')});
   document.getElementById('c-retry').addEventListener('click',function(){if(retryFn)retryFn()});
-  document.getElementById('p-back').addEventListener('click',function(){stopHls();playing=false;showScr('channels')});
   document.getElementById('s-player').addEventListener('mousemove',showOv);
   // mousemove mostra botão flutuante em canais e player
   document.getElementById('s-channels').addEventListener('mousemove',showFloatBack);

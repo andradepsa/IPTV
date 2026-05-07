@@ -469,6 +469,7 @@ function showHome(){
   document.getElementById('s-player').style.display='none';
   stopHls();clearTimeout(failTmr);clearTimeout(errTmr);
   var vid=document.getElementById('vid');
+  vid.onerror=null;vid.oncanplay=null;
   try{vid.pause()}catch(e){}
   vid.src='';try{vid.load()}catch(e){}
   document.getElementById('err-toast').classList.remove('show');

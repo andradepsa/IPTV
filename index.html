@@ -79,6 +79,19 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 #num-lbl{font-size:10px;color:#92400e;letter-spacing:2px;font-weight:700;margin-bottom:4px}
 #num-val{font-size:34px;font-weight:900;color:#fbbf24;letter-spacing:8px;font-family:monospace;min-width:90px}
 @keyframes sp{to{transform:rotate(360deg)}}
+/* botão flutuante Voltar — centro inferior */
+#float-back{
+  position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:rgba(7,9,15,.92);border:2px solid #38bdf8;color:#38bdf8;
+  font-size:16px;font-weight:700;padding:12px 36px;border-radius:40px;
+  cursor:pointer;z-index:9998;white-space:nowrap;letter-spacing:.5px;
+  opacity:0;pointer-events:none;
+  transition:opacity .3s ease,transform .3s ease,background .15s,color .15s;
+  box-shadow:0 4px 24px rgba(56,189,248,.18);
+  display:none;
+}
+#float-back.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+#float-back:hover,#float-back.foc{background:#38bdf8;color:#07090f}
 </style>
 </head>
 <body>
@@ -96,6 +109,9 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
   <div id="num-lbl">IR PARA CANAL</div>
   <div id="num-val">_</div>
 </div>
+
+<!-- botão flutuante Voltar (centro inferior) -->
+<button id="float-back">◀ Voltar</button>
 
 <div id="s-menu" class="scr on">
   <div class="m-side" id="m-side">
@@ -376,13 +392,35 @@ function showScr(name){
     document.getElementById('s-'+s).classList[s===name?'add':'remove']('on');
   });
   SCR=name;
-  if(name==='menu'&&mItems.length)setFoc(mItems[mIdx]);
+  if(name==='menu'){if(mItems.length)setFoc(mItems[mIdx]);hideFloatBack()}
   if(name==='player')setFoc(document.getElementById('p-back'));
 }
 function setFoc(el){
   if(!el)return;
   document.querySelectorAll('.foc').forEach(function(x){x.classList.remove('foc')});
   el.classList.add('foc');try{el.focus()}catch(e){}try{el.scrollIntoView({block:'nearest'})}catch(e){}
+}
+
+// ── botão flutuante Voltar ────────────────────────────────────
+var fbTmr=null;
+function showFloatBack(){
+  if(SCR==='menu')return;
+  var fb=document.getElementById('float-back');
+  fb.style.display='block';
+  clearTimeout(fbTmr);
+  // força reflow para animação funcionar
+  void fb.offsetWidth;
+  fb.classList.add('show');
+  fbTmr=setTimeout(function(){
+    fb.classList.remove('show');
+    fbTmr=setTimeout(function(){fb.style.display='none'},320);
+  },3000);
+}
+function hideFloatBack(){
+  var fb=document.getElementById('float-back');
+  fb.classList.remove('show');
+  clearTimeout(fbTmr);
+  fbTmr=setTimeout(function(){fb.style.display='none'},320);
 }
 
 // ── teclado / controle remoto ──────────────────────────────────
@@ -402,6 +440,7 @@ document.addEventListener('keydown',function(e){
       48,49,50,51,52,53,54,55,56,57,
       88,96,97,98,99,100,101,102,103,104,105,
       166,196,427,428,457,461,1009,10009,10182,10232,10233].indexOf(k)!==-1)e.preventDefault();
+  if(SCR!=='menu')showFloatBack();
   if(SCR==='menu'){
     if(UP&&mIdx>0){mIdx--;setFoc(mItems[mIdx])}
     else if(DN&&mIdx<mItems.length-1){mIdx++;setFoc(mItems[mIdx])}
@@ -450,6 +489,14 @@ document.addEventListener('keydown',function(e){
   document.getElementById('c-retry').addEventListener('click',function(){if(retryFn)retryFn()});
   document.getElementById('p-back').addEventListener('click',function(){stopHls();playing=false;showScr('channels')});
   document.getElementById('s-player').addEventListener('mousemove',showOv);
+  // mousemove mostra botão flutuante em canais e player
+  document.getElementById('s-channels').addEventListener('mousemove',showFloatBack);
+  document.getElementById('s-player').addEventListener('mousemove',showFloatBack);
+  // click no botão flutuante executa a ação correta por tela
+  document.getElementById('float-back').addEventListener('click',function(){
+    if(SCR==='channels'){hideFloatBack();showScr('menu')}
+    else if(SCR==='player'){hideFloatBack();stopHls();playing=false;showScr('channels')}
+  });
   if(mItems.length)setFoc(mItems[0]);
 })();
 </script>

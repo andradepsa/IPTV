@@ -30,7 +30,8 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
 #carregando{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:18px;color:#888;text-align:center}
 #p-canal{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:#111;border:2px solid #ffaa00;border-radius:10px;padding:10px 32px;text-align:center;display:none}
 #p-canal-val{font-size:36px;font-weight:bold;color:#ffaa00;font-family:monospace;letter-spacing:6px}
-#controles{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px}
+#controles{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;transition:opacity .4s}
+#controles.oculto{opacity:0;pointer-events:none}
 #btn-voltar{background:#111;border:2px solid #00aaff;color:#00aaff;font-size:15px;font-weight:bold;padding:12px 40px;border-radius:30px;cursor:pointer}
 .btn-ch{background:#111;border:2px solid #ffaa00;color:#ffaa00;font-size:22px;font-weight:bold;width:52px;height:52px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .1s;user-select:none}
 .btn-ch:active{background:#ffaa0033;transform:scale(.92)}
@@ -546,6 +547,17 @@ function deletarFav(i) {
 }
 
 document.getElementById('btn-fav').onclick = toggleFav;
+
+// ── Auto-ocultar controles ─────────────────────────────────────
+var hideTmr;
+function mostrarControles() {
+  document.getElementById('controles').classList.remove('oculto');
+  clearTimeout(hideTmr);
+  hideTmr = setTimeout(function(){ document.getElementById('controles').classList.add('oculto'); }, 3000);
+}
+['mousemove','mousedown','touchstart','keydown'].forEach(function(ev){
+  document.addEventListener(ev, mostrarControles);
+});
 renderFavs();
 
 document.getElementById('btn-voltar').onclick = function() { voltarHome(); };

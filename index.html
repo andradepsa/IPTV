@@ -28,7 +28,10 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
 #carregando{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:18px;color:#888;text-align:center}
 #p-canal{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:#111;border:2px solid #ffaa00;border-radius:10px;padding:10px 32px;text-align:center;display:none}
 #p-canal-val{font-size:36px;font-weight:bold;color:#ffaa00;font-family:monospace;letter-spacing:6px}
-#btn-voltar{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);background:#111;border:2px solid #00aaff;color:#00aaff;font-size:15px;font-weight:bold;padding:12px 40px;border-radius:30px;cursor:pointer}
+#controles{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px}
+#btn-voltar{background:#111;border:2px solid #00aaff;color:#00aaff;font-size:15px;font-weight:bold;padding:12px 40px;border-radius:30px;cursor:pointer}
+.btn-ch{background:#111;border:2px solid #ffaa00;color:#ffaa00;font-size:22px;font-weight:bold;width:52px;height:52px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .1s;user-select:none}
+.btn-ch:active{background:#ffaa0033;transform:scale(.92)}
 #toast{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#111;border:2px solid #ff5555;border-radius:12px;padding:24px 40px;text-align:center;display:none;z-index:99}
 #toast p{font-size:16px;color:#ff8888}
 #toast small{font-size:12px;color:#555}
@@ -56,7 +59,11 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
   </div>
   <div id="carregando">Conectando ao canal...</div>
   <div id="p-canal"><div id="p-canal-val">_</div></div>
-  <button id="btn-voltar">&#9664; Voltar</button>
+  <div id="controles">
+    <button class="btn-ch" id="btn-ch-baixo" title="Canal anterior">&#9660;</button>
+    <button id="btn-voltar">&#9664; Voltar</button>
+    <button class="btn-ch" id="btn-ch-cima" title="Próximo canal">&#9650;</button>
+  </div>
 </div>
 
 <div id="toast"><p>Canal indisponivel</p><small>Voltando a tela inicial...</small></div>
@@ -82,6 +89,7 @@ var buf = '', bufTmr = null;
 var pBuf = '', pBufTmr = null;
 var curCh = -1, pronto = false;
 var osdTmr, errTmr, failTmr, hlsObj;
+var skipCount = 0;
 
 var PROXIES = [
   'https://corsproxy.io/?url=',
@@ -352,6 +360,7 @@ function tocar(idx) {
   failTmr = setTimeout(mostrarErro, 15000);
   function onOk() {
     clearTimeout(failTmr);
+    skipCount = 0;
     document.getElementById('carregando').style.display = 'none';
     document.getElementById('osd-estado').textContent = 'Ao vivo';
   }
@@ -379,6 +388,7 @@ function pararVideo() {
 
 function voltarHome() {
   pararVideo(); clearTimeout(osdTmr); clearTimeout(errTmr);
+  skipCount = 0;
   document.getElementById('toast').style.display = 'none';
   document.getElementById('tela-player').style.display = 'none';
   document.getElementById('tela-home').style.display = 'block';
@@ -386,11 +396,27 @@ function voltarHome() {
 }
 
 function mostrarErro() {
-  clearTimeout(failTmr);
+  clearTimeout(failTmr); clearTimeout(errTmr);
+  skipCount++;
+  if (skipCount >= canais.length) {
+    // Todos os canais falharam — desiste e vai para home
+    skipCount = 0;
+    document.getElementById('carregando').style.display = 'none';
+    var t = document.getElementById('toast');
+    t.querySelector('p').textContent = 'Nenhum canal disponivel';
+    t.querySelector('small').textContent = 'Voltando a tela inicial...';
+    t.style.display = 'block';
+    errTmr = setTimeout(function() { t.style.display = 'none'; voltarHome(); }, 2500);
+    return;
+  }
+  // Mostra aviso rapido e pula para o proximo canal
   document.getElementById('carregando').style.display = 'none';
-  var t = document.getElementById('toast'); t.style.display = 'block';
-  clearTimeout(errTmr);
-  errTmr = setTimeout(function() { t.style.display = 'none'; voltarHome(); }, 2500);
+  document.getElementById('osd-estado').textContent = 'Sem sinal — pulando...';
+  document.getElementById('osd').style.display = 'block';
+  errTmr = setTimeout(function() {
+    curCh = (curCh + 1) % canais.length;
+    tocar(curCh);
+  }, 800);
 }
 
 function mostrarOSD() {
@@ -412,8 +438,8 @@ function digitarNoPlayer(n) {
   }, pBuf.length >= MAX_DIGITOS ? 600 : 2000);
 }
 
-function canalCima()  { if (canais.length) { curCh = (curCh + 1) % canais.length; tocar(curCh); } }
-function canalBaixo() { if (canais.length) { curCh = ((curCh - 1) + canais.length) % canais.length; tocar(curCh); } }
+function canalCima()  { if (canais.length) { skipCount = 0; curCh = (curCh + 1) % canais.length; tocar(curCh); } }
+function canalBaixo() { if (canais.length) { skipCount = 0; curCh = ((curCh - 1) + canais.length) % canais.length; tocar(curCh); } }
 
 // ── Teclado ────────────────────────────────────────────────────
 document.onkeydown = function(e) {
@@ -446,6 +472,8 @@ document.onkeydown = function(e) {
 };
 
 document.getElementById('btn-voltar').onclick = function() { voltarHome(); };
+document.getElementById('btn-ch-cima').onclick = function() { canalCima(); };
+document.getElementById('btn-ch-baixo').onclick = function() { canalBaixo(); };
 carregar();
 </script>
 </body>

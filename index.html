@@ -19,6 +19,8 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
 #digitos{font-size:58px;font-weight:bold;color:#00aaff;font-family:monospace;letter-spacing:4px;min-height:68px;line-height:1}
 #digitos.vazio{color:#222}
 #instrucao{font-size:12px;color:#444;margin-top:8px}
+#btn-enter{margin-top:14px;background:#111;border:2px solid #00aaff;color:#00aaff;font-size:16px;font-weight:bold;padding:12px 48px;border-radius:30px;cursor:pointer;transition:background .15s,transform .1s}
+#btn-enter:active{background:#00aaff22;transform:scale(.95)}
 #tela-player{position:absolute;top:0;left:0;width:100%;height:100%;background:#000;display:none}
 #vid{width:100%;height:100%;display:block}
 #osd{position:absolute;top:0;left:0;right:0;background:rgba(0,0,0,0.85);padding:16px 24px}
@@ -35,6 +37,15 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
 #toast{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#111;border:2px solid #ff5555;border-radius:12px;padding:24px 40px;text-align:center;display:none;z-index:99}
 #toast p{font-size:16px;color:#ff8888}
 #toast small{font-size:12px;color:#555}
+#btn-fav{background:#111;border:2px solid #ffdd00;color:#ffdd00;font-size:20px;width:52px;height:52px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .1s}
+#btn-fav:active{transform:scale(.92)}
+#btn-fav.favoritado{background:#ffdd00;color:#000}
+#favs{margin:12px auto 0;max-width:480px;max-height:160px;overflow-y:auto}
+#favs-titulo{font-size:13px;color:#ffdd00;margin-bottom:6px;font-weight:bold}
+.fav-item{display:flex;align-items:center;justify-content:space-between;background:#111;border:1px solid #333;border-radius:8px;padding:8px 14px;margin-bottom:6px;cursor:pointer;transition:border-color .15s}
+.fav-item:hover{border-color:#00aaff}
+.fav-nome{font-size:14px;color:#fff;text-align:left;flex:1}
+.fav-del{background:none;border:none;color:#ff5555;font-size:18px;cursor:pointer;padding:0 0 0 12px;line-height:1}
 </style>
 </head>
 <body>
@@ -48,6 +59,8 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
     <div id="digitos" class="vazio">_</div>
   </div>
   <div id="instrucao">Digite o numero do canal e pressione ENTER</div>
+  <button id="btn-enter" onclick="clearTimeout(bufTmr);irCanal()">&#9654; ENTER</button>
+  <div id="favs"></div>
 </div>
 
 <div id="tela-player">
@@ -63,6 +76,7 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
     <button class="btn-ch" id="btn-ch-baixo" title="Canal anterior">&#9660;</button>
     <button id="btn-voltar">&#9664; Voltar</button>
     <button class="btn-ch" id="btn-ch-cima" title="Próximo canal">&#9650;</button>
+    <button id="btn-fav" title="Favoritar canal">&#9733;</button>
   </div>
 </div>
 
@@ -356,6 +370,7 @@ function tocar(idx) {
   document.getElementById('tela-home').style.display = 'none';
   document.getElementById('tela-player').style.display = 'block';
   mostrarOSD();
+  atualizarBtnFav();
   clearTimeout(failTmr);
   failTmr = setTimeout(mostrarErro, 15000);
   function onOk() {
@@ -470,6 +485,68 @@ document.onkeydown = function(e) {
     else if (eNum) digitarNoPlayer(num);
   }
 };
+
+// ── Favoritos ──────────────────────────────────────────────────
+function getFavs() { try { return JSON.parse(localStorage.getItem('k10favs') || '[]'); } catch(e) { return []; } }
+function saveFavs(f) { localStorage.setItem('k10favs', JSON.stringify(f)); }
+
+function isFav(url) { return getFavs().some(function(f){ return f.url === url; }); }
+
+function toggleFav() {
+  if (curCh < 0) return;
+  var ch = canais[curCh];
+  var favs = getFavs();
+  var idx = favs.findIndex(function(f){ return f.url === ch.url; });
+  if (idx === -1) favs.push({ nome: ch.nome, url: ch.url });
+  else favs.splice(idx, 1);
+  saveFavs(favs);
+  atualizarBtnFav();
+  renderFavs();
+}
+
+function atualizarBtnFav() {
+  var btn = document.getElementById('btn-fav');
+  if (curCh >= 0 && isFav(canais[curCh].url)) btn.classList.add('favoritado');
+  else btn.classList.remove('favoritado');
+}
+
+function renderFavs() {
+  var favs = getFavs();
+  var el = document.getElementById('favs');
+  if (favs.length === 0) { el.innerHTML = ''; return; }
+  var html = '<div id="favs-titulo">&#9733; Favoritos</div>';
+  favs.forEach(function(f, i) {
+    html += '<div class="fav-item">'
+      + '<span class="fav-nome" onclick="tocarFav(' + i + ')">' + f.nome + '</span>'
+      + '<button class="fav-del" onclick="deletarFav(' + i + ')" title="Remover">&#10005;</button>'
+      + '</div>';
+  });
+  el.innerHTML = html;
+}
+
+function tocarFav(i) {
+  var f = getFavs()[i];
+  // acha o indice do canal na lista principal
+  var idx = canais.findIndex(function(c){ return c.url === f.url; });
+  if (idx !== -1) { tocar(idx); }
+  else {
+    // canal nao esta na lista carregada ainda, toca direto
+    curCh = -1;
+    canais.push(f);
+    tocar(canais.length - 1);
+  }
+}
+
+function deletarFav(i) {
+  var favs = getFavs();
+  favs.splice(i, 1);
+  saveFavs(favs);
+  renderFavs();
+  atualizarBtnFav();
+}
+
+document.getElementById('btn-fav').onclick = toggleFav;
+renderFavs();
 
 document.getElementById('btn-voltar').onclick = function() { voltarHome(); };
 document.getElementById('btn-ch-cima').onclick = function() { canalCima(); };

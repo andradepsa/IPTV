@@ -183,53 +183,51 @@ var CATS=[
 ];
 var FL={BR:'🇧🇷',US:'🇺🇸',GB:'🇬🇧',FR:'🇫🇷',DE:'🇩🇪',ES:'🇪🇸',IT:'🇮🇹',PT:'🇵🇹',AR:'🇦🇷',MX:'🇲🇽',JP:'🇯🇵',KR:'🇰🇷',RU:'🇷🇺',IN:'🇮🇳',CN:'🇨🇳',AU:'🇦🇺',CA:'🇨🇦',NL:'🇳🇱',TR:'🇹🇷',SA:'🇸🇦',AE:'🇦🇪',PL:'🇵🇱',SE:'🇸🇪',NO:'🇳🇴',DK:'🇩🇰',FI:'🇫🇮',CZ:'🇨🇿',RO:'🇷🇴',HU:'🇭🇺',GR:'🇬🇷',UA:'🇺🇦',ID:'🇮🇩',MY:'🇲🇾',TH:'🇹🇭',VN:'🇻🇳',PH:'🇵🇭',CL:'🇨🇱',CO:'🇨🇴',PE:'🇵🇪',ZA:'🇿🇦',NG:'🇳🇬',EG:'🇪🇬'};
 
-// ── detecção de idioma/país do visitante ──────────────────────
-function detectCountry(){
-  var lang=((navigator.languages&&navigator.languages[0])||navigator.language||'pt-BR').toLowerCase();
-  var parts=lang.split('-');
-  // locale com país explícito: pt-br → BR, en-us → US
-  if(parts.length>=2)return parts[1].toUpperCase();
-  // só idioma → mapa para país principal
+// ── detecção de idioma do browser → todos os canais naquele idioma ──
+function detectLang(){
+  var lang=((navigator.languages&&navigator.languages[0])||navigator.language||'pt').toLowerCase();
+  var code=lang.split('-')[0];
+  // ISO 639-1 → ISO 639-3 (usado pela iptv-org) + nome + emoji
   var map={
-    'pt':'BR','en':'US','es':'MX','fr':'FR','de':'DE','it':'IT',
-    'ja':'JP','ko':'KR','zh':'CN','ru':'RU','ar':'SA','tr':'TR',
-    'nl':'NL','pl':'PL','hi':'IN','sv':'SE','da':'DK','no':'NO',
-    'fi':'FI','cs':'CZ','ro':'RO','hu':'HU','el':'GR','uk':'UA',
-    'id':'ID','ms':'MY','th':'TH','vi':'VN','tl':'PH','fa':'IR'
+    'pt':{iso:'por',name:'Português',flag:'🇧🇷',desc:'Brasil · Portugal · Angola · Moçambique'},
+    'en':{iso:'eng',name:'English',   flag:'🇺🇸',desc:'USA · UK · Australia · Canada'},
+    'es':{iso:'spa',name:'Español',   flag:'🌎',desc:'Espanha · México · Argentina · Colômbia'},
+    'fr':{iso:'fra',name:'Français',  flag:'🇫🇷',desc:'França · Bélgica · Suíça · África'},
+    'de':{iso:'deu',name:'Deutsch',   flag:'🇩🇪',desc:'Alemanha · Áustria · Suíça'},
+    'it':{iso:'ita',name:'Italiano',  flag:'🇮🇹',desc:'Itália · Suíça'},
+    'ja':{iso:'jpn',name:'日本語',     flag:'🇯🇵',desc:'Japão'},
+    'ko':{iso:'kor',name:'한국어',     flag:'🇰🇷',desc:'Coreia do Sul'},
+    'zh':{iso:'zho',name:'中文',       flag:'🇨🇳',desc:'China · Taiwan · Hong Kong'},
+    'ru':{iso:'rus',name:'Русский',   flag:'🇷🇺',desc:'Rússia · Ucrânia · Bielorrússia'},
+    'ar':{iso:'ara',name:'العربية',   flag:'🌍',desc:'Todos os países árabes'},
+    'tr':{iso:'tur',name:'Türkçe',    flag:'🇹🇷',desc:'Turquia'},
+    'nl':{iso:'nld',name:'Nederlands',flag:'🇳🇱',desc:'Holanda · Bélgica'},
+    'pl':{iso:'pol',name:'Polski',    flag:'🇵🇱',desc:'Polônia'},
+    'hi':{iso:'hin',name:'हिन्दी',    flag:'🇮🇳',desc:'Índia'},
+    'sv':{iso:'swe',name:'Svenska',   flag:'🇸🇪',desc:'Suécia · Noruega'},
+    'ro':{iso:'ron',name:'Română',    flag:'🇷🇴',desc:'Romênia · Moldávia'},
+    'cs':{iso:'ces',name:'Čeština',   flag:'🇨🇿',desc:'República Tcheca'},
+    'el':{iso:'ell',name:'Ελληνικά', flag:'🇬🇷',desc:'Grécia · Chipre'},
+    'he':{iso:'heb',name:'עברית',     flag:'🇮🇱',desc:'Israel'},
+    'id':{iso:'ind',name:'Indonesia', flag:'🇮🇩',desc:'Indonésia · Malásia'},
+    'th':{iso:'tha',name:'ภาษาไทย',   flag:'🇹🇭',desc:'Tailândia'},
+    'vi':{iso:'vie',name:'Tiếng Việt',flag:'🇻🇳',desc:'Vietnã'},
+    'fa':{iso:'fas',name:'فارسی',     flag:'🇮🇷',desc:'Irã · Afeganistão'}
   };
-  return map[parts[0]]||'BR';
+  return map[code]||map['pt'];
 }
 
-// nomes dos países em português
-var COUNTRY_NAMES={
-  BR:'Brasil',US:'Estados Unidos',GB:'Reino Unido',FR:'França',DE:'Alemanha',
-  ES:'Espanha',IT:'Itália',PT:'Portugal',AR:'Argentina',MX:'México',
-  JP:'Japão',KR:'Coreia do Sul',RU:'Rússia',IN:'Índia',CN:'China',
-  AU:'Austrália',CA:'Canadá',NL:'Holanda',TR:'Turquia',SA:'Arábia Saudita',
-  AE:'Emirados Árabes',PL:'Polônia',SE:'Suécia',NO:'Noruega',DK:'Dinamarca',
-  FI:'Finlândia',CZ:'República Tcheca',RO:'Romênia',HU:'Hungria',GR:'Grécia',
-  UA:'Ucrânia',ID:'Indonésia',MY:'Malásia',TH:'Tailândia',VN:'Vietnã',
-  PH:'Filipinas',CL:'Chile',CO:'Colômbia',PE:'Peru',ZA:'África do Sul',
-  NG:'Nigéria',EG:'Egito'
-};
 
 (function(){
-  var cc=detectCountry();
-  var flag=FL[cc]||'📍';
-  var name=COUNTRY_NAMES[cc]||cc;
-  var ccl=cc.toLowerCase();
-  // injetar no início de CATS: grupo + categoria do país detectado
+  var lg=detectLang();
   CATS.unshift(
-    {id:'mypais',e:flag,n:flag+' '+name,s:'Detectado pelo seu idioma',t:'m3u',
-     u:['https://iptv-org.github.io/iptv/countries/'+ccl+'.m3u',
-        'https://raw.githubusercontent.com/iptv-org/iptv/gh-pages/countries/'+ccl+'.m3u']},
-    {G:'📍 SEU PAÍS — '+name.toUpperCase()}
+    {id:'mypais',e:lg.flag,n:lg.flag+' '+lg.name,s:lg.desc,t:'m3u',
+     u:['https://iptv-org.github.io/iptv/languages/'+lg.iso+'.m3u',
+        'https://raw.githubusercontent.com/iptv-org/iptv/gh-pages/languages/'+lg.iso+'.m3u']},
+    {G:'🗣️ SEU IDIOMA — '+lg.name.toUpperCase()}
   );
-  // reorganizar: o grupo precisa vir antes do item
-  var grp=CATS.shift();
-  var item=CATS.shift();
-  CATS.unshift(item);
-  CATS.unshift(grp);
+  var grp=CATS.shift(),item=CATS.shift();
+  CATS.unshift(item);CATS.unshift(grp);
 })();
 
 var SCR='menu',mItems=[],mIdx=0,cItems=[],cIdx=0;

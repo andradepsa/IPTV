@@ -43,9 +43,11 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 #c-list{position:absolute;inset:0;overflow-y:auto;padding:8px;display:none}
 .ch{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;cursor:pointer;margin-bottom:3px;border:2px solid transparent}
 .ch:hover,.ch.foc{background:#111e38;border-color:#38bdf8}
+.ch-num{font-size:11px;color:#1e3a5f;font-weight:700;width:32px;text-align:right;flex-shrink:0;font-family:monospace;letter-spacing:0}
+.ch.foc .ch-num,.ch:hover .ch-num{color:#38bdf8}
 .ch-fl{font-size:19px;width:28px;text-align:center;flex-shrink:0}
 .ch-lg{width:42px;height:26px;object-fit:contain;background:#1e293b;border-radius:3px;flex-shrink:0}
-.ch-nm{font-size:14px;font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:560px}
+.ch-nm{font-size:14px;font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:520px}
 .ch-ct{font-size:10px;color:#475569;margin-top:1px}
 #s-player{background:#000;position:relative}
 #vid{width:100%;height:100%;object-fit:contain}
@@ -55,13 +57,45 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
 .p-top h2{font-size:24px;color:#fff;text-shadow:0 2px 6px #000}
 .p-top p{font-size:12px;color:#94a3b8;margin-top:2px}
 .p-bot{background:linear-gradient(transparent,#000b);padding:14px 24px;display:flex;justify-content:space-between;align-items:flex-end}
+.p-left{display:flex;flex-direction:column;gap:3px}
 .p-st{font-size:12px;color:#64748b}
+.p-badge{font-size:13px;color:#38bdf8;font-family:monospace;font-weight:700}
+.p-hint{font-size:10px;color:#1e293b}
 #p-back{background:#111e38;border:2px solid #38bdf8;color:#38bdf8;font-size:14px;padding:8px 18px;border-radius:7px;cursor:pointer}
 #p-back.foc,#p-back:hover{background:#38bdf8;color:#000}
+/* OSD canal — canto superior direito, igual TV */
+#ch-osd{position:fixed;top:20px;right:24px;background:rgba(7,9,15,.94);border:2px solid #38bdf8;border-radius:12px;padding:14px 24px;z-index:9999;min-width:170px;text-align:center;display:none;box-shadow:0 0 28px #38bdf830}
+#ch-osd.show{display:block;animation:osdIn .2s ease}
+@keyframes osdIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+#osd-num{font-size:46px;font-weight:900;color:#38bdf8;letter-spacing:4px;line-height:1;font-family:monospace}
+#osd-flag{font-size:22px;margin-top:6px}
+#osd-name{font-size:13px;color:#e2e8f0;margin-top:4px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#osd-cat{font-size:11px;color:#475569;margin-top:2px}
+#osd-total{font-size:10px;color:#1e3a5f;margin-top:6px;padding-top:5px;border-top:1px solid #1a2540}
+/* digitação de canal — centro inferior */
+#num-inp{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:rgba(7,9,15,.94);border:2px solid #fbbf24;border-radius:10px;padding:10px 32px;z-index:9999;text-align:center;display:none;box-shadow:0 0 20px #fbbf2430}
+#num-inp.show{display:block;animation:numIn .15s ease}
+@keyframes numIn{from{opacity:0;transform:translateX(-50%) scale(.92)}to{opacity:1;transform:translateX(-50%) scale(1)}}
+#num-lbl{font-size:10px;color:#92400e;letter-spacing:2px;font-weight:700;margin-bottom:4px}
+#num-val{font-size:34px;font-weight:900;color:#fbbf24;letter-spacing:8px;font-family:monospace;min-width:90px}
 @keyframes sp{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
+
+<!-- OSD canal (canto superior direito, igual TV) -->
+<div id="ch-osd">
+  <div id="osd-num">001</div>
+  <div id="osd-flag">📺</div>
+  <div id="osd-name">Canal</div>
+  <div id="osd-cat"></div>
+  <div id="osd-total"></div>
+</div>
+<!-- digitação de canal por número -->
+<div id="num-inp">
+  <div id="num-lbl">IR PARA CANAL</div>
+  <div id="num-val">_</div>
+</div>
 
 <div id="s-menu" class="scr on">
   <div class="m-side" id="m-side">
@@ -91,7 +125,14 @@ body{background:#07090f;color:#e2e8f0;font-family:Arial,sans-serif;position:fixe
   <video id="vid" autoplay playsinline></video>
   <div class="p-ov" id="p-ov">
     <div class="p-top"><h2 id="p-nm">—</h2><p id="p-inf"></p></div>
-    <div class="p-bot"><span class="p-st" id="p-st">⏳ Conectando...</span><button id="p-back">◀ Voltar</button></div>
+    <div class="p-bot">
+      <div class="p-left">
+        <span class="p-st" id="p-st">⏳ Conectando...</span>
+        <span class="p-badge" id="p-badge"></span>
+        <span class="p-hint">CH+ CH− · 0-9 digitar canal · VOLTAR = lista</span>
+      </div>
+      <button id="p-back">◀ Voltar</button>
+    </div>
   </div>
 </div>
 
@@ -130,6 +171,7 @@ var FL={BR:'🇧🇷',US:'🇺🇸',GB:'🇬🇧',FR:'🇫🇷',DE:'🇩🇪',ES
 var SCR='menu',mItems=[],mIdx=0,cItems=[],cIdx=0;
 var channels=[],retryFn=null,hls=null,hlsLoaded=false;
 var ovTmr=null,failTmr=null,playing=false,apiCache=null;
+var curCh=-1,numBuf='',numTmr=null,osdTmr=null;
 
 // tela cheia na primeira interação
 function fs(){var e=document.documentElement,f=e.requestFullscreen||e.webkitRequestFullscreen||e.mozRequestFullScreen||e.msRequestFullscreen;try{if(f)f.call(e)}catch(x){}}
@@ -233,7 +275,7 @@ function loadCat(cat){
 }
 
 function renderList(chs){
-  channels=chs;
+  channels=chs;curCh=-1;
   var list=document.getElementById('c-list');
   list.innerHTML='';
   setState('list');
@@ -242,7 +284,9 @@ function renderList(chs){
   for(var i=0;i<chs.length;i++){
     var ch=chs[i],el=document.createElement('div');
     el.className='ch';el.tabIndex=0;el.setAttribute('data-i',i);
-    el.innerHTML=(ch.logo?'<img class="ch-lg" src="'+esc(ch.logo)+'" onerror="this.style.display=\'none\'" alt="">':'<span class="ch-fl">'+ch.flag+'</span>')+
+    var numStr=String(i+1).padStart(3,'0');
+    el.innerHTML='<span class="ch-num">'+numStr+'</span>'+
+      (ch.logo?'<img class="ch-lg" src="'+esc(ch.logo)+'" onerror="this.style.display=\'none\'" alt="">':'<span class="ch-fl">'+ch.flag+'</span>')+
       '<div><div class="ch-nm">'+esc(ch.name)+'</div>'+(ch.cat?'<div class="ch-ct">'+ch.flag+' '+esc(ch.cat)+'</div>':'')+'</div>';
     (function(idx,item){
       el.addEventListener('click',function(){play(idx)});
@@ -253,19 +297,53 @@ function renderList(chs){
   cIdx=1;setFoc(cItems[1]||cItems[0]);
 }
 
+// ── OSD (display de canal igual TV, canto superior direito) ──
+function showOSD(idx){
+  if(idx<0||idx>=channels.length)return;
+  var ch=channels[idx];
+  document.getElementById('osd-num').textContent=String(idx+1).padStart(3,'0');
+  document.getElementById('osd-flag').textContent=ch.flag||'📺';
+  document.getElementById('osd-name').textContent=ch.name;
+  document.getElementById('osd-cat').textContent=ch.cat||ch.country||'';
+  document.getElementById('osd-total').textContent=(idx+1)+' de '+channels.length;
+  var osd=document.getElementById('ch-osd');
+  osd.classList.remove('show');void osd.offsetWidth;
+  osd.classList.add('show');
+  clearTimeout(osdTmr);
+  osdTmr=setTimeout(function(){osd.classList.remove('show')},3500);
+}
+// ── digitação de número de canal (como controle remoto de TV) ──
+function pressNum(n){
+  numBuf+=String(n);
+  document.getElementById('num-val').textContent=numBuf+'_';
+  document.getElementById('num-inp').classList.add('show');
+  clearTimeout(numTmr);
+  numTmr=setTimeout(function(){
+    var idx=parseInt(numBuf,10)-1;
+    numBuf='';
+    document.getElementById('num-val').textContent='_';
+    document.getElementById('num-inp').classList.remove('show');
+    if(idx>=0&&idx<channels.length)play(idx);
+  },2000);
+}
+// ── CH+ / CH− ──
+function chanUp(){if(!channels.length)return;curCh=(curCh+1)%channels.length;play(curCh)}
+function chanDown(){if(!channels.length)return;curCh=((curCh-1)+channels.length)%channels.length;play(curCh)}
+
 // ── player ────────────────────────────────────────────────────
-function voltaCanais(){if(playing)return;clearTimeout(failTmr);stopHls();showScr('channels')}
+function voltaCanais(){clearTimeout(failTmr);stopHls();showScr('channels')}
 
 function play(idx){
   var ch=channels[idx];if(!ch)return;
-  playing=false;clearTimeout(failTmr);
+  curCh=idx;playing=false;clearTimeout(failTmr);
   document.getElementById('p-nm').textContent=ch.flag+' '+ch.name;
   document.getElementById('p-inf').textContent=ch.cat||ch.country||'';
+  document.getElementById('p-badge').textContent='CH '+String(idx+1).padStart(3,'0')+' · '+(idx+1)+'/'+channels.length;
   document.getElementById('p-st').textContent='⏳ Conectando...';
-  showScr('player');showOv();
+  showScr('player');showOv();showOSD(idx);
   var vid=document.getElementById('vid');
   stopHls();vid.src='';
-  failTmr=setTimeout(voltaCanais,10000);
+  failTmr=setTimeout(function(){if(!playing)voltaCanais()},10000);
   var tried=false;
   vid.onerror=function(){if(!tried){tried=true;tryHls()}else voltaCanais()};
   vid.oncanplay=function(){playing=true;clearTimeout(failTmr);document.getElementById('p-st').textContent='▶ Ao vivo'};
@@ -308,17 +386,30 @@ function setFoc(el){
 }
 
 // ── teclado / controle remoto ──────────────────────────────────
+// CH+  : PageUp=33 · Samsung/LG VK_CHANNEL_UP=427 · Philips=10232
+// CH−  : PageDown=34 · Samsung/LG VK_CHANNEL_DOWN=428 · Philips=10233
+// 0-9  : teclado=48-57 · numpad=96-105
+// BACK : Esc=27 · Backspace=8 · e vários códigos de TV
 document.addEventListener('keydown',function(e){
   var k=e.keyCode||e.which;
   var UP=k===38,DN=k===40,OK=k===13||k===32;
   var BK=k===8||k===27||k===36||k===88||k===166||k===196||k===457||k===461||k===1009||k===4||k===10009||k===10182;
-  if([4,8,13,27,32,36,37,38,39,40,88,166,196,457,461,1009,10009,10182].indexOf(k)!==-1)e.preventDefault();
+  var CHUP=k===33||k===427||k===10232;
+  var CHDN=k===34||k===428||k===10233;
+  var isNum=(k>=48&&k<=57)||(k>=96&&k<=105);
+  var numVal=k>=96?k-96:k-48;
+  if([4,8,13,27,32,33,34,36,37,38,39,40,
+      48,49,50,51,52,53,54,55,56,57,
+      88,96,97,98,99,100,101,102,103,104,105,
+      166,196,427,428,457,461,1009,10009,10182,10232,10233].indexOf(k)!==-1)e.preventDefault();
   if(SCR==='menu'){
     if(UP&&mIdx>0){mIdx--;setFoc(mItems[mIdx])}
     else if(DN&&mIdx<mItems.length-1){mIdx++;setFoc(mItems[mIdx])}
     else if(OK&&mItems[mIdx]&&mItems[mIdx]._cat)loadCat(mItems[mIdx]._cat);
   }else if(SCR==='channels'){
     if(BK){stopHls();showScr('menu')}
+    else if(CHUP&&channels.length){curCh=(curCh+1)%channels.length;var ci=curCh+1;setFoc(cItems[ci]||cItems[1])}
+    else if(CHDN&&channels.length){curCh=((curCh-1)+channels.length)%channels.length;var ci2=curCh+1;setFoc(cItems[ci2]||cItems[1])}
     else if(UP&&cIdx>0){cIdx--;setFoc(cItems[cIdx])}
     else if(DN&&cIdx<cItems.length-1){cIdx++;setFoc(cItems[cIdx])}
     else if(OK&&cItems[cIdx]){
@@ -327,8 +418,13 @@ document.addEventListener('keydown',function(e){
       else if(el.id==='c-retry'){if(retryFn)retryFn()}
       else{var idx=parseInt(el.getAttribute('data-i')||'-1');if(idx>=0)play(idx)}
     }
+    else if(isNum&&channels.length)pressNum(numVal);
   }else if(SCR==='player'){
-    if(BK){stopHls();showScr('channels')}else showOv();
+    if(BK){stopHls();playing=false;showScr('channels')}
+    else if(CHUP)chanUp();
+    else if(CHDN)chanDown();
+    else if(isNum)pressNum(numVal);
+    else showOv();
   }
 });
 
@@ -352,7 +448,7 @@ document.addEventListener('keydown',function(e){
   }
   document.getElementById('c-back').addEventListener('click',function(){showScr('menu')});
   document.getElementById('c-retry').addEventListener('click',function(){if(retryFn)retryFn()});
-  document.getElementById('p-back').addEventListener('click',function(){stopHls();showScr('channels')});
+  document.getElementById('p-back').addEventListener('click',function(){stopHls();playing=false;showScr('channels')});
   document.getElementById('s-player').addEventListener('mousemove',showOv);
   if(mItems.length)setFoc(mItems[0]);
 })();

@@ -43,6 +43,10 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
 #btn-fav.favoritado{background:#ffdd00;color:#000}
 #favs{margin:12px auto 0;max-width:480px;max-height:160px;overflow-y:auto}
 #favs-titulo{font-size:13px;color:#ffdd00;margin-bottom:6px;font-weight:bold}
+#online-badge{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#555;margin-bottom:8px}
+#online-badge .dot{width:7px;height:7px;background:#1D9E75;border-radius:50%;animation:pulseGreen 2s infinite}
+@keyframes pulseGreen{0%,100%{opacity:1}50%{opacity:.3}}
+#online-badge span{color:#1D9E75;font-weight:bold}
 .fav-item{display:flex;align-items:center;justify-content:space-between;background:#111;border:1px solid #333;border-radius:8px;padding:8px 14px;margin-bottom:6px;cursor:pointer;transition:border-color .15s}
 .fav-item:hover{border-color:#00aaff}
 .fav-nome{font-size:14px;color:#fff;text-align:left;flex:1}
@@ -54,6 +58,7 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
 <div id="tela-home">
   <div id="titulo">&#128250; K10 TV</div>
   <div id="subtitulo">TV ao vivo - acesso por numero</div>
+  <div id="online-badge"><span class="dot"></span><span id="online-count">—</span> online agora</div>
   <div id="status-line">Carregando canais...</div>
   <div id="faixas"></div>
   <div id="display-canal">
@@ -564,6 +569,42 @@ document.getElementById('btn-voltar').onclick = function() { voltarHome(); };
 document.getElementById('btn-ch-cima').onclick = function() { canalCima(); };
 document.getElementById('btn-ch-baixo').onclick = function() { canalBaixo(); };
 carregar();
+
+// ── Contador de pessoas online ─────────────────────────────────
+(function() {
+  var SESSION_KEY = 'k10tv_sess_' + Math.random().toString(36).slice(2,10);
+  var HEARTBEAT = 15000;
+  var TIMEOUT = 40000;
+  var PREFIX = 'k10tv_sess_';
+
+  function beat() {
+    try { window.storage.set(SESSION_KEY, Date.now().toString(), true); } catch(e) {}
+  }
+
+  async function atualizar() {
+    try {
+      var res = await window.storage.list(PREFIX, true);
+      if (!res || !res.keys) return;
+      var now = Date.now(), ativos = 0;
+      for (var i = 0; i < res.keys.length; i++) {
+        try {
+          var r = await window.storage.get(res.keys[i], true);
+          if (r && r.value && (now - parseInt(r.value)) < TIMEOUT) ativos++;
+        } catch(e) {}
+      }
+      document.getElementById('online-count').textContent = ativos;
+    } catch(e) {}
+  }
+
+  async function init() {
+    beat();
+    await atualizar();
+    setInterval(beat, HEARTBEAT);
+    setInterval(atualizar, HEARTBEAT);
+  }
+
+  if (window.storage) init();
+})();
 </script>
 </body>
 </html>

@@ -1332,6 +1332,30 @@ function sintonizarIdioma() {
     prog.innerHTML = 'Cancelando...';
     return;
   }
+
+  // ── RESET COMPLETO DO IDIOMA ATUAL ────────────────────────────
+  // 1. Remove defeituosos que pertencem ao idioma (estão na master list)
+  var urlsMaster = {};
+  for (var mi = 0; mi < canaisLangMaster.length; mi++) urlsMaster[canaisLangMaster[mi].url] = true;
+  var def = getDefeitos();
+  var defLimpo = {};
+  for (var du in def) {
+    if (def.hasOwnProperty(du) && !urlsMaster[du]) defLimpo[du] = def[du];
+  }
+  saveDefeitos(defLimpo);
+  // 2. Restaura canaisLang a partir da master (sem poda)
+  canaisLang = canaisLangMaster.slice();
+  canaisLang.sort(function(a,b){ return a._num - b._num; });
+  // Remove da lista seenUrls para permitir re-entrada
+  for (var si = 0; si < canaisLangMaster.length; si++) delete seenUrls[canaisLangMaster[si].url];
+  // Reconstrói seenUrls só com o que está na lista atual (lang + outros)
+  seenUrls = {};
+  var todasListas = canaisLang.concat(canaisOutros);
+  for (var ti2 = 0; ti2 < todasListas.length; ti2++) seenUrls[todasListas[ti2].url] = true;
+  aplicarFiltro();
+  atualizarTela();
+  prog.innerHTML = '<span style="color:#ffaa00">&#9851; Registros anteriores limpos — testando lista completa...</span>';
+
   // Usa lista MASTER (completa, não podada) — re-testa TODOS a cada execução
   var lista = canaisLangMaster.slice();
   if (lista.length === 0) {
@@ -1418,12 +1442,6 @@ function sintonizarIdioma() {
       (function(ch) {
         ativos++;
         atualizar(ch.nome);
-        var def = getDefeitos();
-        if (def[ch.url]) {
-          fail++; ativos--;
-          lancarProximo();
-          return;
-        }
         testarCanal(ch, function(sucesso) {
           if (!sucesso) {
             fail++;

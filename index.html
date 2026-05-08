@@ -333,7 +333,8 @@ function atribuirNumero(url, grupo) {
 // IMPORTANTE: insere em LOTES com pausa, pra nao travar TVs/PCs antigos.
 // O grupo 'lang' (idioma do usuario) entra PRIMEIRO e completo;
 // depois os 'outros' vao chegando aos poucos.
-var canaisLang   = [];
+var canaisLang       = [];   // lista ativa (sofre poda de defeituosos)
+var canaisLangMaster = [];   // lista completa — nunca podada (usada pelo tune)
 var canaisOutros = [];
 
 // Detecta dispositivo lento: TV (Tizen/WebOS/SmartTV) ou agente antigo.
@@ -356,6 +357,8 @@ function _processarLoteCanais(lista, alvo, grupo, idx, tamLote, pausa) {
       seenUrls[c.url] = true;
       c._num = atribuirNumero(c.url, grupo);
       alvo.push(c);
+      // Mantém master completa para o tune re-verificar tudo
+      if (grupo === 'lang') canaisLangMaster.push(c);
       mudou = true;
     }
   }
@@ -826,143 +829,114 @@ function irCanal() {
 // ── Player ─────────────────────────────────────────────────────
 function pararHls() { if (hlsObj) { try { hlsObj.destroy(); } catch(e) {} hlsObj = null; } }
 
+function pararVideo() {
+  pararHls();
+  var vid = document.getElementById('vid');
+  vid.onerror = null; vid.oncanplay = null; vid.onloadedmetadata = null; vid.onplaying = null;
+  clearTimeout(failTmr);
+  try { vid.pause(); } catch(e) {}
+  // Reset agressivo — libera buffers completamente
+  try { vid.src = ''; } catch(e) {}
+  try { vid.removeAttribute('src'); } catch(e) {}
+  try { vid.load(); } catch(e) {}
+}
+
 function tocar(idx) {
   var ch = canais[idx]; if (!ch) return;
   curCh = idx;
+
+  // Para tudo antes de qualquer coisa
+  pararVideo();
   var vid = document.getElementById('vid');
-  pararHls(); vid.onerror = null; vid.oncanplay = null; vid.onloadedmetadata = null; vid.onplaying = null;
-  try { vid.pause(); } catch(e) {}
-  try { vid.removeAttribute('src'); vid.load(); } catch(e) {}
+
+  // UI
   document.getElementById('osd-num').textContent = String(idx + 1);
   document.getElementById('osd-nome').textContent = ch.nome;
-  document.getElementById('osd-estado').textContent = 'Connecting...';
+  document.getElementById('osd-estado').textContent = 'Conectando...';
   document.getElementById('carregando').style.display = 'block';
   document.getElementById('tela-home').style.display = 'none';
   document.getElementById('tela-player').style.display = 'block';
   mostrarOSD();
   atualizarBtnFav();
-  clearTimeout(failTmr);
-  // TV antiga é lenta pra abrir stream: timeout maior
-  failTmr = setTimeout(mostrarErro, IS_TV ? 32000 : 15000);
 
-  var ok = false;
+  failTmr = setTimeout(mostrarErro, IS_TV ? 30000 : 15000);
+
+  var okJa = false;
   function onOk() {
-    if (ok) return; ok = true;
+    if (okJa) return; okJa = true;
     clearTimeout(failTmr);
     skipCount = 0;
     document.getElementById('carregando').style.display = 'none';
     document.getElementById('osd-estado').textContent = 'Ao vivo';
   }
-  vid.oncanplay = onOk;
-  vid.onplaying = onOk;
+  vid.oncanplay  = onOk;
+  vid.onplaying  = onOk;
   vid.onloadedmetadata = function() { try { vid.play(); } catch(e) {} };
 
   var url = ch.url;
-  var ehHls = /\.m3u8?($|\?)/i.test(url);
-  // Suporte HLS nativo (Safari, algumas TVs WebKit)
-  var nativeHls = !!vid.canPlayType && (
+  var ehHls   = /\.m3u8?($|\?)/i.test(url);
+  var nativeHls = !!(vid.canPlayType && (
     vid.canPlayType('application/vnd.apple.mpegurl') !== '' ||
     vid.canPlayType('application/x-mpegURL') !== ''
-  );
-  // MSE disponivel? (TV AOC 2012 normalmente NAO tem)
-  var temMSE = (typeof window.MediaSource !== 'undefined') &&
-               (typeof Hls !== 'undefined') && Hls.isSupported();
+  ));
+  // Na TV antiga: NUNCA usa HLS.js (pesado demais, trava)
+  var temMSE = !IS_TV &&
+               typeof window.MediaSource !== 'undefined' &&
+               typeof Hls !== 'undefined' && Hls.isSupported();
 
-  function tentarNativo() {
-    vid.onerror = function() {
-      vid.onerror = null;
-      // Captura motivo do erro (codec vs rede)
-      try {
-        var er = vid.error;
-        if (er) {
-          if (er.code === 3 || er.code === 4) {
-            // 3 = DECODE, 4 = SRC_NOT_SUPPORTED → reprodutor da TV não suporta o formato
-            window.__ultimoMotivoErro = 'app';
-          } else {
-            // 1 = ABORTED, 2 = NETWORK → canal/rede
-            window.__ultimoMotivoErro = 'canal';
-          }
-        }
-      } catch(e) {}
-      // Se for HLS e tiver MSE, cai pra Hls.js
-      if (ehHls && temMSE) { tentarHlsJs(); }
-      else { clearTimeout(failTmr); mostrarErro(); }
-    };
-    try {
-      vid.src = url; vid.load();
-      var p = vid.play();
-      if (p && p.catch) p.catch(function(){ try { vid.muted = true; vid.play(); } catch(e){} });
-      // Fallback extra: se ainda pausado em 1s, tenta mutado
-      setTimeout(function(){
-        if (vid.paused) { try { vid.muted = true; vid.play(); } catch(e){} }
-      }, 1000);
-    } catch(e) {
-      window.__ultimoMotivoErro = 'app';
-      if (ehHls && temMSE) tentarHlsJs(); else mostrarErro();
-    }
+  function onErroNativo() {
+    vid.onerror = null;
+    var code = 0;
+    try { if (vid.error) code = vid.error.code; } catch(e) {}
+    window.__ultimoMotivoErro = (code === 3 || code === 4) ? 'app' : 'canal';
+    if (ehHls && temMSE) { tentarHlsJs(); return; }
+    clearTimeout(failTmr); mostrarErro();
   }
+  vid.onerror = onErroNativo;
+
   function tentarHlsJs() {
     try {
-      // Config leve pra nao estourar memoria/CPU
       hlsObj = new Hls({
         enableWorker: false,
         lowLatencyMode: false,
-        backBufferLength: IS_TV ? 10 : 30,
-        maxBufferLength: IS_TV ? 8 : 30,
-        maxMaxBufferLength: IS_TV ? 15 : 60,
-        maxBufferSize: IS_TV ? 10*1000*1000 : 60*1000*1000,
+        backBufferLength: 20,
+        maxBufferLength: 20,
+        maxMaxBufferLength: 40,
+        maxBufferSize: 40 * 1000 * 1000,
         capLevelToPlayerSize: true
       });
-      hlsObj.loadSource(url); hlsObj.attachMedia(vid);
+      hlsObj.loadSource(url);
+      hlsObj.attachMedia(vid);
       hlsObj.on(Hls.Events.MANIFEST_PARSED, function() {
         try { vid.play(); } catch(e) {}
-        // Fallback: se autoplay bloqueado, tenta mutado
-        setTimeout(function(){
-          if (vid.paused) { try { vid.muted = true; vid.play(); } catch(e){} }
-        }, 600);
       });
-      var recoverTries = 0;
       hlsObj.on(Hls.Events.ERROR, function(ev, d) {
         if (!d || !d.fatal) return;
-        // Tenta recuperar antes de desistir
-        try {
-          if (d.type === Hls.ErrorTypes.NETWORK_ERROR && recoverTries < 2) {
-            recoverTries++; hlsObj.startLoad(); return;
-          }
-          if (d.type === Hls.ErrorTypes.MEDIA_ERROR && recoverTries < 2) {
-            recoverTries++; hlsObj.recoverMediaError(); return;
-          }
-        } catch(e){}
-        try {
-          if (d.type === Hls.ErrorTypes.NETWORK_ERROR) window.__ultimoMotivoErro = 'canal';
-          else window.__ultimoMotivoErro = 'app';
-        } catch(e){}
+        window.__ultimoMotivoErro = (d.type === Hls.ErrorTypes.NETWORK_ERROR) ? 'canal' : 'app';
         clearTimeout(failTmr); mostrarErro();
       });
     } catch(e) { window.__ultimoMotivoErro = 'app'; mostrarErro(); }
   }
 
-  // Se for HLS mas a TV não tem MSE nem HLS nativo → reprodutor incompatível
-  if (ehHls && !temMSE && !nativeHls) {
-    window.__ultimoMotivoErro = 'app';
-  }
-
-
-  // Estrategia: TV antiga sem MSE -> sempre tenta nativo direto.
-  // Modernos com HLS -> Hls.js primeiro pra HLS; senao nativo.
+  // Computador com HLS.js → tenta HLS.js pra streams .m3u8 sem suporte nativo
   if (ehHls && temMSE && !nativeHls) {
     tentarHlsJs();
   } else {
-    tentarNativo();
+    // TV + todos os outros: nativo direto (mais leve)
+    try {
+      vid.src = url;
+      vid.load();
+      var p = vid.play();
+      if (p && p.catch) p.catch(function() {
+        try { vid.muted = true; vid.play(); } catch(e) {}
+      });
+    } catch(e) {
+      window.__ultimoMotivoErro = 'app';
+      clearTimeout(failTmr); mostrarErro();
+    }
   }
 }
 
-function pararVideo() {
-  pararHls();
-  var vid = document.getElementById('vid');
-  vid.onerror = null; vid.oncanplay = null; clearTimeout(failTmr);
-  try { vid.pause(); } catch(e) {} vid.src = ''; try { vid.load(); } catch(e) {}
-}
 
 function voltarHome() {
   pararVideo(); clearTimeout(osdTmr); clearTimeout(errTmr);
@@ -1358,7 +1332,8 @@ function sintonizarIdioma() {
     prog.innerHTML = 'Cancelando...';
     return;
   }
-  var lista = canaisLang.slice();
+  // Usa lista MASTER (completa, não podada) — re-testa TODOS a cada execução
+  var lista = canaisLangMaster.slice();
   if (lista.length === 0) {
     prog.innerHTML = '<span class="err">Nenhum canal do seu idioma carregado ainda.</span>';
     return;

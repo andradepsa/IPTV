@@ -338,7 +338,9 @@ var canaisOutros = [];
 
 // Detecta dispositivo lento: TV (Tizen/WebOS/SmartTV) ou agente antigo.
 var _ua = (navigator.userAgent || '').toLowerCase();
-var IS_TV = /smart-?tv|smarttv|tizen|web0s|webos|hbbtv|netcast|viera|bravia|aquos|inettvbrowser|crkey|googletv|appletv/.test(_ua);
+var IS_TV = /smart-?tv|smarttv|tizen|web0s|webos|hbbtv|netcast|viera|bravia|aquos|inettvbrowser|crkey|googletv|appletv|aoc|philips|samsung.*tv|lg.*tv|tv.*browser/.test(_ua);
+// Override manual: abra console e digite localStorage.setItem('k10_tv','1') para forcar modo TV
+try { if (localStorage.getItem('k10_tv') === '1') IS_TV = true; } catch(e) {}
 // Lote menor e pausa maior em TV; computador moderno usa lote grande.
 var CHUNK_SIZE  = IS_TV ? 25  : 120;
 var CHUNK_PAUSE = IS_TV ? 120 : 30;  // ms entre lotes
@@ -521,8 +523,10 @@ var LABELS_EN = {
 };
 
 function detectarIdioma() {
+  // Prioriza a escolha salva pelo usuário
+  try { var s = localStorage.getItem(LS_LANG); if (s && LANG_MAP[s]) return s; } catch(e) {}
   var l = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
-  return l.split('-')[0]; // 'pt', 'en', 'es', 'fr'...
+  return l.split('-')[0];
 }
 
 function traduzirTexto(texto, destino, cb) {
@@ -692,7 +696,11 @@ function buildApiByLang(data, langIso) {
     var langs = ch.languages || [];
     var ok = false;
     for (var k = 0; k < langs.length; k++) {
-      if (String(langs[k]).toLowerCase() === langIso) { ok = true; break; }
+      // API pode retornar string 'por' ou objeto {name:'Portuguese',code:'por'}
+      var lcode = (langs[k] && typeof langs[k] === 'object')
+        ? String(langs[k].code || langs[k].name || '').toLowerCase()
+        : String(langs[k]).toLowerCase();
+      if (lcode === langIso) { ok = true; break; }
     }
     if (!ok) continue;
     out.push({ nome: ch.name, url: sm[ch.id], cats: (ch.categories || []).slice() });
@@ -834,8 +842,8 @@ function tocar(idx) {
   mostrarOSD();
   atualizarBtnFav();
   clearTimeout(failTmr);
-  // TV antiga eh lenta pra abrir stream: timeout maior
-  failTmr = setTimeout(mostrarErro, IS_TV ? 25000 : 15000);
+  // TV antiga é lenta pra abrir stream: timeout maior
+  failTmr = setTimeout(mostrarErro, IS_TV ? 32000 : 15000);
 
   var ok = false;
   function onOk() {
@@ -1013,7 +1021,7 @@ function mostrarErro() {
   errTmr = setTimeout(function() {
     curCh = (curCh + 1) % canais.length;
     tocar(curCh);
-  }, 900);
+  }, IS_TV ? 1800 : 900);
 }
 
 function mostrarOSD() {
@@ -1337,9 +1345,8 @@ window.verCanaisNovos   = function(){ try{ var l=JSON.parse(localStorage.getItem
 window.limparCanaisNovos= function(){ localStorage.removeItem('k10_canais_novos'); localStorage.removeItem(LS_CANAIS_VISTOS); console.log('[K10] Canais novos limpos.'); };
 
 // ── Sintonizar canais do idioma ────────────────────────────────
-// Testa cada canal do idioma do usuário sequencialmente, com pausa
-// entre cada teste para nao ser bloqueado pelo proxy (rate limit).
-// Canais que falham vao para a lista de defeituosos automaticamente.
+// Testa cada canal com HEAD request leve (sem criar elemento video).
+// Roda 3 em paralelo para ser rapido sem saturar o proxy.
 var sintRodando = false;
 var sintAbortar = false;
 
@@ -1351,7 +1358,6 @@ function sintonizarIdioma() {
     prog.innerHTML = 'Cancelando...';
     return;
   }
-  // Snapshot da lista do idioma — usa canaisLang direto
   var lista = canaisLang.slice();
   if (lista.length === 0) {
     prog.innerHTML = '<span class="err">Nenhum canal do seu idioma carregado ainda.</span>';
@@ -1359,12 +1365,13 @@ function sintonizarIdioma() {
   }
   sintRodando = true; sintAbortar = false;
   btn.innerHTML = '&#9209; Cancelar sintonia';
-  var i = 0, ok = 0, fail = 0;
-  var INTERVALO = 1500; // pausa entre testes p/ nao saturar proxy
-  var TIMEOUT   = 9000;
+  var total = lista.length;
+  var idx = 0, ok = 0, fail = 0, ativos = 0;
+  var PARALELO  = IS_TV ? 2 : 3;   // testes simultaneos
+  var TIMEOUT   = IS_TV ? 5000 : 4000; // ms por teste
 
   function atualizar(extra) {
-    prog.innerHTML = 'Testando ' + (i) + '/' + lista.length
+    prog.innerHTML = 'Testando ' + Math.min(idx, total) + '/' + total
       + ' &nbsp; <span class="ok">&#10003; ' + ok + '</span>'
       + ' &nbsp; <span class="err">&#10005; ' + fail + '</span>'
       + (extra ? '<br><small>' + extra + '</small>' : '');
@@ -1379,67 +1386,89 @@ function sintonizarIdioma() {
     atualizarTela();
   }
 
-  function proximo() {
-    if (sintAbortar) { fim('Sintonia cancelada.'); return; }
-    if (i >= lista.length) { fim('Sintonia concluída.'); return; }
-    var ch = lista[i++];
-    atualizar(ch.nome);
+  // Teste leve: HEAD request via proxy cascade (sem video, sem HLS.js)
+  function testarCanal(ch, cb) {
+    var url = ch.url;
+    var tentativas = [url];
+    for (var pi = 0; pi < PROXIES.length; pi++) tentativas.push(PROXIES[pi] + encodeURIComponent(url));
+    var ti = 0, resolvido = false;
+    var tmr = setTimeout(function(){ resolver(false); }, TIMEOUT);
 
-    // Se ja foi marcado como defeituoso por outra rotina, pula
-    var def = getDefeitos();
-    if (def[ch.url]) { fail++; setTimeout(proximo, 50); return; }
-
-    var resolvido = false;
-    var vid = document.createElement('video');
-    vid.muted = true;
-    var hls = null;
-    var tmr = setTimeout(function() { resolver(false); }, TIMEOUT);
-
-    function limpar() {
-      try { vid.pause(); } catch(e) {}
-      vid.onerror = null; vid.oncanplay = null; vid.onloadedmetadata = null;
-      try { vid.src = ''; vid.load(); } catch(e) {}
-      if (hls) { try { hls.destroy(); } catch(e) {} hls = null; }
-    }
     function resolver(sucesso) {
       if (resolvido) return; resolvido = true;
-      clearTimeout(tmr); limpar();
-      if (sucesso) { ok++; }
-      else {
-        fail++;
-        // Marca como defeituoso e remove da lista principal
-        var d = getDefeitos();
-        var agora = new Date().toISOString();
-        if (d[ch.url]) {
-          d[ch.url].tentativas = (d[ch.url].tentativas || 1) + 1;
-          d[ch.url].ultimaVez = agora;
-        } else {
-          d[ch.url] = { nome: ch.nome, url: ch.url, primeiroDef: agora, ultimaVez: agora, tentativas: 1 };
-        }
-        saveDefeitos(d);
-        removerCanalPorUrl(ch.url);
-      }
-      // Pausa entre testes — evita bloqueio por rate limit do proxy
-      setTimeout(proximo, INTERVALO);
+      clearTimeout(tmr);
+      cb(sucesso);
     }
+    function next() {
+      if (ti >= tentativas.length) { resolver(false); return; }
+      var u = tentativas[ti++];
+      var r = new XMLHttpRequest();
+      // HEAD é mais leve; alguns servidores não suportam HEAD, cai para GET com abort
+      r.open('HEAD', u, true);
+      try { r.timeout = Math.floor(TIMEOUT * 0.55); } catch(e) {}
+      r.onreadystatechange = function() {
+        if (r.readyState !== 4) return;
+        if (r.status >= 200 && r.status < 400) { resolver(true); }
+        else if (r.status === 405) {
+          // HEAD não suportado — tenta GET com abort imediato ao receber headers
+          var r2 = new XMLHttpRequest();
+          r2.open('GET', u, true);
+          try { r2.timeout = Math.floor(TIMEOUT * 0.45); } catch(e) {}
+          r2.onreadystatechange = function() {
+            if (r2.readyState >= 2) { // headers recebidos
+              try { r2.abort(); } catch(e) {}
+              if (r2.status >= 200 && r2.status < 400) resolver(true); else next();
+            }
+          };
+          r2.onerror = r2.ontimeout = next;
+          try { r2.send(); } catch(e) { next(); }
+        } else { next(); }
+      };
+      r.onerror = r.ontimeout = next;
+      try { r.send(); } catch(e) { next(); }
+    }
+    next();
+  }
 
-    var url = ch.url;
-    var ehHls = url.indexOf('.m3u') !== -1 || url.indexOf('m3u8') !== -1;
-    if (ehHls && typeof Hls !== 'undefined' && Hls.isSupported()) {
-      hls = new Hls({ enableWorker: false, manifestLoadingTimeOut: TIMEOUT - 1000, manifestLoadingMaxRetry: 0 });
-      hls.loadSource(url); hls.attachMedia(vid);
-      hls.on(Hls.Events.MANIFEST_PARSED, function() { resolver(true); });
-      hls.on(Hls.Events.ERROR, function(ev, data) { if (data && data.fatal) resolver(false); });
-    } else {
-      vid.onloadedmetadata = function() { resolver(true); };
-      vid.oncanplay = function() { resolver(true); };
-      vid.onerror = function() { resolver(false); };
-      try { vid.src = url; vid.load(); } catch(e) { resolver(false); }
+  function lancarProximo() {
+    if (sintAbortar) {
+      if (ativos === 0) fim('Sintonia cancelada.');
+      return;
+    }
+    if (idx >= total) {
+      if (ativos === 0) fim('Sintonia concluída.');
+      return;
+    }
+    while (ativos < PARALELO && idx < total) {
+      (function(ch) {
+        ativos++;
+        atualizar(ch.nome);
+        var def = getDefeitos();
+        if (def[ch.url]) {
+          fail++; ativos--;
+          lancarProximo();
+          return;
+        }
+        testarCanal(ch, function(sucesso) {
+          if (!sucesso) {
+            fail++;
+            var d = getDefeitos();
+            var agora = new Date().toISOString();
+            if (d[ch.url]) { d[ch.url].tentativas = (d[ch.url].tentativas || 1) + 1; d[ch.url].ultimaVez = agora; }
+            else { d[ch.url] = { nome: ch.nome, url: ch.url, primeiroDef: agora, ultimaVez: agora, tentativas: 1 }; }
+            saveDefeitos(d);
+            removerCanalPorUrl(ch.url);
+          } else { ok++; }
+          ativos--;
+          atualizar('');
+          lancarProximo();
+        });
+      })(lista[idx++]);
     }
   }
 
-  prog.innerHTML = 'Iniciando sintonia de ' + lista.length + ' canal(is)...';
-  setTimeout(proximo, 300);
+  prog.innerHTML = 'Iniciando sintonia de ' + total + ' canal(is)...';
+  setTimeout(lancarProximo, 300);
 }
 
 // ── Auto-ocultar controles ─────────────────────────────────────

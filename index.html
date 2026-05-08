@@ -417,6 +417,9 @@ function _matchCat(c, cat) {
   return false;
 }
 function aplicarFiltro() {
+  // Salva URL do canal atual para reancurar curCh depois da reordenação
+  var urlAtual = (curCh >= 0 && canais[curCh]) ? canais[curCh].url : null;
+
   function _mc(c) { return _matchCat(c, catFiltro); }
   var L = catFiltro ? canaisLang.filter(_mc) : canaisLang.slice();
   // Idiomas extras acumulados (tune de outros idiomas)
@@ -448,6 +451,11 @@ function aplicarFiltro() {
   langFim = L.length;
   // Salva info das faixas para atualizarTela
   window._extraLangInfo = extrasInfo;
+  // Reancura curCh pela URL do canal atual — evita que a numeração mude após reordenação
+  if (urlAtual) {
+    var novoIdx = canais.findIndex(function(c){ return c.url === urlAtual; });
+    if (novoIdx !== -1) curCh = novoIdx;
+  }
 }
 
 var LS_CAT = 'k10_cat_filtro';
@@ -1446,13 +1454,22 @@ function sintonizarIdioma() {
     var targetMaster = isPrimary ? canaisLangMaster : canaisExtraLangs[entryIdx].master;
     var targetAtivo  = isPrimary ? canaisLang       : canaisExtraLangs[entryIdx].canais;
 
+    // Canais que já estavam na lista ativa (já testados e aprovados anteriormente)
+    var jaAprovadosMap = {};
+    for (var ja = 0; ja < targetAtivo.length; ja++) jaAprovadosMap[targetAtivo[ja].url] = true;
+
+    // Adiciona apenas canais genuinamente novos (não vistos E não já aprovados)
+    var realmNovos = [];
     for (var i = 0; i < novosCanais.length; i++) {
       var c = novosCanais[i];
-      if (!c || !c.url || seenUrls[c.url]) continue;
+      if (!c || !c.url) continue;
+      if (jaAprovadosMap[c.url]) continue; // já aprovado — mantém na lista sem retestar
+      if (seenUrls[c.url]) continue;       // já existe em outro grupo
       seenUrls[c.url] = true;
       c._num = atribuirNumero(c.url, 'lang');
       targetAtivo.push(c);
       targetMaster.push(c);
+      realmNovos.push(c);
     }
     targetAtivo.sort(function(a, b) { return a._num - b._num; });
     targetMaster.sort(function(a, b) { return a._num - b._num; });
@@ -1460,13 +1477,19 @@ function sintonizarIdioma() {
     aplicarFiltro();
     atualizarTela();
 
-    var lista = targetMaster.slice();
+    // Só testa os canais realmente novos; os já aprovados são mantidos sem teste
+    var jaAprovados = targetAtivo.length - realmNovos.length;
+    var lista = realmNovos.slice();
     var total = lista.length;
 
     if (total === 0) {
       sintRodando = false;
       _btnLabel();
-      prog.innerHTML = '<span class="err">Nenhum canal encontrado para ' + targetNome + '.</span>';
+      if (jaAprovados > 0) {
+        prog.innerHTML = '<span class="ok">&#10003; ' + jaAprovados + ' canal(is) já sintonizado(s) mantidos. Nenhum canal novo para ' + targetNome + '.</span>';
+      } else {
+        prog.innerHTML = '<span class="err">Nenhum canal encontrado para ' + targetNome + '.</span>';
+      }
       return;
     }
 
@@ -1474,11 +1497,13 @@ function sintonizarIdioma() {
     var PARALELO = IS_TV ? 2 : 3;
     var TIMEOUT  = IS_TV ? 5000 : 4000;
 
-    prog.innerHTML = 'Iniciando sintonia de ' + total + ' canal(is) [' + targetNome + ']...';
+    prog.innerHTML = 'Testando ' + total + ' novo(s) canal(is) [' + targetNome + ']'
+      + (jaAprovados > 0 ? ' &nbsp;<span class="ok">+ ' + jaAprovados + ' já ok</span>' : '') + '...';
 
     function atualizar(nome) {
       prog.innerHTML = 'Testando ' + Math.min(idx, total) + '/' + total
         + ' [' + targetNome + ']'
+        + (jaAprovados > 0 ? ' <span class="ok">+ ' + jaAprovados + ' já ok</span>' : '')
         + ' &nbsp;<span class="ok">&#10003; ' + ok + '</span>'
         + ' &nbsp;<span class="err">&#10005; ' + fail + '</span>'
         + (nome ? '<br><small>' + nome + '</small>' : '');
@@ -1490,30 +1515,35 @@ function sintonizarIdioma() {
       var tentativas = [url];
       for (var pi = 0; pi < PROXIES.length; pi++) tentativas.push(PROXIES[pi] + encodeURIComponent(url));
       var ti = 0, resolvido = false;
-      var tmr = setTimeout(function() { resolver(false); }, TIMEOUT);
-      function resolver(s) { if (resolvido) return; resolvido = true; clearTimeout(tmr); cb(s); }
+      // Timeout global garante que cb() SEMPRE seja chamado, mesmo com erro inesperado
+      var tmr = setTimeout(function() { resolver(false); }, TIMEOUT + 2000);
+      function resolver(s) { if (resolvido) return; resolvido = true; clearTimeout(tmr); try { cb(s); } catch(e) {} }
       function next() {
         if (ti >= tentativas.length) { resolver(false); return; }
         var u = tentativas[ti++];
-        var r = new XMLHttpRequest();
-        r.open('HEAD', u, true);
-        try { r.timeout = Math.floor(TIMEOUT * 0.55); } catch(e) {}
-        r.onreadystatechange = function() {
-          if (r.readyState !== 4) return;
-          if (r.status >= 200 && r.status < 400) { resolver(true); }
-          else if (r.status === 405) {
-            var r2 = new XMLHttpRequest();
-            r2.open('GET', u, true);
-            try { r2.timeout = Math.floor(TIMEOUT * 0.45); } catch(e) {}
-            r2.onreadystatechange = function() {
-              if (r2.readyState >= 2) { try { r2.abort(); } catch(e) {} if (r2.status >= 200 && r2.status < 400) resolver(true); else next(); }
-            };
-            r2.onerror = r2.ontimeout = next;
-            try { r2.send(); } catch(e) { next(); }
-          } else { next(); }
-        };
-        r.onerror = r.ontimeout = next;
-        try { r.send(); } catch(e) { next(); }
+        try {
+          var r = new XMLHttpRequest();
+          r.open('HEAD', u, true);
+          try { r.timeout = Math.floor(TIMEOUT * 0.55); } catch(e) {}
+          r.onreadystatechange = function() {
+            if (r.readyState !== 4) return;
+            if (r.status >= 200 && r.status < 400) { resolver(true); }
+            else if (r.status === 405) {
+              try {
+                var r2 = new XMLHttpRequest();
+                r2.open('GET', u, true);
+                try { r2.timeout = Math.floor(TIMEOUT * 0.45); } catch(e) {}
+                r2.onreadystatechange = function() {
+                  if (r2.readyState >= 2) { try { r2.abort(); } catch(e) {} if (r2.status >= 200 && r2.status < 400) resolver(true); else next(); }
+                };
+                r2.onerror = r2.ontimeout = function() { try { next(); } catch(e) { resolver(false); } };
+                r2.send();
+              } catch(e2) { next(); }
+            } else { next(); }
+          };
+          r.onerror = r.ontimeout = function() { try { next(); } catch(e) { resolver(false); } };
+          r.send();
+        } catch(e) { next(); }
       }
       next();
     }
@@ -1560,8 +1590,11 @@ function sintonizarIdioma() {
   function _fimSint(msg, ok, fail) {
     sintRodando = false;
     _btnLabel();
+    var extra = (typeof jaAprovados !== 'undefined' && jaAprovados > 0)
+      ? ' <span class="ok">+ ' + jaAprovados + ' mantidos</span>' : '';
     prog.innerHTML = msg
-      + (ok || fail ? ' <span class="ok">&#10003; ' + ok + '</span> <span class="err">&#10005; ' + fail + '</span>' : '');
+      + (ok || fail ? ' <span class="ok">&#10003; ' + ok + '</span> <span class="err">&#10005; ' + fail + '</span>' : '')
+      + extra;
     atualizarTela();
   }
 }

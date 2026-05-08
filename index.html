@@ -570,40 +570,238 @@ document.getElementById('btn-ch-cima').onclick = function() { canalCima(); };
 document.getElementById('btn-ch-baixo').onclick = function() { canalBaixo(); };
 carregar();
 
-// ── Contador de pessoas online ─────────────────────────────────
-(function() {
-  var SESSION_KEY = 'k10tv_sess_' + Math.random().toString(36).slice(2,10);
-  var HEARTBEAT = 15000;
-  var TIMEOUT = 40000;
-  var PREFIX = 'k10tv_sess_';
+// ── Telemetria K10 TV — PeerJS (envio) + Matrix (contador) ──────────────────
+(function(){
+  'use strict';
 
-  function beat() {
-    try { window.storage.set(SESSION_KEY, Date.now().toString(), true); } catch(e) {}
+  /* ══ CONFIG ════════════════════════════════════════════════════════════════ */
+  var MONITOR_ID   = 'K10-MON';
+  var HEARTBEAT_MS = 60000;
+  var ONLINE_MS    = 120000;  // isOnline = lastSeen < 120s, igual ao monitor
+
+  /* ══ ID ÚNICO POR DISPOSITIVO ══════════════════════════════════════════════ */
+  var USER_ID = localStorage.getItem('k10tv_uid');
+  if (!USER_ID) {
+    USER_ID = 'TV' + Math.random().toString(36).slice(2,9).toUpperCase();
+    localStorage.setItem('k10tv_uid', USER_ID);
   }
 
-  async function atualizar() {
+  /* ══ MAPA LOCAL DE PEERS (igual ao uniquePeersMap do monitor) ══════════════ */
+  var peersMap = {};  // peerId → { lastSeen: timestamp }
+
+  function isOnline(p) { return p && (Date.now() - p.lastSeen) < ONLINE_MS; }
+
+  function atualizarBadge() {
+    var n = 0;
+    for (var id in peersMap) { if (isOnline(peersMap[id])) n++; }
+    var el = document.getElementById('online-count');
+    if (el && n > 0) el.textContent = n;
+  }
+
+  function processarTelemetria(data) {
+    if (!data || data.type !== 'k10-telemetry' || !data.peerId) return;
+    peersMap[data.peerId] = { lastSeen: Date.now() };
+    atualizarBadge();
+  }
+
+  /* ══ PAYLOAD — mesmo formato do Chat K10 ════════════════════════════════════ */
+  function parseBrowser(ua) {
+    if (!ua) return { browser: 'Unknown', os: 'Unknown' };
+    var b = 'Other', o = 'Other';
+    if      (/Edg\//.test(ua))           b = 'Edge';
+    else if (/OPR\/|Opera/.test(ua))     b = 'Opera';
+    else if (/Chrome\//.test(ua))        b = 'Chrome';
+    else if (/Firefox\//.test(ua))       b = 'Firefox';
+    else if (/Safari\//.test(ua))        b = 'Safari';
+    if      (/Windows/.test(ua))         o = 'Windows';
+    else if (/Mac OS X/.test(ua))        o = 'macOS';
+    else if (/Android/.test(ua))         o = 'Android';
+    else if (/iPhone|iPad/.test(ua))     o = 'iOS';
+    else if (/Linux/.test(ua))           o = 'Linux';
+    return { browser: b, os: o };
+  }
+
+  function montarPayload() {
+    var dev = parseBrowser(navigator.userAgent);
+    return {
+      type:        'k10-telemetry',
+      peerId:      USER_ID,
+      userName:    'K10 TV',
+      app:         'k10tv',
+      netSize:     1,
+      activeConns: 0,
+      ua:          navigator.userAgent.slice(0, 250),
+      browser:     dev.browser,
+      os:          dev.os,
+      lang:        navigator.language,
+      screen:      screen.width + 'x' + screen.height,
+      timezone:    Intl.DateTimeFormat().resolvedOptions().timeZone,
+      platform:    navigator.platform || '',
+      cores:       navigator.hardwareConcurrency || null,
+      memory:      navigator.deviceMemory || null,
+      touchPoints: navigator.maxTouchPoints || 0,
+      online:      navigator.onLine,
+      timestamp:   Date.now(),
+      canal:       'peerjs'
+    };
+  }
+
+  /* ══ PEERJS ══════════════════════════════════════════════════════════════════
+     1. Abre peer com USER_ID
+     2. Conecta ao K10-MON e envia telemetria (aparece no monitor)
+     3. Pede inscrição no relay (type:'k10-subscribe') — recebe todos os peers
+     4. Cada mensagem relay → processarTelemetria → conta online no badge
+  ════════════════════════════════════════════════════════════════════════════ */
+  var tvPeer = null;
+  var monConn = null;   // conexão persistente com K10-MON
+  var tentativas = 0;
+  var MAX_TENT = 30;
+  var hbTimer = null;
+
+  function conectarMonitor() {
+    if (!tvPeer || !tvPeer.open) return;
+    if (monConn && monConn.open) return;
+
     try {
-      var res = await window.storage.list(PREFIX, true);
-      if (!res || !res.keys) return;
-      var now = Date.now(), ativos = 0;
-      for (var i = 0; i < res.keys.length; i++) {
-        try {
-          var r = await window.storage.get(res.keys[i], true);
-          if (r && r.value && (now - parseInt(r.value)) < TIMEOUT) ativos++;
-        } catch(e) {}
+      monConn = tvPeer.connect(MONITOR_ID, { reliable: true, serialization: 'json' });
+
+      monConn.on('open', function() {
+        // 1. Envia telemetria (registra presença no monitor)
+        monConn.send(montarPayload());
+        // 2. Pede inscrição no relay para receber todos os peers
+        monConn.send({ type: 'k10-subscribe', monitorId: USER_ID });
+        // Registra o próprio usuário localmente
+        peersMap[USER_ID] = { lastSeen: Date.now() };
+        atualizarBadge();
+      });
+
+      monConn.on('data', function(data) {
+        // Recebe relay de todos os peers conhecidos pelo monitor
+        processarTelemetria(data);
+      });
+
+      monConn.on('close', function() {
+        monConn = null;
+        setTimeout(conectarMonitor, 5000);
+      });
+
+      monConn.on('error', function() {
+        monConn = null;
+        setTimeout(conectarMonitor, 8000);
+      });
+    } catch(_) {
+      setTimeout(conectarMonitor, 8000);
+    }
+  }
+
+  function enviarHeartbeat() {
+    peersMap[USER_ID] = { lastSeen: Date.now() };
+    atualizarBadge();
+    if (monConn && monConn.open) {
+      try { monConn.send(montarPayload()); } catch(_) {}
+    } else {
+      conectarMonitor();
+    }
+  }
+
+  function iniciarPeer() {
+    if (tvPeer && !tvPeer.destroyed) return;
+
+    tvPeer = new Peer(USER_ID, {
+      host: '0.peerjs.com', port: 443, secure: true, debug: 0,
+      config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+    });
+
+    tvPeer.on('open', function() {
+      tentativas = 0;
+      conectarMonitor();
+      if (hbTimer) clearInterval(hbTimer);
+      hbTimer = setInterval(enviarHeartbeat, HEARTBEAT_MS);
+    });
+
+    tvPeer.on('error', function(e) {
+      if (e.type === 'unavailable-id') {
+        // ID em uso (aba duplicada) — gera novo
+        USER_ID = 'TV' + Math.random().toString(36).slice(2,9).toUpperCase();
+        localStorage.setItem('k10tv_uid', USER_ID);
+        if (tvPeer && !tvPeer.destroyed) { try { tvPeer.destroy(); } catch(_) {} }
+        tvPeer = null;
+        setTimeout(iniciarPeer, 500);
+        return;
       }
-      document.getElementById('online-count').textContent = ativos;
-    } catch(e) {}
+      if (++tentativas < MAX_TENT) setTimeout(iniciarPeer, 4000);
+    });
+
+    tvPeer.on('disconnected', function() {
+      try { tvPeer.reconnect(); } catch(_) {}
+    });
   }
 
-  async function init() {
-    beat();
-    await atualizar();
-    setInterval(beat, HEARTBEAT);
-    setInterval(atualizar, HEARTBEAT);
+  /* ══ FALLBACK MATRIX — só usa se já tiver token do Chat K10 ════════════════
+     Sem guest registration (403). Se o usuário usar o Chat K10,
+     o mxdmToken já existe e podemos ler a sala de telemetria.               */
+  var SALA_TEL = '!envs-RSauuX1LrriNcVmdwmAGcyVpM0_w8OnC0EZgrQ';
+
+  function mxToken() { return localStorage.getItem('mxdmToken') || ''; }
+  function mxHS()    { return (localStorage.getItem('mxdmHomeserver') || 'https://matrix.org').replace(/\/+$/, ''); }
+
+  async function lerMatrixOnline() {
+    var token = mxToken();
+    if (!token) return;
+    try {
+      var url = mxHS() + '/_matrix/client/v3/rooms/' +
+                encodeURIComponent(SALA_TEL) + '/messages?dir=b&limit=300';
+      var res = await fetch(url, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      var data = await res.json();
+      if (!data || !data.chunk) return;
+      var agora = Date.now();
+      for (var i = 0; i < data.chunk.length; i++) {
+        var ev = data.chunk[i];
+        if (ev.type !== 'm.k10.telemetry') continue;
+        if (!ev.content || !ev.content.peerId) continue;
+        var ts = ev.content.timestamp || ev.origin_server_ts || 0;
+        if (agora - ts > ONLINE_MS) continue;
+        // Atualiza o mapa local com os peers do Matrix
+        if (!peersMap[ev.content.peerId] || peersMap[ev.content.peerId].lastSeen < ts) {
+          peersMap[ev.content.peerId] = { lastSeen: ts };
+        }
+      }
+      atualizarBadge();
+    } catch(_) {}
   }
 
-  if (window.storage) init();
+  /* ══ BOOT ═══════════════════════════════════════════════════════════════════ */
+  function boot() {
+    // Injeta PeerJS se necessário
+    if (typeof Peer === 'undefined') {
+      var s = document.createElement('script');
+      s.src = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
+      s.onload = iniciarPeer;
+      document.head.appendChild(s);
+    } else {
+      iniciarPeer();
+    }
+
+    // Se tem token Matrix (Chat K10), também lê a sala para complementar
+    setTimeout(function() {
+      if (mxToken()) {
+        lerMatrixOnline();
+        setInterval(lerMatrixOnline, 90000);
+      }
+    }, 3000);
+
+    // Limpa peers antigos a cada minuto
+    setInterval(function() {
+      var agora = Date.now();
+      for (var id in peersMap) {
+        if (agora - peersMap[id].lastSeen > ONLINE_MS * 3) delete peersMap[id];
+      }
+    }, 60000);
+  }
+
+  boot();
 })();
 </script>
 </body>

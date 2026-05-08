@@ -1530,11 +1530,9 @@ function sintonizarIdioma() {
               ok++;
             } else {
               fail++;
-              var d = getDefeitos(), agora = new Date().toISOString();
-              if (d[ch.url]) { d[ch.url].tentativas = (d[ch.url].tentativas || 1) + 1; d[ch.url].ultimaVez = agora; }
-              else { d[ch.url] = { nome: ch.nome, url: ch.url, primeiroDef: agora, ultimaVez: agora, tentativas: 1 }; }
-              saveDefeitos(d);
-              removerCanalPorUrl(ch.url);
+              // Canal falhou no teste HTTP mas é mantido na lista.
+              // O player já pula automaticamente canais que não funcionarem.
+              // Não removemos aqui para garantir o maior número de canais possível na TV.
             }
             ativos--;
             atualizar('');

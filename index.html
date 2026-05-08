@@ -113,7 +113,7 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
   </div>
 </div>
 
-<div id="toast"><p data-i18n="unavailable">Channel unavailable</p><small data-i18n="returning">Returning to home screen...</small></div>
+<div id="toast"><p data-i18n="unavailable">Canal indisponível</p><small data-i18n="returning">Pulando para o próximo canal...</small></div>
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
 <script>
@@ -1013,21 +1013,22 @@ function mostrarErro() {
   skipCount++;
   var totalErr = window.__errApp + window.__errCanal;
   var appIncompat = (totalErr >= 5 && window.__errApp / totalErr >= 0.7);
-  if (skipCount >= canais.length || appIncompat) {
+  // Erro de incompatibilidade do app: mostra aviso e volta para home
+  if (appIncompat) {
     skipCount = 0;
     document.getElementById('carregando').style.display = 'none';
     var tst = document.getElementById('toast');
-    if (appIncompat) {
-      tst.querySelector('p').innerHTML = '⚠ APLICATIVO DE REPRODUÇÃO COM ERRO';
-      tst.querySelector('small').textContent = 'O navegador desta TV não suporta o formato de vídeo (HLS/MSE). Tente em outro dispositivo.';
-    } else {
-      tst.querySelector('p').textContent = 'Nenhum canal disponível';
-      tst.querySelector('small').textContent = 'Voltando para a tela inicial...';
-    }
+    tst.querySelector('p').innerHTML = '⚠ APLICATIVO DE REPRODUÇÃO COM ERRO';
+    tst.querySelector('small').textContent = 'O navegador desta TV não suporta o formato de vídeo (HLS/MSE). Tente em outro dispositivo.';
     tst.style.display = 'block';
-    errTmr = setTimeout(function() { tst.style.display = 'none'; voltarHome(); }, appIncompat ? 6000 : 2500);
+    errTmr = setTimeout(function() { tst.style.display = 'none'; voltarHome(); }, 6000);
     return;
   }
+  // Todos os canais falharam: reinicia skipCount e continua tentando (não volta para home)
+  if (skipCount >= canais.length) {
+    skipCount = 1;
+  }
+  // Sempre pula para o próximo canal
   document.getElementById('carregando').style.display = 'none';
   var msg = (motivo === 'app')
     ? '⚠ Reprodutor não suporta este canal — pulando...'

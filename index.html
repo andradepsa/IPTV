@@ -745,8 +745,9 @@ function tocar(idx) {
   var ch = canais[idx]; if (!ch) return;
   curCh = idx;
   var vid = document.getElementById('vid');
-  pararHls(); vid.onerror = null; vid.oncanplay = null;
-  try { vid.pause(); } catch(e) {} vid.src = '';
+  pararHls(); vid.onerror = null; vid.oncanplay = null; vid.onloadedmetadata = null; vid.onplaying = null;
+  try { vid.pause(); } catch(e) {}
+  try { vid.removeAttribute('src'); vid.load(); } catch(e) {}
   document.getElementById('osd-num').textContent = String(idx + 1);
   document.getElementById('osd-nome').textContent = ch.nome;
   document.getElementById('osd-estado').textContent = 'Connecting...';
@@ -756,26 +757,70 @@ function tocar(idx) {
   mostrarOSD();
   atualizarBtnFav();
   clearTimeout(failTmr);
-  failTmr = setTimeout(mostrarErro, 15000);
+  // TV antiga eh lenta pra abrir stream: timeout maior
+  failTmr = setTimeout(mostrarErro, IS_TV ? 25000 : 15000);
+
+  var ok = false;
   function onOk() {
+    if (ok) return; ok = true;
     clearTimeout(failTmr);
     skipCount = 0;
     document.getElementById('carregando').style.display = 'none';
     document.getElementById('osd-estado').textContent = 'Ao vivo';
   }
-  function tentarHls() {
-    if (typeof Hls !== 'undefined' && Hls.isSupported()) {
-      hlsObj = new Hls({ enableWorker: false });
-      hlsObj.loadSource(ch.url); hlsObj.attachMedia(vid);
-      hlsObj.on(Hls.Events.MANIFEST_PARSED, function() { try { vid.play(); } catch(e) {} });
-      hlsObj.on(Hls.Events.ERROR, function(ev, d) { if (d.fatal) { clearTimeout(failTmr); mostrarErro(); } });
-      vid.oncanplay = onOk;
-    } else { mostrarErro(); }
-  }
   vid.oncanplay = onOk;
-  vid.onerror = function() { vid.onerror = null; tentarHls(); };
-  vid.src = ch.url;
-  try { vid.load(); vid.play(); } catch(e) {}
+  vid.onplaying = onOk;
+  vid.onloadedmetadata = function() { try { vid.play(); } catch(e) {} };
+
+  var url = ch.url;
+  var ehHls = /\.m3u8?($|\?)/i.test(url);
+  // Suporte HLS nativo (Safari, algumas TVs WebKit)
+  var nativeHls = !!vid.canPlayType && (
+    vid.canPlayType('application/vnd.apple.mpegurl') !== '' ||
+    vid.canPlayType('application/x-mpegURL') !== ''
+  );
+  // MSE disponivel? (TV AOC 2012 normalmente NAO tem)
+  var temMSE = (typeof window.MediaSource !== 'undefined') &&
+               (typeof Hls !== 'undefined') && Hls.isSupported();
+
+  function tentarNativo() {
+    vid.onerror = function() {
+      vid.onerror = null;
+      // Se for HLS e tiver MSE, cai pra Hls.js
+      if (ehHls && temMSE) { tentarHlsJs(); }
+      else { clearTimeout(failTmr); mostrarErro(); }
+    };
+    try { vid.src = url; vid.load(); vid.play(); } catch(e) {
+      if (ehHls && temMSE) tentarHlsJs(); else mostrarErro();
+    }
+  }
+  function tentarHlsJs() {
+    try {
+      // Config leve pra nao estourar memoria/CPU
+      hlsObj = new Hls({
+        enableWorker: false,
+        lowLatencyMode: false,
+        backBufferLength: IS_TV ? 10 : 30,
+        maxBufferLength: IS_TV ? 8 : 30,
+        maxMaxBufferLength: IS_TV ? 15 : 60,
+        maxBufferSize: IS_TV ? 10*1000*1000 : 60*1000*1000,
+        capLevelToPlayerSize: true
+      });
+      hlsObj.loadSource(url); hlsObj.attachMedia(vid);
+      hlsObj.on(Hls.Events.MANIFEST_PARSED, function() { try { vid.play(); } catch(e) {} });
+      hlsObj.on(Hls.Events.ERROR, function(ev, d) {
+        if (d && d.fatal) { clearTimeout(failTmr); mostrarErro(); }
+      });
+    } catch(e) { mostrarErro(); }
+  }
+
+  // Estrategia: TV antiga sem MSE -> sempre tenta nativo direto.
+  // Modernos com HLS -> Hls.js primeiro pra HLS; senao nativo.
+  if (ehHls && temMSE && !nativeHls) {
+    tentarHlsJs();
+  } else {
+    tentarNativo();
+  }
 }
 
 function pararVideo() {

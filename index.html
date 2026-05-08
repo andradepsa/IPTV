@@ -357,6 +357,52 @@ var canaisExtraLangs = [];   // [{iso:'eng', nome:'ENGLISH', canais:[], master:[
 var canaisOutros = [];
 var tuneTargetLang = rawLang; // idioma selecionado para o próximo tune (pode diferir de rawLang)
 
+// ── Persistência da sintonização (idiomas extras + master do principal) ──
+var LS_SINT_EXTRAS = 'k10_sint_extras_v2';
+var LS_SINT_MASTER = 'k10_sint_master_v2';
+function _salvarSintoniaExtras(){
+  try{
+    var slim = canaisExtraLangs.map(function(g){
+      return { iso:g.iso, nome:g.nome,
+        canais: g.canais.map(function(c){return {nome:c.nome,url:c.url,cats:c.cats||[],_num:c._num};}),
+        master: g.master.map(function(c){return {nome:c.nome,url:c.url,cats:c.cats||[],_num:c._num};})
+      };
+    });
+    localStorage.setItem(LS_SINT_EXTRAS, JSON.stringify(slim));
+    var m = canaisLangMaster.map(function(c){return {nome:c.nome,url:c.url,cats:c.cats||[],_num:c._num};});
+    localStorage.setItem(LS_SINT_MASTER, JSON.stringify(m));
+  }catch(e){}
+}
+function _restaurarSintoniaExtras(){
+  try{
+    var raw = localStorage.getItem(LS_SINT_EXTRAS);
+    if (raw){
+      var arr = JSON.parse(raw);
+      if (arr && arr.length){
+        canaisExtraLangs = arr.map(function(g){
+          return { iso:g.iso, nome:g.nome,
+            canais:(g.canais||[]).slice(), master:(g.master||g.canais||[]).slice() };
+        });
+        for (var ei=0; ei<canaisExtraLangs.length; ei++){
+          var ec = canaisExtraLangs[ei].canais;
+          for (var i=0;i<ec.length;i++) seenUrls[ec[i].url] = true;
+        }
+      }
+    }
+    var rawM = localStorage.getItem(LS_SINT_MASTER);
+    if (rawM){
+      var m = JSON.parse(rawM);
+      if (m && m.length){
+        canaisLangMaster = m.slice();
+        // Pré-popula canaisLang com os já aprovados (serão complementados pelo carregar())
+        canaisLang = m.slice();
+        for (var j=0;j<m.length;j++) seenUrls[m[j].url] = true;
+      }
+    }
+  }catch(e){}
+}
+
+
 // Detecta dispositivo lento: TV (Tizen/WebOS/SmartTV) ou agente antigo.
 var _ua = (navigator.userAgent || '').toLowerCase();
 var IS_TV = /smart-?tv|smarttv|tizen|web0s|webos|hbbtv|netcast|viera|bravia|aquos|inettvbrowser|crkey|googletv|appletv|aoc|philips|samsung.*tv|lg.*tv|tv.*browser/.test(_ua);
@@ -1201,12 +1247,18 @@ function registrarDefeito(idx) {
 }
 
 // Remove um canal pela URL dos grupos e reconstroi a lista principal
+function _spliceUrl(arr, url){ for(var i=arr.length-1;i>=0;i--){ if(arr[i] && arr[i].url===url) arr.splice(i,1); } }
 function removerCanalPorUrl(url) {
-  canaisLang   = canaisLang.filter(function(c){ return c.url !== url; });
-  canaisOutros = canaisOutros.filter(function(c){ return c.url !== url; });
+  _spliceUrl(canaisLang, url);
+  _spliceUrl(canaisLangMaster, url);
+  _spliceUrl(canaisOutros, url);
   for (var ei = 0; ei < canaisExtraLangs.length; ei++) {
-    canaisExtraLangs[ei].canais = canaisExtraLangs[ei].canais.filter(function(c){ return c.url !== url; });
+    if (canaisExtraLangs[ei]) {
+      _spliceUrl(canaisExtraLangs[ei].canais, url);
+      _spliceUrl(canaisExtraLangs[ei].master, url);
+    }
   }
+  _salvarSintoniaExtras();
   aplicarFiltro();
 }
 
@@ -1451,8 +1503,20 @@ function sintonizarIdioma() {
     if (sintAbortar) { _fimSint('Sintonia cancelada.', 0, 0); return; }
 
     // Determina onde inserir: primary → canaisLang; extra → canaisExtraLangs[entryIdx]
-    var targetMaster = isPrimary ? canaisLangMaster : canaisExtraLangs[entryIdx].master;
-    var targetAtivo  = isPrimary ? canaisLang       : canaisExtraLangs[entryIdx].canais;
+    if (!isPrimary) {
+      // Recomputa entryIdx defensivamente (caso array tenha mudado)
+      entryIdx = -1;
+      for (var _xi = 0; _xi < canaisExtraLangs.length; _xi++) {
+        if (canaisExtraLangs[_xi] && canaisExtraLangs[_xi].iso === targetIso) { entryIdx = _xi; break; }
+      }
+      if (entryIdx === -1) {
+        canaisExtraLangs.push({ iso: targetIso, nome: targetNome, canais: [], master: [] });
+        entryIdx = canaisExtraLangs.length - 1;
+      }
+    }
+    var _entryRef   = isPrimary ? null : canaisExtraLangs[entryIdx];
+    var targetMaster = isPrimary ? canaisLangMaster : _entryRef.master;
+    var targetAtivo  = isPrimary ? canaisLang       : _entryRef.canais;
 
     // Canais que já estavam na lista ativa (já testados e aprovados anteriormente)
     var jaAprovadosMap = {};
@@ -1589,6 +1653,7 @@ function sintonizarIdioma() {
 
   function _fimSint(msg, ok, fail) {
     sintRodando = false;
+    try { _salvarSintoniaExtras(); } catch(e) {}
     _btnLabel();
     var extra = (typeof jaAprovados !== 'undefined' && jaAprovados > 0)
       ? ' <span class="ok">+ ' + jaAprovados + ' mantidos</span>' : '';
@@ -1629,6 +1694,9 @@ carregarUIIdioma();
     sel.innerHTML = html;
   }
 })();
+_restaurarSintoniaExtras();
+aplicarFiltro();
+atualizarTela();
 carregar();
 </script>
 </body>

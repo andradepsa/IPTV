@@ -6,7 +6,10 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
-#tela-home{position:absolute;top:0;left:0;width:100%;height:100%;text-align:center}
+#tela-home{position:absolute;top:0;left:0;width:100%;height:100%;text-align:center;display:flex;align-items:flex-start;justify-content:center;gap:20px;padding:0 20px;overflow:hidden}
+#home-centro{flex:1;max-width:560px;height:100%;overflow-y:auto;padding-bottom:20px}
+#home-lado{width:320px;max-width:35%;height:100%;padding:30px 0 20px;display:flex;flex-direction:column}
+@media(max-width:720px){#tela-home{flex-direction:column;align-items:stretch;padding:0 10px;overflow-y:auto}#home-centro{height:auto;max-width:none;overflow:visible}#home-lado{width:100%;max-width:none;height:300px;padding:0 0 20px}}
 #titulo{font-size:36px;font-weight:bold;color:#00aaff;padding-top:30px;margin-bottom:4px}
 #subtitulo{font-size:13px;color:#555;margin-bottom:16px}
 #status-line{font-size:15px;color:#888;margin-bottom:10px}
@@ -44,7 +47,11 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
 #btn-fav{background:#111;border:2px solid #ffdd00;color:#ffdd00;font-size:20px;width:52px;height:52px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .1s}
 #btn-fav:active{transform:scale(.92)}
 #btn-fav.favoritado{background:#ffdd00;color:#000}
-#favs{margin:12px auto 0;max-width:480px;max-height:160px;overflow-y:auto}
+#favs{margin:0;width:100%;height:100%;overflow-y:auto;background:#0a0a0a;border:2px solid #333;border-radius:12px;padding:12px;text-align:left;scrollbar-width:thin;scrollbar-color:#ffdd00 #111}
+#favs::-webkit-scrollbar{width:10px}
+#favs::-webkit-scrollbar-track{background:#111;border-radius:5px}
+#favs::-webkit-scrollbar-thumb{background:#ffdd00;border-radius:5px}
+#favs::-webkit-scrollbar-thumb:hover{background:#ffaa00}
 #favs-titulo{font-size:13px;color:#ffdd00;margin-bottom:6px;font-weight:bold}
 .fav-item{display:flex;align-items:center;justify-content:space-between;background:#111;border:1px solid #333;border-radius:8px;padding:8px 14px;margin-bottom:6px;cursor:pointer;transition:border-color .15s}
 .fav-item:hover{border-color:#00aaff}
@@ -61,23 +68,27 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
 <body>
 
 <div id="tela-home">
-  <div id="titulo">&#128250; K10 TV</div>
-  <div id="subtitulo" data-i18n="subtitle">Live TV - access by number</div>
-  <div id="status-line">Loading channels...</div>
-  <div id="faixas"></div>
-  <div id="filtro-cat">
-    <select id="sel-cat" onchange="setFiltroCategoria(this.value)">
-      <option value="" id="opt-todas">&#9788; <span data-i18n="all_cats">All categories</span></option>
-    </select>
+  <div id="home-centro">
+    <div id="titulo">&#128250; K10 TV</div>
+    <div id="subtitulo" data-i18n="subtitle">Live TV - access by number</div>
+    <div id="status-line">Loading channels...</div>
+    <div id="faixas"></div>
+    <div id="filtro-cat">
+      <select id="sel-cat" onchange="setFiltroCategoria(this.value)">
+        <option value="" id="opt-todas">&#9788; <span data-i18n="all_cats">All categories</span></option>
+      </select>
+    </div>
+    <div id="display-canal">
+      <div id="digitos" class="vazio">_</div>
+    </div>
+    <div id="instrucao" data-i18n="instruction">Type the channel number and press ENTER</div>
+    <button id="btn-enter" onclick="clearTimeout(bufTmr);irCanal()">&#9654; <span data-i18n="enter">ENTER</span></button>
+    <div><button id="btn-sintonizar" onclick="sintonizarIdioma()">&#128225; <span data-i18n="tune">Sintonizar canais do meu idioma</span></button></div>
+    <div id="sint-progresso"></div>
   </div>
-  <div id="display-canal">
-    <div id="digitos" class="vazio">_</div>
-  </div>
-  <div id="instrucao" data-i18n="instruction">Type the channel number and press ENTER</div>
-  <button id="btn-enter" onclick="clearTimeout(bufTmr);irCanal()">&#9654; <span data-i18n="enter">ENTER</span></button>
-  <div><button id="btn-sintonizar" onclick="sintonizarIdioma()">&#128225; <span data-i18n="tune">Sintonizar canais do meu idioma</span></button></div>
-  <div id="sint-progresso"></div>
-  <div id="favs"></div>
+  <aside id="home-lado">
+    <div id="favs"></div>
+  </aside>
 </div>
 
 <div id="tela-player">
@@ -730,7 +741,7 @@ function voltarHome() {
   skipCount = 0;
   document.getElementById('toast').style.display = 'none';
   document.getElementById('tela-player').style.display = 'none';
-  document.getElementById('tela-home').style.display = 'block';
+  document.getElementById('tela-home').style.display = '';
   buf = ''; atualizarDisplay();
 }
 

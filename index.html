@@ -84,9 +84,10 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
     <div id="instrucao" data-i18n="instruction">Type the channel number and press ENTER</div>
     <button id="btn-enter" onclick="clearTimeout(bufTmr);irCanal()">&#9654; <span data-i18n="enter">ENTER</span></button>
     <div><button id="btn-sintonizar" onclick="sintonizarIdioma()">&#128225; <span data-i18n="tune">Sintonizar canais do meu idioma</span></button></div>
-    <div id="lang-picker" style="margin-top:10px;">
+    <div id="lang-picker" style="margin-top:10px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">
       &#127760; <label for="sel-lang" style="font-size:14px;">Idioma / Language:</label>
-      <select id="sel-lang" onchange="trocarIdioma(this.value)" style="margin-left:6px;padding:4px 8px;font-size:14px;"></select>
+      <select id="sel-lang" onchange="trocarIdioma(this.value)" style="padding:4px 8px;font-size:14px;"></select>
+      <button onclick="mudarIdiomaBase()" title="Definir como meu idioma principal (recarrega o app)" style="padding:4px 10px;font-size:12px;background:#111;border:1px solid #555;color:#888;border-radius:12px;cursor:pointer;white-space:nowrap;">&#127968; Principal</button>
     </div>
     <div id="sint-progresso"></div>
   </div>
@@ -139,6 +140,23 @@ var LANG_ISO  = LANG_MAP[rawLang] || 'por';
 var LANG_NOME = (LANG_NAMES[rawLang] || rawLang).toUpperCase();
 
 function trocarIdioma(novo) {
+  if (!novo || !LANG_MAP[novo]) return;
+  tuneTargetLang = novo;
+  var nome = (LANG_NAMES[novo] || novo).toUpperCase();
+  var btn = document.getElementById('btn-sintonizar');
+  if (btn && typeof sintRodando !== 'undefined' && !sintRodando) {
+    if (novo === rawLang) {
+      btn.innerHTML = '&#128225; <span data-i18n="tune">Sintonizar canais do meu idioma</span>';
+    } else {
+      btn.innerHTML = '&#128225; Sintonizar ' + nome;
+    }
+  }
+}
+
+// Muda o idioma principal do app (recarrega a pagina)
+function mudarIdiomaBase() {
+  var sel = document.getElementById('sel-lang');
+  var novo = sel ? sel.value : rawLang;
   if (!novo || !LANG_MAP[novo]) return;
   try { localStorage.setItem(LS_LANG, novo); } catch(e){}
   location.reload();
@@ -333,9 +351,11 @@ function atribuirNumero(url, grupo) {
 // IMPORTANTE: insere em LOTES com pausa, pra nao travar TVs/PCs antigos.
 // O grupo 'lang' (idioma do usuario) entra PRIMEIRO e completo;
 // depois os 'outros' vao chegando aos poucos.
-var canaisLang       = [];   // lista ativa (sofre poda de defeituosos)
-var canaisLangMaster = [];   // lista completa — nunca podada (usada pelo tune)
+var canaisLang       = [];   // lista ativa do idioma principal (sofre poda de defeituosos)
+var canaisLangMaster = [];   // lista completa do idioma principal (usada pelo tune)
+var canaisExtraLangs = [];   // [{iso:'eng', nome:'ENGLISH', canais:[], master:[]}] — idiomas adicionais sintonizados
 var canaisOutros = [];
+var tuneTargetLang = rawLang; // idioma selecionado para o próximo tune (pode diferir de rawLang)
 
 // Detecta dispositivo lento: TV (Tizen/WebOS/SmartTV) ou agente antigo.
 var _ua = (navigator.userAgent || '').toLowerCase();
@@ -397,27 +417,37 @@ function _matchCat(c, cat) {
   return false;
 }
 function aplicarFiltro() {
-  var L = catFiltro ? canaisLang.filter(function(c){ return _matchCat(c, catFiltro); }) : canaisLang;
-  var O = catFiltro ? canaisOutros.filter(function(c){ return _matchCat(c, catFiltro); }) : canaisOutros;
-  var todos = L.concat(O);
-  // Favoritos primeiro: ao trocar de canal, percorre toda a lista de favoritos antes dos demais
+  function _mc(c) { return _matchCat(c, catFiltro); }
+  var L = catFiltro ? canaisLang.filter(_mc) : canaisLang.slice();
+  // Idiomas extras acumulados (tune de outros idiomas)
+  var extrasFlat = [];
+  var extrasInfo = []; // [{nome, count}] para exibir faixas
+  for (var ei = 0; ei < canaisExtraLangs.length; ei++) {
+    var ec = catFiltro ? canaisExtraLangs[ei].canais.filter(_mc) : canaisExtraLangs[ei].canais.slice();
+    extrasInfo.push({ nome: canaisExtraLangs[ei].nome, count: ec.length });
+    extrasFlat = extrasFlat.concat(ec);
+  }
+  var O = catFiltro ? canaisOutros.filter(_mc) : canaisOutros.slice();
+  var todos = L.concat(extrasFlat).concat(O);
+  // Favoritos primeiro
   var favs = [];
   try { favs = JSON.parse(localStorage.getItem('k10favs') || '[]'); } catch(e) { favs = []; }
   if (favs && favs.length) {
     var favOrder = {};
     for (var i = 0; i < favs.length; i++) favOrder[favs[i].url] = i;
-    var favCh = [], outros = [];
+    var favCh = [], outros2 = [];
     for (var j = 0; j < todos.length; j++) {
       if (favOrder.hasOwnProperty(todos[j].url)) favCh.push(todos[j]);
-      else outros.push(todos[j]);
+      else outros2.push(todos[j]);
     }
     favCh.sort(function(a, b){ return favOrder[a.url] - favOrder[b.url]; });
-    canais  = favCh.concat(outros);
-    langFim = L.length;
+    canais = favCh.concat(outros2);
   } else {
-    canais  = todos;
-    langFim = L.length;
+    canais = todos;
   }
+  langFim = L.length;
+  // Salva info das faixas para atualizarTela
+  window._extraLangInfo = extrasInfo;
 }
 
 var LS_CAT = 'k10_cat_filtro';
@@ -619,21 +649,31 @@ function setStatus(txt) { document.getElementById('status-line').innerHTML = txt
 function atualizarTela() {
   if (canais.length === 0) return;
   pronto = true;
-  // calcular digitos necessarios
   var total = canais.length;
   var digitos = String(total).length;
   if (digitos < 3) digitos = 3;
   MAX_DIGITOS = digitos;
   setStatus(t('total_pre') + '<span>' + total + '</span>' + t('total_mid') + total);
-  // faixa idioma
   var html = '';
+  var cursor = 0;
   if (langFim > 0) {
-    html += '<div class="dest">&#9733; ' + LANG_NOME + ' ' + t('your_lang') + ' 1 ' + t('to') + ' ' + langFim + '</div>';
-    if (canais.length > langFim) {
-      html += '<div><b>' + t('other_langs') + ':</b> ' + (langFim + 1) + ' ' + t('to') + ' ' + canais.length + '</div>';
+    html += '<div class="dest">&#9733; ' + LANG_NOME + ': 1 ' + t('to') + ' ' + langFim + '</div>';
+    cursor = langFim;
+  }
+  // Faixas de idiomas extras sintonizados
+  var extras = window._extraLangInfo || [];
+  for (var ei = 0; ei < extras.length; ei++) {
+    if (extras[ei].count > 0) {
+      html += '<div><b>' + extras[ei].nome + ':</b> ' + (cursor + 1) + ' ' + t('to') + ' ' + (cursor + extras[ei].count) + '</div>';
+      cursor += extras[ei].count;
     }
-  } else {
-    html += '<div><b>' + t('all_channels') + ':</b> 1 ' + t('to') + ' ' + canais.length + '</div>';
+  }
+  if (canais.length > cursor) {
+    if (cursor === 0) {
+      html += '<div><b>' + t('all_channels') + ':</b> 1 ' + t('to') + ' ' + canais.length + '</div>';
+    } else {
+      html += '<div><b>' + t('other_langs') + ':</b> ' + (cursor + 1) + ' ' + t('to') + ' ' + canais.length + '</div>';
+    }
   }
   document.getElementById('faixas').innerHTML = html;
 }
@@ -1156,6 +1196,9 @@ function registrarDefeito(idx) {
 function removerCanalPorUrl(url) {
   canaisLang   = canaisLang.filter(function(c){ return c.url !== url; });
   canaisOutros = canaisOutros.filter(function(c){ return c.url !== url; });
+  for (var ei = 0; ei < canaisExtraLangs.length; ei++) {
+    canaisExtraLangs[ei].canais = canaisExtraLangs[ei].canais.filter(function(c){ return c.url !== url; });
+  }
   aplicarFiltro();
 }
 
@@ -1268,8 +1311,10 @@ function filtrarDefeituososDaLista() {
   var antes = canais.length;
   canaisLang   = canaisLang.filter(function(c){ return !d[c.url]; });
   canaisOutros = canaisOutros.filter(function(c){ return !d[c.url]; });
+  for (var ei = 0; ei < canaisExtraLangs.length; ei++) {
+    canaisExtraLangs[ei].canais = canaisExtraLangs[ei].canais.filter(function(c){ return !d[c.url]; });
+  }
   aplicarFiltro();
-  // Atualiza seenUrls
   seenUrls = {};
   for (var i = 0; i < canais.length; i++) seenUrls[canais[i].url] = true;
   var removidos = antes - canais.length;
@@ -1318,9 +1363,10 @@ window.limparDefeitos   = function(){ localStorage.removeItem(LS_DEFEITOS); cons
 window.verCanaisNovos   = function(){ try{ var l=JSON.parse(localStorage.getItem('k10_canais_novos')||'[]'); console.table(l); return l; }catch(e){ return []; } };
 window.limparCanaisNovos= function(){ localStorage.removeItem('k10_canais_novos'); localStorage.removeItem(LS_CANAIS_VISTOS); console.log('[K10] Canais novos limpos.'); };
 
-// ── Sintonizar canais do idioma ────────────────────────────────
-// A cada acionamento: re-baixa o M3U da rede (lista 100% fresca),
-// reconstrói canaisLang e canaisLangMaster do zero, depois testa tudo.
+// ── Sintonizar canais do idioma (acumula múltiplos idiomas) ───
+// Tune do idioma principal: substitui canaisLang.
+// Tune de outro idioma: acumula em canaisExtraLangs na ordem feita.
+// Resultado: lista única ordenada: Principal → Extras → Outros.
 var sintRodando = false;
 var sintAbortar = false;
 
@@ -1334,72 +1380,93 @@ function sintonizarIdioma() {
     return;
   }
 
+  // Idioma alvo: o selecionado no dropdown
+  var targetRaw  = tuneTargetLang || rawLang;
+  var targetIso  = LANG_MAP[targetRaw] || LANG_ISO;
+  var targetNome = (LANG_NAMES[targetRaw] || targetRaw).toUpperCase();
+  var isPrimary  = (targetIso === LANG_ISO);
+
   sintRodando = true; sintAbortar = false;
   btn.innerHTML = '&#9209; Cancelar sintonia';
-  prog.innerHTML = '&#9851; Limpando registros e baixando lista completa da rede...';
+  prog.innerHTML = '&#9851; Baixando lista de ' + targetNome + '...';
 
-  // ── 1 & 2. Limpa tudo: defeitos + listas em memória ──────────
-  // Defeitos são apagados completamente — serão redescobertos durante o teste.
-  // Isso é necessário porque canais bloqueados como defeituosos ficam em seenUrls
-  // desde o boot (carregar()) e nunca entram no canaisLangMaster, então não
-  // seriam limpos de outra forma. Limpar tudo garante lista 100% fresca.
+  // ── Limpa defeitos e reseta estruturas do idioma alvo ─────────
   saveDefeitos({});
-  canaisLang       = [];
-  canaisLangMaster = [];
-  // Reconstrói seenUrls apenas com canaisOutros — permite que todos os canais
-  // do idioma sejam re-adicionados da rede sem restrição.
-  seenUrls = {};
-  for (var si = 0; si < canaisOutros.length; si++) seenUrls[canaisOutros[si].url] = true;
+
+  if (isPrimary) {
+    // Idioma principal: zera canaisLang e reconstrói seenUrls
+    canaisLang = []; canaisLangMaster = [];
+    seenUrls = {};
+    for (var si = 0; si < canaisOutros.length; si++) seenUrls[canaisOutros[si].url] = true;
+    for (var ei = 0; ei < canaisExtraLangs.length; ei++) {
+      var _ec = canaisExtraLangs[ei].canais;
+      for (var _i = 0; _i < _ec.length; _i++) seenUrls[_ec[_i].url] = true;
+    }
+  } else {
+    // Idioma extra: acha ou cria entrada; remove suas URLs de seenUrls para retestar
+    var entryIdx = -1;
+    for (var xi = 0; xi < canaisExtraLangs.length; xi++) {
+      if (canaisExtraLangs[xi].iso === targetIso) { entryIdx = xi; break; }
+    }
+    if (entryIdx === -1) {
+      canaisExtraLangs.push({ iso: targetIso, nome: targetNome, canais: [], master: [] });
+      entryIdx = canaisExtraLangs.length - 1;
+    }
+    var _entry = canaisExtraLangs[entryIdx];
+    for (var ri = 0; ri < _entry.master.length; ri++) delete seenUrls[_entry.master[ri].url];
+    _entry.canais = []; _entry.master = [];
+  }
   aplicarFiltro();
   atualizarTela();
 
-  // ── 3. Re-baixa o M3U do idioma direto da rede ────────────────
+  // ── Baixa M3U do idioma alvo direto da rede ───────────────────
   fetchM3u([
-    'https://cdn.jsdelivr.net/gh/iptv-org/iptv@gh-pages/languages/' + LANG_ISO + '.m3u',
-    'https://iptv-org.github.io/iptv/languages/' + LANG_ISO + '.m3u',
-    'https://raw.githubusercontent.com/iptv-org/iptv/gh-pages/languages/' + LANG_ISO + '.m3u'
+    'https://cdn.jsdelivr.net/gh/iptv-org/iptv@gh-pages/languages/' + targetIso + '.m3u',
+    'https://iptv-org.github.io/iptv/languages/' + targetIso + '.m3u',
+    'https://raw.githubusercontent.com/iptv-org/iptv/gh-pages/languages/' + targetIso + '.m3u'
   ], function(errM3u, txt) {
     if (sintAbortar) { _fimSint('Sintonia cancelada.', 0, 0); return; }
     var novos = (!errM3u && txt) ? parseM3u(txt) : [];
-
     if (novos.length === 0) {
-      // Fallback: API filtrada por idioma
       prog.innerHTML = '&#9851; M3U indisponível — tentando API...';
       fetchApi(function(errApi, data) {
         if (sintAbortar) { _fimSint('Sintonia cancelada.', 0, 0); return; }
-        var apiNovos = (!errApi && data) ? buildApiByLang(data, LANG_ISO) : [];
-        _popularETestar(apiNovos);
+        _popularETestar((!errApi && data) ? buildApiByLang(data, targetIso) : []);
       });
     } else {
       _popularETestar(novos);
     }
   });
 
-  // ── 4. Popula listas frescas e inicia teste ───────────────────
+  // ── Popula a lista do idioma alvo e inicia teste ──────────────
   function _popularETestar(novosCanais) {
     if (sintAbortar) { _fimSint('Sintonia cancelada.', 0, 0); return; }
 
-    // Reconstrói canaisLang e canaisLangMaster com dados 100% frescos da rede
+    // Determina onde inserir: primary → canaisLang; extra → canaisExtraLangs[entryIdx]
+    var targetMaster = isPrimary ? canaisLangMaster : canaisExtraLangs[entryIdx].master;
+    var targetAtivo  = isPrimary ? canaisLang       : canaisExtraLangs[entryIdx].canais;
+
     for (var i = 0; i < novosCanais.length; i++) {
       var c = novosCanais[i];
       if (!c || !c.url || seenUrls[c.url]) continue;
       seenUrls[c.url] = true;
       c._num = atribuirNumero(c.url, 'lang');
-      canaisLang.push(c);
-      canaisLangMaster.push(c);
+      targetAtivo.push(c);
+      targetMaster.push(c);
     }
-    canaisLang.sort(function(a, b) { return a._num - b._num; });
-    canaisLangMaster.sort(function(a, b) { return a._num - b._num; });
+    targetAtivo.sort(function(a, b) { return a._num - b._num; });
+    targetMaster.sort(function(a, b) { return a._num - b._num; });
+    if (isPrimary) { canaisLang = targetAtivo; canaisLangMaster = targetMaster; }
     aplicarFiltro();
     atualizarTela();
 
-    var lista = canaisLangMaster.slice(); // snapshot completo fresco
+    var lista = targetMaster.slice();
     var total = lista.length;
 
     if (total === 0) {
       sintRodando = false;
-      btn.innerHTML = '&#128225; <span data-i18n="tune">Sintonizar canais do meu idioma</span>';
-      prog.innerHTML = '<span class="err">Nenhum canal encontrado para ' + LANG_NOME + '.</span>';
+      _btnLabel();
+      prog.innerHTML = '<span class="err">Nenhum canal encontrado para ' + targetNome + '.</span>';
       return;
     }
 
@@ -1407,10 +1474,11 @@ function sintonizarIdioma() {
     var PARALELO = IS_TV ? 2 : 3;
     var TIMEOUT  = IS_TV ? 5000 : 4000;
 
-    prog.innerHTML = 'Iniciando sintonia de ' + total + ' canal(is) frescos...';
+    prog.innerHTML = 'Iniciando sintonia de ' + total + ' canal(is) [' + targetNome + ']...';
 
     function atualizar(nome) {
       prog.innerHTML = 'Testando ' + Math.min(idx, total) + '/' + total
+        + ' [' + targetNome + ']'
         + ' &nbsp;<span class="ok">&#10003; ' + ok + '</span>'
         + ' &nbsp;<span class="err">&#10005; ' + fail + '</span>'
         + (nome ? '<br><small>' + nome + '</small>' : '');
@@ -1479,9 +1547,19 @@ function sintonizarIdioma() {
     setTimeout(lancar, 200);
   }
 
+  function _btnLabel() {
+    var selVal = document.getElementById('sel-lang') ? document.getElementById('sel-lang').value : rawLang;
+    var _iso = LANG_MAP[selVal] || LANG_ISO;
+    if (_iso === LANG_ISO) {
+      btn.innerHTML = '&#128225; <span data-i18n="tune">Sintonizar canais do meu idioma</span>';
+    } else {
+      btn.innerHTML = '&#128225; Sintonizar ' + (LANG_NAMES[selVal] || selVal).toUpperCase();
+    }
+  }
+
   function _fimSint(msg, ok, fail) {
     sintRodando = false;
-    btn.innerHTML = '&#128225; <span data-i18n="tune">Sintonizar canais do meu idioma</span>';
+    _btnLabel();
     prog.innerHTML = msg
       + (ok || fail ? ' <span class="ok">&#10003; ' + ok + '</span> <span class="err">&#10005; ' + fail + '</span>' : '');
     atualizarTela();

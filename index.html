@@ -1107,7 +1107,12 @@ function toggleFav() {
   else favs.splice(idx, 1);
   saveFavs(favs);
   aplicarFiltro();
+  // Reconecta curCh ao canal atual após reordenação
   curCh = canais.findIndex(function(c){ return c.url === ch.url; });
+  // Atualiza o número exibido no OSD sem interromper a reprodução
+  if (curCh >= 0) {
+    document.getElementById('osd-num').textContent = String(curCh + 1);
+  }
   atualizarBtnFav();
   renderFavs();
 }
@@ -1145,9 +1150,18 @@ function tocarFav(i) {
 }
 
 function deletarFav(i) {
+  var urlAtual = (curCh >= 0 && canais[curCh]) ? canais[curCh].url : null;
   var favs = getFavs();
   favs.splice(i, 1);
   saveFavs(favs);
+  aplicarFiltro();
+  // Reconecta curCh ao canal atual após reordenação
+  if (urlAtual) {
+    curCh = canais.findIndex(function(c){ return c.url === urlAtual; });
+    if (curCh >= 0) {
+      document.getElementById('osd-num').textContent = String(curCh + 1);
+    }
+  }
   renderFavs();
   atualizarBtnFav();
 }

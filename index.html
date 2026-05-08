@@ -1319,149 +1319,172 @@ window.verCanaisNovos   = function(){ try{ var l=JSON.parse(localStorage.getItem
 window.limparCanaisNovos= function(){ localStorage.removeItem('k10_canais_novos'); localStorage.removeItem(LS_CANAIS_VISTOS); console.log('[K10] Canais novos limpos.'); };
 
 // ── Sintonizar canais do idioma ────────────────────────────────
-// Testa cada canal com HEAD request leve (sem criar elemento video).
-// Roda 3 em paralelo para ser rapido sem saturar o proxy.
+// A cada acionamento: re-baixa o M3U da rede (lista 100% fresca),
+// reconstrói canaisLang e canaisLangMaster do zero, depois testa tudo.
 var sintRodando = false;
 var sintAbortar = false;
 
 function sintonizarIdioma() {
-  var btn = document.getElementById('btn-sintonizar');
+  var btn  = document.getElementById('btn-sintonizar');
   var prog = document.getElementById('sint-progresso');
+
   if (sintRodando) {
     sintAbortar = true;
     prog.innerHTML = 'Cancelando...';
     return;
   }
 
-  // ── RESET COMPLETO DO IDIOMA ATUAL ────────────────────────────
-  // 1. Remove defeituosos que pertencem ao idioma (estão na master list)
-  var urlsMaster = {};
-  for (var mi = 0; mi < canaisLangMaster.length; mi++) urlsMaster[canaisLangMaster[mi].url] = true;
-  var def = getDefeitos();
-  var defLimpo = {};
-  for (var du in def) {
-    if (def.hasOwnProperty(du) && !urlsMaster[du]) defLimpo[du] = def[du];
-  }
-  saveDefeitos(defLimpo);
-  // 2. Restaura canaisLang a partir da master (sem poda)
-  canaisLang = canaisLangMaster.slice();
-  canaisLang.sort(function(a,b){ return a._num - b._num; });
-  // Remove da lista seenUrls para permitir re-entrada
-  for (var si = 0; si < canaisLangMaster.length; si++) delete seenUrls[canaisLangMaster[si].url];
-  // Reconstrói seenUrls só com o que está na lista atual (lang + outros)
-  seenUrls = {};
-  var todasListas = canaisLang.concat(canaisOutros);
-  for (var ti2 = 0; ti2 < todasListas.length; ti2++) seenUrls[todasListas[ti2].url] = true;
-  aplicarFiltro();
-  atualizarTela();
-  prog.innerHTML = '<span style="color:#ffaa00">&#9851; Registros anteriores limpos — testando lista completa...</span>';
-
-  // Usa lista MASTER (completa, não podada) — re-testa TODOS a cada execução
-  var lista = canaisLangMaster.slice();
-  if (lista.length === 0) {
-    prog.innerHTML = '<span class="err">Nenhum canal do seu idioma carregado ainda.</span>';
-    return;
-  }
   sintRodando = true; sintAbortar = false;
   btn.innerHTML = '&#9209; Cancelar sintonia';
-  var total = lista.length;
-  var idx = 0, ok = 0, fail = 0, ativos = 0;
-  var PARALELO  = IS_TV ? 2 : 3;   // testes simultaneos
-  var TIMEOUT   = IS_TV ? 5000 : 4000; // ms por teste
+  prog.innerHTML = '&#9851; Limpando registros e baixando lista completa da rede...';
 
-  function atualizar(extra) {
-    prog.innerHTML = 'Testando ' + Math.min(idx, total) + '/' + total
-      + ' &nbsp; <span class="ok">&#10003; ' + ok + '</span>'
-      + ' &nbsp; <span class="err">&#10005; ' + fail + '</span>'
-      + (extra ? '<br><small>' + extra + '</small>' : '');
+  // ── 1. Limpa defeituosos do idioma atual ──────────────────────
+  var urlsAnteriores = {};
+  for (var mi = 0; mi < canaisLangMaster.length; mi++) urlsAnteriores[canaisLangMaster[mi].url] = true;
+  var def = getDefeitos(), defLimpo = {};
+  for (var du in def) { if (def.hasOwnProperty(du) && !urlsAnteriores[du]) defLimpo[du] = def[du]; }
+  saveDefeitos(defLimpo);
+
+  // ── 2. Apaga listas do idioma em memória (recomeço do zero) ───
+  for (var si = 0; si < canaisLangMaster.length; si++) delete seenUrls[canaisLangMaster[si].url];
+  canaisLang       = [];
+  canaisLangMaster = [];
+  aplicarFiltro();
+  atualizarTela();
+
+  // ── 3. Re-baixa o M3U do idioma direto da rede ────────────────
+  fetchM3u([
+    'https://cdn.jsdelivr.net/gh/iptv-org/iptv@gh-pages/languages/' + LANG_ISO + '.m3u',
+    'https://iptv-org.github.io/iptv/languages/' + LANG_ISO + '.m3u',
+    'https://raw.githubusercontent.com/iptv-org/iptv/gh-pages/languages/' + LANG_ISO + '.m3u'
+  ], function(errM3u, txt) {
+    if (sintAbortar) { _fimSint('Sintonia cancelada.', 0, 0); return; }
+    var novos = (!errM3u && txt) ? parseM3u(txt) : [];
+
+    if (novos.length === 0) {
+      // Fallback: API filtrada por idioma
+      prog.innerHTML = '&#9851; M3U indisponível — tentando API...';
+      fetchApi(function(errApi, data) {
+        if (sintAbortar) { _fimSint('Sintonia cancelada.', 0, 0); return; }
+        var apiNovos = (!errApi && data) ? buildApiByLang(data, LANG_ISO) : [];
+        _popularETestar(apiNovos);
+      });
+    } else {
+      _popularETestar(novos);
+    }
+  });
+
+  // ── 4. Popula listas frescas e inicia teste ───────────────────
+  function _popularETestar(novosCanais) {
+    if (sintAbortar) { _fimSint('Sintonia cancelada.', 0, 0); return; }
+
+    // Reconstrói canaisLang e canaisLangMaster com dados 100% frescos da rede
+    for (var i = 0; i < novosCanais.length; i++) {
+      var c = novosCanais[i];
+      if (!c || !c.url || seenUrls[c.url]) continue;
+      seenUrls[c.url] = true;
+      c._num = atribuirNumero(c.url, 'lang');
+      canaisLang.push(c);
+      canaisLangMaster.push(c);
+    }
+    canaisLang.sort(function(a, b) { return a._num - b._num; });
+    canaisLangMaster.sort(function(a, b) { return a._num - b._num; });
+    aplicarFiltro();
+    atualizarTela();
+
+    var lista = canaisLangMaster.slice(); // snapshot completo fresco
+    var total = lista.length;
+
+    if (total === 0) {
+      sintRodando = false;
+      btn.innerHTML = '&#128225; <span data-i18n="tune">Sintonizar canais do meu idioma</span>';
+      prog.innerHTML = '<span class="err">Nenhum canal encontrado para ' + LANG_NOME + '.</span>';
+      return;
+    }
+
+    var idx = 0, ok = 0, fail = 0, ativos = 0;
+    var PARALELO = IS_TV ? 2 : 3;
+    var TIMEOUT  = IS_TV ? 5000 : 4000;
+
+    prog.innerHTML = 'Iniciando sintonia de ' + total + ' canal(is) frescos...';
+
+    function atualizar(nome) {
+      prog.innerHTML = 'Testando ' + Math.min(idx, total) + '/' + total
+        + ' &nbsp;<span class="ok">&#10003; ' + ok + '</span>'
+        + ' &nbsp;<span class="err">&#10005; ' + fail + '</span>'
+        + (nome ? '<br><small>' + nome + '</small>' : '');
+    }
+
+    // Teste leve: HEAD request via proxy cascade (sem vídeo, sem HLS.js)
+    function testarCanal(ch, cb) {
+      var url = ch.url;
+      var tentativas = [url];
+      for (var pi = 0; pi < PROXIES.length; pi++) tentativas.push(PROXIES[pi] + encodeURIComponent(url));
+      var ti = 0, resolvido = false;
+      var tmr = setTimeout(function() { resolver(false); }, TIMEOUT);
+      function resolver(s) { if (resolvido) return; resolvido = true; clearTimeout(tmr); cb(s); }
+      function next() {
+        if (ti >= tentativas.length) { resolver(false); return; }
+        var u = tentativas[ti++];
+        var r = new XMLHttpRequest();
+        r.open('HEAD', u, true);
+        try { r.timeout = Math.floor(TIMEOUT * 0.55); } catch(e) {}
+        r.onreadystatechange = function() {
+          if (r.readyState !== 4) return;
+          if (r.status >= 200 && r.status < 400) { resolver(true); }
+          else if (r.status === 405) {
+            var r2 = new XMLHttpRequest();
+            r2.open('GET', u, true);
+            try { r2.timeout = Math.floor(TIMEOUT * 0.45); } catch(e) {}
+            r2.onreadystatechange = function() {
+              if (r2.readyState >= 2) { try { r2.abort(); } catch(e) {} if (r2.status >= 200 && r2.status < 400) resolver(true); else next(); }
+            };
+            r2.onerror = r2.ontimeout = next;
+            try { r2.send(); } catch(e) { next(); }
+          } else { next(); }
+        };
+        r.onerror = r.ontimeout = next;
+        try { r.send(); } catch(e) { next(); }
+      }
+      next();
+    }
+
+    function lancar() {
+      if (sintAbortar) { if (ativos === 0) _fimSint('Sintonia cancelada.', ok, fail); return; }
+      if (idx >= total) { if (ativos === 0) _fimSint('Sintonia concluída.', ok, fail); return; }
+      while (ativos < PARALELO && idx < total) {
+        (function(ch) {
+          ativos++;
+          atualizar(ch.nome);
+          testarCanal(ch, function(sucesso) {
+            if (sucesso) {
+              ok++;
+            } else {
+              fail++;
+              var d = getDefeitos(), agora = new Date().toISOString();
+              if (d[ch.url]) { d[ch.url].tentativas = (d[ch.url].tentativas || 1) + 1; d[ch.url].ultimaVez = agora; }
+              else { d[ch.url] = { nome: ch.nome, url: ch.url, primeiroDef: agora, ultimaVez: agora, tentativas: 1 }; }
+              saveDefeitos(d);
+              removerCanalPorUrl(ch.url);
+            }
+            ativos--;
+            atualizar('');
+            lancar();
+          });
+        })(lista[idx++]);
+      }
+    }
+
+    setTimeout(lancar, 200);
   }
 
-  function fim(msg) {
+  function _fimSint(msg, ok, fail) {
     sintRodando = false;
     btn.innerHTML = '&#128225; <span data-i18n="tune">Sintonizar canais do meu idioma</span>';
-    prog.innerHTML = (msg || 'Sintonia concluída.')
-      + ' <span class="ok">&#10003; ' + ok + '</span>'
-      + ' <span class="err">&#10005; ' + fail + '</span>';
+    prog.innerHTML = msg
+      + (ok || fail ? ' <span class="ok">&#10003; ' + ok + '</span> <span class="err">&#10005; ' + fail + '</span>' : '');
     atualizarTela();
   }
-
-  // Teste leve: HEAD request via proxy cascade (sem video, sem HLS.js)
-  function testarCanal(ch, cb) {
-    var url = ch.url;
-    var tentativas = [url];
-    for (var pi = 0; pi < PROXIES.length; pi++) tentativas.push(PROXIES[pi] + encodeURIComponent(url));
-    var ti = 0, resolvido = false;
-    var tmr = setTimeout(function(){ resolver(false); }, TIMEOUT);
-
-    function resolver(sucesso) {
-      if (resolvido) return; resolvido = true;
-      clearTimeout(tmr);
-      cb(sucesso);
-    }
-    function next() {
-      if (ti >= tentativas.length) { resolver(false); return; }
-      var u = tentativas[ti++];
-      var r = new XMLHttpRequest();
-      // HEAD é mais leve; alguns servidores não suportam HEAD, cai para GET com abort
-      r.open('HEAD', u, true);
-      try { r.timeout = Math.floor(TIMEOUT * 0.55); } catch(e) {}
-      r.onreadystatechange = function() {
-        if (r.readyState !== 4) return;
-        if (r.status >= 200 && r.status < 400) { resolver(true); }
-        else if (r.status === 405) {
-          // HEAD não suportado — tenta GET com abort imediato ao receber headers
-          var r2 = new XMLHttpRequest();
-          r2.open('GET', u, true);
-          try { r2.timeout = Math.floor(TIMEOUT * 0.45); } catch(e) {}
-          r2.onreadystatechange = function() {
-            if (r2.readyState >= 2) { // headers recebidos
-              try { r2.abort(); } catch(e) {}
-              if (r2.status >= 200 && r2.status < 400) resolver(true); else next();
-            }
-          };
-          r2.onerror = r2.ontimeout = next;
-          try { r2.send(); } catch(e) { next(); }
-        } else { next(); }
-      };
-      r.onerror = r.ontimeout = next;
-      try { r.send(); } catch(e) { next(); }
-    }
-    next();
-  }
-
-  function lancarProximo() {
-    if (sintAbortar) {
-      if (ativos === 0) fim('Sintonia cancelada.');
-      return;
-    }
-    if (idx >= total) {
-      if (ativos === 0) fim('Sintonia concluída.');
-      return;
-    }
-    while (ativos < PARALELO && idx < total) {
-      (function(ch) {
-        ativos++;
-        atualizar(ch.nome);
-        testarCanal(ch, function(sucesso) {
-          if (!sucesso) {
-            fail++;
-            var d = getDefeitos();
-            var agora = new Date().toISOString();
-            if (d[ch.url]) { d[ch.url].tentativas = (d[ch.url].tentativas || 1) + 1; d[ch.url].ultimaVez = agora; }
-            else { d[ch.url] = { nome: ch.nome, url: ch.url, primeiroDef: agora, ultimaVez: agora, tentativas: 1 }; }
-            saveDefeitos(d);
-            removerCanalPorUrl(ch.url);
-          } else { ok++; }
-          ativos--;
-          atualizar('');
-          lancarProximo();
-        });
-      })(lista[idx++]);
-    }
-  }
-
-  prog.innerHTML = 'Iniciando sintonia de ' + total + ' canal(is)...';
-  setTimeout(lancarProximo, 300);
 }
 
 // ── Auto-ocultar controles ─────────────────────────────────────

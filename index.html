@@ -335,8 +335,25 @@ function _matchCat(c, cat) {
 function aplicarFiltro() {
   var L = catFiltro ? canaisLang.filter(function(c){ return _matchCat(c, catFiltro); }) : canaisLang;
   var O = catFiltro ? canaisOutros.filter(function(c){ return _matchCat(c, catFiltro); }) : canaisOutros;
-  canais  = L.concat(O);
-  langFim = L.length;
+  var todos = L.concat(O);
+  // Favoritos primeiro: ao trocar de canal, percorre toda a lista de favoritos antes dos demais
+  var favs = [];
+  try { favs = JSON.parse(localStorage.getItem('k10favs') || '[]'); } catch(e) { favs = []; }
+  if (favs && favs.length) {
+    var favOrder = {};
+    for (var i = 0; i < favs.length; i++) favOrder[favs[i].url] = i;
+    var favCh = [], outros = [];
+    for (var j = 0; j < todos.length; j++) {
+      if (favOrder.hasOwnProperty(todos[j].url)) favCh.push(todos[j]);
+      else outros.push(todos[j]);
+    }
+    favCh.sort(function(a, b){ return favOrder[a.url] - favOrder[b.url]; });
+    canais  = favCh.concat(outros);
+    langFim = L.length;
+  } else {
+    canais  = todos;
+    langFim = L.length;
+  }
 }
 
 var LS_CAT = 'k10_cat_filtro';
@@ -842,6 +859,9 @@ function toggleFav() {
   if (idx === -1) favs.push({ nome: ch.nome, url: ch.url });
   else favs.splice(idx, 1);
   saveFavs(favs);
+  aplicarFiltro();
+  // mantem o canal atual em foco apos reordenacao
+  curCh = canais.findIndex(function(c){ return c.url === ch.url; });
   atualizarBtnFav();
   renderFavs();
 }

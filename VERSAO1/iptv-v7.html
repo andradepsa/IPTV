@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>K60 TV</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
+#tela-home{position:absolute;top:0;left:0;width:100%;height:100%;text-align:center;display:flex;align-items:flex-start;justify-content:center;gap:20px;padding:0 20px;overflow:hidden}
+#home-centro{flex:1;max-width:560px;height:100%;overflow-y:auto;padding-bottom:20px}
+#home-lado{width:320px;max-width:35%;height:100%;padding:30px 0 20px;display:flex;flex-direction:column}
+@media(max-width:720px){#tela-home{flex-direction:column;align-items:stretch;padding:0 10px;overflow-y:auto}#home-centro{height:auto;max-width:none;overflow:visible}#home-lado{width:100%;max-width:none;height:300px;padding:0 0 20px}}
+#titulo{font-size:36px;font-weight:bold;color:#00aaff;padding-top:30px;margin-bottom:4px}
+#subtitulo{font-size:13px;color:#555;margin-bottom:16px}
+#status-line{font-size:15px;color:#888;margin-bottom:10px}
+#status-line span{color:#00aaff;font-weight:bold}
+#faixas{font-size:13px;color:#555;margin-bottom:16px;line-height:1.9}
+#faixas .dest{color:#00aaff;font-weight:bold;font-size:14px}
+#faixas b{color:#aaa}
+#filtro-cat{margin-bottom:14px}
+#filtro-cat select{background:#111;color:#00aaff;border:2px solid #00aaff;border-radius:20px;padding:8px 16px;font-size:14px;font-weight:bold;font-family:Arial,sans-serif;cursor:pointer;outline:none}
+#filtro-cat select:focus{border-color:#ffaa00;color:#ffaa00}
+#display-canal{display:inline-block;border:3px solid #333;border-radius:12px;padding:14px 40px;margin-bottom:10px;min-width:260px}
+#display-canal.ativo{border-color:#00aaff}
+#digitos{font-size:58px;font-weight:bold;color:#00aaff;font-family:monospace;letter-spacing:4px;min-height:68px;line-height:1}
+#digitos.vazio{color:#222}
+#instrucao{font-size:12px;color:#444;margin-top:8px}
+#btn-enter{margin-top:14px;background:#111;border:2px solid #00aaff;color:#00aaff;font-size:16px;font-weight:bold;padding:12px 48px;border-radius:30px;cursor:pointer;transition:background .15s,transform .1s}
+#btn-enter:active{background:#00aaff22;transform:scale(.95)}
+#tela-player{position:absolute;top:0;left:0;width:100%;height:100%;background:#000;display:none}
+#vid{width:100%;height:100%;display:block}
+#osd{position:absolute;top:0;left:0;right:0;background:rgba(0,0,0,0.85);padding:16px 24px}
+#osd-num{font-size:40px;font-weight:bold;color:#00aaff;font-family:monospace}
+#osd-nome{font-size:20px;color:#fff;margin-top:4px}
+#osd-estado{font-size:12px;color:#00aaff;margin-top:4px}
+#carregando{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:18px;color:#888;text-align:center}
+#p-canal{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:#111;border:2px solid #ffaa00;border-radius:10px;padding:10px 32px;text-align:center;display:none}
+#p-canal-val{font-size:36px;font-weight:bold;color:#ffaa00;font-family:monospace;letter-spacing:6px}
+#controles{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;transition:opacity .4s}
+#controles.oculto{opacity:0;pointer-events:none}
+#btn-voltar{background:#111;border:2px solid #00aaff;color:#00aaff;font-size:15px;font-weight:bold;padding:12px 40px;border-radius:30px;cursor:pointer}
+.btn-ch{background:#111;border:2px solid #ffaa00;color:#ffaa00;font-size:22px;font-weight:bold;width:52px;height:52px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .1s;user-select:none}
+.btn-ch:active{background:#ffaa0033;transform:scale(.92)}
+#toast{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#111;border:2px solid #ff5555;border-radius:12px;padding:24px 40px;text-align:center;display:none;z-index:99}
+#toast p{font-size:16px;color:#ff8888}
+#toast small{font-size:12px;color:#555}
+#btn-fav{background:#111;border:2px solid #ffdd00;color:#ffdd00;font-size:20px;width:52px;height:52px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .1s}
+#btn-fav:active{transform:scale(.92)}
+#btn-fav.favoritado{background:#ffdd00;color:#000}
+#favs{margin:0;width:100%;height:100%;overflow-y:auto;background:#0a0a0a;border:2px solid #333;border-radius:12px;padding:12px;text-align:left;scrollbar-width:thin;scrollbar-color:#ffdd00 #111}
+#favs::-webkit-scrollbar{width:10px}
+#favs::-webkit-scrollbar-track{background:#111;border-radius:5px}
+#favs::-webkit-scrollbar-thumb{background:#ffdd00;border-radius:5px}
+#favs::-webkit-scrollbar-thumb:hover{background:#ffaa00}
+#favs-titulo{font-size:13px;color:#ffdd00;margin-bottom:6px;font-weight:bold}
+.fav-item{display:flex;align-items:center;justify-content:space-between;background:#111;border:1px solid #333;border-radius:8px;padding:8px 14px;margin-bottom:6px;cursor:pointer;transition:border-color .15s}
+.fav-item:hover{border-color:#00aaff}
+.fav-nome{font-size:14px;color:#fff;text-align:left;flex:1}
+.fav-del{background:none;border:none;color:#ff5555;font-size:18px;cursor:pointer;padding:0 0 0 12px;line-height:1}
+#btn-sintonizar{margin-top:10px;background:#111;border:2px solid #00ff88;color:#00ff88;font-size:14px;font-weight:bold;padding:10px 28px;border-radius:30px;cursor:pointer;transition:background .15s,transform .1s}
+#btn-sintonizar:active{background:#00ff8822;transform:scale(.95)}
+#btn-sintonizar:disabled{opacity:.6;cursor:not-allowed;border-color:#ffaa00;color:#ffaa00}
+#sint-progresso{font-size:13px;color:#00ff88;margin-top:8px;min-height:18px}
+#sint-progresso .err{color:#ff5555}
+#sint-progresso .ok{color:#00ff88}
+</style>
+</head>
+<body>
+
+<div id="tela-home">
+  <div id="home-centro">
+    <div id="titulo">&#128250; K60 TV</div>
+    <div id="subtitulo" data-i18n="subtitle">Live TV - access by number</div>
+    <div id="status-line">Loading channels...</div>
+    <div id="faixas"></div>
+    <div id="filtro-cat">
+      <select id="sel-cat" onchange="setFiltroCategoria(this.value)">
+        <option value="" id="opt-todas">&#9788; <span data-i18n="all_cats">All categories</span></option>
+      </select>
+    </div>
+    <div id="display-canal">
+      <div id="digitos" class="vazio">_</div>
+    </div>
+    <div id="instrucao" data-i18n="instruction">Type the channel number and press ENTER</div>
+    <button id="btn-enter" onclick="clearTimeout(bufTmr);irCanal()">&#9654; <span data-i18n="enter">ENTER</span></button>
+    <div><button id="btn-sintonizar" onclick="sintonizarIdioma()">&#128225; <span data-i18n="tune">Sintonizar canais do meu idioma</span></button></div>
+    <div id="sint-progresso"></div>
+  </div>
+  <aside id="home-lado">
+    <div id="favs"></div>
+  </aside>
+</div>
+
+<div id="tela-player">
+  <video id="vid" autoplay></video>
+  <div id="osd">
+    <div id="osd-num">-</div>
+    <div id="osd-nome" data-i18n="channel">Channel</div>
+    <div id="osd-estado" data-i18n="connecting">Connecting...</div>
+  </div>
+  <div id="carregando" data-i18n="connecting_channel">Connecting to channel...</div>
+  <div id="p-canal"><div id="p-canal-val">_</div></div>
+  <div id="controles">
+    <button class="btn-ch" id="btn-ch-baixo" data-i18n-title="prev_channel" title="Previous channel">&#9660;</button>
+    <button id="btn-voltar">&#9664; <span data-i18n="back">Back</span></button>
+    <button class="btn-ch" id="btn-ch-cima" data-i18n-title="next_channel" title="Next channel">&#9650;</button>
+    <button id="btn-fav" data-i18n-title="fav_channel" title="Favorite channel">&#9733;</button>
+  </div>
+</div>
+
+<div id="toast"><p data-i18n="unavailable">Channel unavailable</p><small data-i18n="returning">Returning to home screen...</small></div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
+<script>
+// ── Idioma do usuario ──────────────────────────────────────────
+var LANG_MAP = {
+  'pt':'por','en':'eng','es':'spa','fr':'fra','de':'deu',
+  'it':'ita','ja':'jpn','ko':'kor','zh':'zho','ru':'rus',
+  'ar':'ara','tr':'tur','nl':'nld','pl':'pol','hi':'hin',
+  'sv':'swe','ro':'ron','cs':'ces','el':'ell','id':'ind'
+};
+var rawLang = ((navigator.languages && navigator.languages[0]) || navigator.language || 'pt').toLowerCase().split('-')[0];
+var LANG_ISO  = LANG_MAP[rawLang] || 'por';
+var LANG_NOME = rawLang.toUpperCase();
+
+// ── Estado ─────────────────────────────────────────────────────
+var canais = [];
+var seenUrls = {};
+var langFim = 0;
+var buf = '', bufTmr = null;
+var pBuf = '', pBufTmr = null;
+var curCh = -1, pronto = false;
+var osdTmr, errTmr, failTmr, hlsObj;
+var skipCount = 0;
+
+var PROXIES = [
+  'https://corsproxy.io/?url=',
+  'https://api.allorigins.win/raw?url='
+];
+var API_BASES = [
+  'https://iptv-org.github.io/api',
+  'https://cdn.jsdelivr.net/gh/iptv-org/api@gh-pages',
+  'https://raw.githubusercontent.com/iptv-org/api/gh-pages'
+];
+
+// ── XHR com fallback proxy ─────────────────────────────────────
+function xhr(url, cb) {
+  var tentativas = [url];
+  for (var i = 0; i < PROXIES.length; i++) tentativas.push(PROXIES[i] + encodeURIComponent(url));
+  var ti = 0;
+  function next() {
+    if (ti >= tentativas.length) { cb('erro'); return; }
+    var r = new XMLHttpRequest();
+    r.open('GET', tentativas[ti++], true);
+    r.onreadystatechange = function() {
+      if (r.readyState !== 4) return;
+      if (r.status === 200) cb(null, r.responseText); else next();
+    };
+    r.onerror = next;
+    try { r.send(); } catch(e) { next(); }
+  }
+  next();
+}
+
+// ── Baixar M3U com proxies ─────────────────────────────────────
+function fetchM3u(urls, cb) {
+  var tentativas = [];
+  for (var i = 0; i < urls.length; i++) {
+    tentativas.push(urls[i]);
+    for (var j = 0; j < PROXIES.length; j++) tentativas.push(PROXIES[j] + encodeURIComponent(urls[i]));
+  }
+  var ti = 0;
+  function next() {
+    if (ti >= tentativas.length) { cb('falhou'); return; }
+    xhr(tentativas[ti++], function(e, t) {
+      if (!e && t && (t.indexOf('#EXTM3U') !== -1 || t.indexOf('#EXTINF') !== -1)) cb(null, t);
+      else next();
+    });
+  }
+  // evitar dupla proxy
+  ti = 0;
+  var raw = [];
+  for (var a = 0; a < urls.length; a++) {
+    raw.push(urls[a]);
+    for (var b = 0; b < PROXIES.length; b++) raw.push(PROXIES[b] + encodeURIComponent(urls[a]));
+  }
+  var ri = 0;
+  function tryNext() {
+    if (ri >= raw.length) { cb('falhou'); return; }
+    var u = raw[ri++];
+    var r = new XMLHttpRequest();
+    r.open('GET', u, true);
+    r.onreadystatechange = function() {
+      if (r.readyState !== 4) return;
+      if (r.status === 200 && r.responseText && (r.responseText.indexOf('#EXTM3U') !== -1 || r.responseText.indexOf('#EXTINF') !== -1)) {
+        cb(null, r.responseText);
+      } else { tryNext(); }
+    };
+    r.onerror = tryNext;
+    try { r.send(); } catch(e) { tryNext(); }
+  }
+  tryNext();
+}
+
+// ── Parse M3U ──────────────────────────────────────────────────
+function parseM3u(txt) {
+  var result = [], cur = null;
+  var lines = txt.split('\n');
+  for (var i = 0; i < lines.length; i++) {
+    var l = lines[i].trim();
+    if (l.indexOf('#EXTINF') === 0) {
+      var nm = l.match(/,(.+)$/);
+      var gt = l.match(/group-title="([^"]*)"/i);
+      var cats = [];
+      if (gt && gt[1]) {
+        var parts = gt[1].toLowerCase().split(/[;,/|]/);
+        for (var p = 0; p < parts.length; p++) {
+          var s = parts[p].trim();
+          if (s) cats.push(s);
+        }
+      }
+      cur = { nome: nm ? nm[1].trim() : 'Canal', cats: cats };
+    } else if (l && l.indexOf('#') !== 0 && cur) {
+      if (l.indexOf('http') === 0) { cur.url = l; result.push(cur); }
+      cur = null;
+    }
+  }
+  return result;
+}
+
+// ── Numeracao persistente por URL (via identificador curto) ────
+// Em vez de salvar a URL inteira no localStorage (centenas de bytes cada),
+// geramos um identificador curto (hash base36 de ~8 chars) a partir da URL
+// e usamos esse ID como chave. Reduz o tamanho do storage em ~95%.
+// O numero atribuido a cada ID NUNCA muda.
+var LS_NUM_LANG    = 'k10_num_lang';     // { idCurto: numeroDentroDoGrupo }
+var LS_NUM_OUTROS  = 'k10_num_outros';   // { idCurto: numeroDentroDoGrupo }
+var LS_NEXT_LANG   = 'k10_next_lang';    // proximo numero livre (lang)
+var LS_NEXT_OUTROS = 'k10_next_outros';  // proximo numero livre (outros)
+
+// Hash determinístico curto da URL — funciona como o identificador do YouTube:
+// dada a URL, sempre retorna o mesmo ID curto. Usa FNV-1a 32-bit + djb2 para
+// reduzir colisao, codificado em base36 (~8 chars).
+function urlId(url) {
+  var s = String(url);
+  var h1 = 0x811c9dc5 >>> 0;       // FNV offset
+  var h2 = 5381 >>> 0;             // djb2 init
+  for (var i = 0; i < s.length; i++) {
+    var c = s.charCodeAt(i);
+    h1 = ((h1 ^ c) * 0x01000193) >>> 0;
+    h2 = (((h2 << 5) + h2) + c) >>> 0;
+  }
+  var a = h1.toString(36);
+  var b = h2.toString(36);
+  while (a.length < 7) a = '0' + a;
+  while (b.length < 7) b = '0' + b;
+  // Combina os dois hashes alternando — colisao virtualmente impossivel
+  return (a + b).slice(0, 10);
+}
+
+function _loadMap(k){ try{ return JSON.parse(localStorage.getItem(k) || '{}'); }catch(e){ return {}; } }
+function _saveMap(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function _loadNext(k){ var n = parseInt(localStorage.getItem(k) || '1', 10); return isNaN(n) ? 1 : n; }
+function _saveNext(k,v){ try{ localStorage.setItem(k, String(v)); }catch(e){} }
+
+// Migracao: converte mapas antigos (chave = URL inteira) para chave = idCurto.
+// Roda uma unica vez; depois disso o storage fica leve permanentemente.
+function _migrarMapaParaId(mapa) {
+  var migrou = false;
+  var novo = {};
+  for (var k in mapa) {
+    if (!mapa.hasOwnProperty(k)) continue;
+    if (k.indexOf('http') === 0) {
+      // chave antiga (URL completa) — converte
+      var id = urlId(k);
+      // se ja existe um ID com numero menor (raro), mantemos o menor
+      if (!novo[id] || mapa[k] < novo[id]) novo[id] = mapa[k];
+      migrou = true;
+    } else {
+      novo[k] = mapa[k];
+    }
+  }
+  return migrou ? novo : mapa;
+}
+
+var numLang   = _migrarMapaParaId(_loadMap(LS_NUM_LANG));
+var numOutros = _migrarMapaParaId(_loadMap(LS_NUM_OUTROS));
+var nextLang   = _loadNext(LS_NEXT_LANG);
+var nextOutros = _loadNext(LS_NEXT_OUTROS);
+// Persiste mapas migrados (so escreve uma vez)
+_saveMap(LS_NUM_LANG, numLang);
+_saveMap(LS_NUM_OUTROS, numOutros);
+
+function atribuirNumero(url, grupo) {
+  var id   = urlId(url);
+  var mapa = (grupo === 'lang') ? numLang : numOutros;
+  if (mapa[id]) return mapa[id]; // ja tem numero — nao muda nunca
+  var n;
+  if (grupo === 'lang') { n = nextLang++; numLang[id] = n; _saveMap(LS_NUM_LANG, numLang); _saveNext(LS_NEXT_LANG, nextLang); }
+  else                  { n = nextOutros++; numOutros[id] = n; _saveMap(LS_NUM_OUTROS, numOutros); _saveNext(LS_NEXT_OUTROS, nextOutros); }
+  return n;
+}
+
+// ── Adicionar sem duplicatas ───────────────────────────────────
+// Cada canal eh ordenado pelo numero persistente atribuido a sua URL.
+// IMPORTANTE: insere em LOTES com pausa, pra nao travar TVs/PCs antigos.
+// O grupo 'lang' (idioma do usuario) entra PRIMEIRO e completo;
+// depois os 'outros' vao chegando aos poucos.
+var canaisLang   = [];
+var canaisOutros = [];
+
+// Detecta dispositivo lento: TV (Tizen/WebOS/SmartTV) ou agente antigo.
+var _ua = (navigator.userAgent || '').toLowerCase();
+var IS_TV = /smart-?tv|smarttv|tizen|web0s|webos|hbbtv|netcast|viera|bravia|aquos|inettvbrowser|crkey|googletv|appletv/.test(_ua);
+// Lote menor e pausa maior em TV; computador moderno usa lote grande.
+var CHUNK_SIZE  = IS_TV ? 25  : 120;
+var CHUNK_PAUSE = IS_TV ? 120 : 30;  // ms entre lotes
+// Lote do idioma do usuario eh maior pra aparecer rapido, mas ainda em pedacos.
+var CHUNK_SIZE_LANG = IS_TV ? 40 : 200;
+
+function _processarLoteCanais(lista, alvo, grupo, idx, tamLote, pausa) {
+  var fim = Math.min(idx + tamLote, lista.length);
+  var mudou = false;
+  for (var i = idx; i < fim; i++) {
+    var c = lista[i];
+    if (c && c.url && !seenUrls[c.url]) {
+      seenUrls[c.url] = true;
+      c._num = atribuirNumero(c.url, grupo);
+      alvo.push(c);
+      mudou = true;
+    }
+  }
+  if (mudou) {
+    // Ordena so o grupo afetado (lista pequena, rapido)
+    alvo.sort(function(a, b){ return a._num - b._num; });
+    aplicarFiltro();
+    // Atualiza a tela ja com o que tem ate agora
+    if (typeof atualizarTela === 'function') {
+      try { atualizarTela(); } catch(e) {}
+    }
+  }
+  if (fim < lista.length) {
+    setTimeout(function(){
+      _processarLoteCanais(lista, alvo, grupo, fim, tamLote, pausa);
+    }, pausa);
+  }
+}
+
+function addCanais(lista, grupo) {
+  if (!lista || !lista.length) return;
+  var alvo = (grupo === 'lang') ? canaisLang : canaisOutros;
+  var tam  = (grupo === 'lang') ? CHUNK_SIZE_LANG : CHUNK_SIZE;
+  _processarLoteCanais(lista, alvo, grupo, 0, tam, CHUNK_PAUSE);
+}
+
+// ── Filtro por categoria ───────────────────────────────────────
+var catFiltro = null; // null = sem filtro
+function _matchCat(c, cat) {
+  if (!cat) return true;
+  var arr = c.cats || [];
+  for (var i = 0; i < arr.length; i++) {
+    var v = String(arr[i]).toLowerCase();
+    if (v === cat || v.indexOf(cat) !== -1) return true;
+  }
+  return false;
+}
+function aplicarFiltro() {
+  var L = catFiltro ? canaisLang.filter(function(c){ return _matchCat(c, catFiltro); }) : canaisLang;
+  var O = catFiltro ? canaisOutros.filter(function(c){ return _matchCat(c, catFiltro); }) : canaisOutros;
+  var todos = L.concat(O);
+  // Favoritos primeiro: ao trocar de canal, percorre toda a lista de favoritos antes dos demais
+  var favs = [];
+  try { favs = JSON.parse(localStorage.getItem('k10favs') || '[]'); } catch(e) { favs = []; }
+  if (favs && favs.length) {
+    var favOrder = {};
+    for (var i = 0; i < favs.length; i++) favOrder[favs[i].url] = i;
+    var favCh = [], outros = [];
+    for (var j = 0; j < todos.length; j++) {
+      if (favOrder.hasOwnProperty(todos[j].url)) favCh.push(todos[j]);
+      else outros.push(todos[j]);
+    }
+    favCh.sort(function(a, b){ return favOrder[a.url] - favOrder[b.url]; });
+    canais  = favCh.concat(outros);
+    langFim = L.length;
+  } else {
+    canais  = todos;
+    langFim = L.length;
+  }
+}
+
+var LS_CAT = 'k10_cat_filtro';
+try { catFiltro = localStorage.getItem(LS_CAT) || null; } catch(e) {}
+
+function setFiltroCategoria(cat) {
+  catFiltro = cat || null;
+  try { catFiltro ? localStorage.setItem(LS_CAT, catFiltro) : localStorage.removeItem(LS_CAT); } catch(e) {}
+  aplicarFiltro();
+  atualizarTela();
+}
+
+
+// ── i18n da interface (auto via API) ───────────────────────────
+var UI_EN = {
+  subtitle: 'Live TV - access by number',
+  all_cats: 'All categories',
+  instruction: 'Type the channel number and press ENTER',
+  enter: 'ENTER',
+  channel: 'Channel',
+  connecting: 'Connecting...',
+  connecting_channel: 'Connecting to channel...',
+  prev_channel: 'Previous channel',
+  next_channel: 'Next channel',
+  back: 'Back',
+  fav_channel: 'Favorite channel',
+  unavailable: 'Channel unavailable',
+  returning: 'Returning to home screen...',
+  total_pre: 'Total: ',
+  total_mid: ' channels  |  Type 1 to ',
+  your_lang: '(your language): channels',
+  to: 'to',
+  other_langs: 'Other languages',
+  all_channels: 'All channels',
+  loading_in: 'Loading channels in',
+  loading_brazil: 'Loading Brazil channels...',
+  loading_freetv: 'Loading Free-TV...',
+  loading_world: 'Loading world list...',
+  loading_api: 'Loading API (news, sports, movies...)...',
+  ch: 'Channel',
+  not_exist: 'does not exist. Type 1 to'
+};
+var UI = UI_EN;
+function t(k) { return (UI && UI[k]) || UI_EN[k] || k; }
+
+function aplicarUI() {
+  var els = document.querySelectorAll('[data-i18n]');
+  for (var i = 0; i < els.length; i++) {
+    var k = els[i].getAttribute('data-i18n');
+    els[i].textContent = t(k);
+  }
+  var ets = document.querySelectorAll('[data-i18n-title]');
+  for (var j = 0; j < ets.length; j++) {
+    var k2 = ets[j].getAttribute('data-i18n-title');
+    ets[j].setAttribute('title', t(k2));
+  }
+}
+
+function carregarUIIdioma() {
+  var idioma = (typeof detectarIdioma === 'function') ? detectarIdioma() : 'en';
+  if (idioma === 'en') { aplicarUI(); return; }
+  var cacheKey = 'k10_ui_' + idioma;
+  try {
+    var cached = localStorage.getItem(cacheKey);
+    if (cached) { UI = JSON.parse(cached); aplicarUI(); return; }
+  } catch(e) {}
+  var keys = Object.keys(UI_EN);
+  var out = {};
+  var i = 0;
+  function next() {
+    if (i >= keys.length) {
+      try { localStorage.setItem(cacheKey, JSON.stringify(out)); } catch(e) {}
+      UI = out;
+      aplicarUI();
+      return;
+    }
+    var k = keys[i++];
+    traduzirTexto(UI_EN[k], idioma, function(tr) {
+      out[k] = tr;
+      setTimeout(next, 120);
+    });
+  }
+  next();
+}
+
+// ── i18n de categorias (auto via API) ──────────────────────────
+var LABELS_PT = {
+  news:'Notícias', business:'Negócios', weather:'Clima', documentary:'Documentário',
+  entertainment:'Entretenimento', comedy:'Comédia', general:'Geral', sports:'Esportes',
+  music:'Música', movies:'Filmes', series:'Séries', animation:'Animação',
+  classic:'Clássico', kids:'Infantil', family:'Família', education:'Educação',
+  culture:'Cultura', science:'Ciência', cooking:'Culinária', travel:'Viagem',
+  lifestyle:'Estilo de vida', outdoor:'Aventura', religious:'Religioso',
+  auto:'Automotivo', shop:'Compras', legislative:'Legislativo',
+  _all:'Todas as categorias'
+};
+var LABELS_EN = {
+  news:'News', business:'Business', weather:'Weather', documentary:'Documentary',
+  entertainment:'Entertainment', comedy:'Comedy', general:'General', sports:'Sports',
+  music:'Music', movies:'Movies', series:'Series', animation:'Animation',
+  classic:'Classic', kids:'Kids', family:'Family', education:'Education',
+  culture:'Culture', science:'Science', cooking:'Cooking', travel:'Travel',
+  lifestyle:'Lifestyle', outdoor:'Outdoor', religious:'Religious',
+  auto:'Auto', shop:'Shopping', legislative:'Legislative',
+  _all:'All categories'
+};
+
+function detectarIdioma() {
+  var l = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+  return l.split('-')[0]; // 'pt', 'en', 'es', 'fr'...
+}
+
+function traduzirTexto(texto, destino, cb) {
+  // MyMemory: API gratuita, sem chave
+  var url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(texto) + '&langpair=en|' + encodeURIComponent(destino);
+  var x = new XMLHttpRequest();
+  x.open('GET', url, true);
+  x.timeout = 8000;
+  x.onload = function() {
+    try {
+      var d = JSON.parse(x.responseText);
+      var t = (d && d.responseData && d.responseData.translatedText) ? d.responseData.translatedText : texto;
+      cb(t);
+    } catch(e) { cb(texto); }
+  };
+  x.onerror = x.ontimeout = function() { cb(texto); };
+  x.send();
+}
+
+function obterLabels(cb) {
+  var idioma = detectarIdioma();
+  if (idioma === 'pt') return cb(LABELS_PT);
+  if (idioma === 'en') return cb(LABELS_EN);
+
+  var cacheKey = 'k10_cat_labels_' + idioma;
+  try {
+    var cached = localStorage.getItem(cacheKey);
+    if (cached) return cb(JSON.parse(cached));
+  } catch(e) {}
+
+  // Traduz a partir do EN, em série
+  var keys = Object.keys(LABELS_EN);
+  var out = {};
+  var i = 0;
+  function next() {
+    if (i >= keys.length) {
+      try { localStorage.setItem(cacheKey, JSON.stringify(out)); } catch(e) {}
+      cb(out);
+      return;
+    }
+    var k = keys[i++];
+    traduzirTexto(LABELS_EN[k], idioma, function(t) {
+      out[k] = t;
+      // pequena pausa para nao saturar API publica
+      setTimeout(next, 120);
+    });
+  }
+  // Primeiro mostra EN como fallback enquanto traduz
+  cb(LABELS_EN, true);
+  next();
+}
+
+function _renderSelectCategorias(labels) {
+  var sel = document.getElementById('sel-cat');
+  if (!sel) return;
+  var optTodas = document.getElementById('opt-todas');
+  if (optTodas) optTodas.textContent = '\u2600 ' + (labels._all || 'All categories');
+  // limpa opcoes (exceto a "todas")
+  for (var j = sel.options.length - 1; j >= 0; j--) {
+    if (sel.options[j].value !== '') sel.remove(j);
+  }
+  var lista = (typeof CATS !== 'undefined' && CATS) ? CATS : [];
+  var arr = lista.slice().sort(function(a,b){
+    return (labels[a]||a).localeCompare(labels[b]||b);
+  });
+  for (var i = 0; i < arr.length; i++) {
+    var o = document.createElement('option');
+    o.value = arr[i];
+    o.textContent = labels[arr[i]] || arr[i];
+    sel.appendChild(o);
+  }
+  if (catFiltro) sel.value = catFiltro;
+}
+
+function popularSelectCategorias() {
+  var sel = document.getElementById('sel-cat');
+  if (!sel) return;
+  obterLabels(function(labels, parcial) {
+    _renderSelectCategorias(labels);
+    sel.dataset.populado = '1';
+  });
+}
+
+// ── Status e faixas ────────────────────────────────────────────
+function setStatus(txt) { document.getElementById('status-line').innerHTML = txt; }
+
+function atualizarTela() {
+  if (canais.length === 0) return;
+  pronto = true;
+  // calcular digitos necessarios
+  var total = canais.length;
+  var digitos = String(total).length;
+  if (digitos < 3) digitos = 3;
+  MAX_DIGITOS = digitos;
+  setStatus(t('total_pre') + '<span>' + total + '</span>' + t('total_mid') + total);
+  // faixa idioma
+  var html = '';
+  if (langFim > 0) {
+    html += '<div class="dest">&#9733; ' + LANG_NOME + ' ' + t('your_lang') + ' 1 ' + t('to') + ' ' + langFim + '</div>';
+    if (canais.length > langFim) {
+      html += '<div><b>' + t('other_langs') + ':</b> ' + (langFim + 1) + ' ' + t('to') + ' ' + canais.length + '</div>';
+    }
+  } else {
+    html += '<div><b>' + t('all_channels') + ':</b> 1 ' + t('to') + ' ' + canais.length + '</div>';
+  }
+  document.getElementById('faixas').innerHTML = html;
+}
+
+// ── API iptv-org ───────────────────────────────────────────────
+var apiCache = null;
+function fetchApi(cb) {
+  if (apiCache) { cb(null, apiCache); return; }
+  var ai = 0;
+  function tryBase() {
+    if (ai >= API_BASES.length) { cb('falhou'); return; }
+    var base = API_BASES[ai++], chs, strs, done = 0, errou = false;
+    function check() {
+      done++;
+      if (done < 2) return;
+      if (errou || !chs || !strs) { tryBase(); return; }
+      apiCache = { chs: chs, strs: strs };
+      cb(null, apiCache);
+    }
+    xhr(base + '/channels.json', function(e, t) {
+      if (e) { errou = true; check(); return; }
+      try { chs = JSON.parse(t); } catch(x) { errou = true; } check();
+    });
+    xhr(base + '/streams.json', function(e, t) {
+      if (e) { errou = true; check(); return; }
+      try { strs = JSON.parse(t); } catch(x) { errou = true; } check();
+    });
+  }
+  tryBase();
+}
+
+function buildApi(data, cats) {
+  var sm = {};
+  for (var i = 0; i < data.strs.length; i++) {
+    if (!sm[data.strs[i].channel]) sm[data.strs[i].channel] = data.strs[i].url;
+  }
+  var out = [];
+  for (var j = 0; j < data.chs.length; j++) {
+    var ch = data.chs[j];
+    if (!sm[ch.id]) continue;
+    if (cats) {
+      var ok = false;
+      for (var k = 0; k < (ch.categories || []).length; k++) {
+        if (cats.indexOf(ch.categories[k]) !== -1) { ok = true; break; }
+      }
+      if (!ok) continue;
+    }
+    out.push({ nome: ch.name, url: sm[ch.id], cats: (ch.categories || []).slice() });
+  }
+  return out;
+}
+
+// ── Carregar todas as fontes ───────────────────────────────────
+var MAX_DIGITOS = 3;
+var CATS = ['news','business','weather','documentary','entertainment','comedy',
+  'general','sports','music','movies','series','animation','classic',
+  'kids','family','education','culture','science','cooking','travel',
+  'lifestyle','outdoor','religious','auto','shop','legislative'];
+
+function carregar() {
+  setStatus(t('loading_in') + ' ' + LANG_NOME + '...');
+  // Pre-marca URLs defeituosos como ja vistos para nao entrarem na lista
+  var _def = getDefeitos();
+  for (var _u in _def) { if (_def.hasOwnProperty(_u)) seenUrls[_u] = true; }
+
+  // 1. Idioma do usuario
+  fetchM3u([
+    'https://iptv-org.github.io/iptv/languages/' + LANG_ISO + '.m3u',
+    'https://raw.githubusercontent.com/iptv-org/iptv/gh-pages/languages/' + LANG_ISO + '.m3u'
+  ], function(e, txt) {
+    if (!e) addCanais(parseM3u(txt), 'lang');
+    atualizarTela();
+
+    // 2. Brasil
+    setStatus(t('loading_brazil'));
+    fetchM3u([
+      'https://iptv-org.github.io/iptv/countries/br.m3u',
+      'https://raw.githubusercontent.com/rjpontes/iptv-brasil/main/lista.m3u'
+    ], function(e2, txt2) {
+      if (!e2) addCanais(parseM3u(txt2), 'outros');
+      atualizarTela();
+
+      // 3. Free-TV
+      setStatus(t('loading_freetv'));
+      fetchM3u([
+        'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8',
+        'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u'
+      ], function(e3, txt3) {
+        if (!e3) addCanais(parseM3u(txt3), 'outros');
+        atualizarTela();
+
+        // 4. Lista mundial
+        setStatus(t('loading_world'));
+        fetchM3u([
+          'https://iptv-org.github.io/iptv/index.m3u',
+          'https://raw.githubusercontent.com/iptv-org/iptv/gh-pages/index.m3u'
+        ], function(e4, txt4) {
+          if (!e4) addCanais(parseM3u(txt4), 'outros');
+          atualizarTela();
+
+          // 5. API
+          setStatus(t('loading_api'));
+          fetchApi(function(eA, data) {
+            if (!eA) {
+              addCanais(buildApi(data, CATS), 'outros');
+              addCanais(buildApi(data, null), 'outros');
+            }
+            atualizarTela();
+            // Detecta canais novos UMA unica vez, com a lista ja completa e estavel
+            detectarNovosCanais(canais);
+            // Inicia revalidacao de defeituosos em background (apos 10s para nao sobrecarregar)
+            setTimeout(revalidarDefeitos, 10000);
+          });
+        });
+      });
+    });
+  });
+}
+
+// ── Display numero ─────────────────────────────────────────────
+function atualizarDisplay() {
+  var el = document.getElementById('digitos');
+  var box = document.getElementById('display-canal');
+  if (buf === '') { el.textContent = '_'; el.className = 'vazio'; box.className = ''; }
+  else { el.textContent = buf; el.className = ''; box.className = 'ativo'; }
+}
+
+function irCanal() {
+  if (!pronto || !buf) return;
+  var n = parseInt(buf, 10);
+  buf = ''; atualizarDisplay();
+  if (n >= 1 && n <= canais.length) { tocar(n - 1); }
+  else {
+    setStatus(t('ch') + ' ' + n + ' ' + t('not_exist') + ' <span>' + canais.length + '</span>');
+    setTimeout(function() { atualizarTela(); }, 2500);
+  }
+}
+
+// ── Player ─────────────────────────────────────────────────────
+function pararHls() { if (hlsObj) { try { hlsObj.destroy(); } catch(e) {} hlsObj = null; } }
+
+function tocar(idx) {
+  var ch = canais[idx]; if (!ch) return;
+  curCh = idx;
+  var vid = document.getElementById('vid');
+  pararHls(); vid.onerror = null; vid.oncanplay = null; vid.onloadedmetadata = null; vid.onplaying = null;
+  try { vid.pause(); } catch(e) {}
+  try { vid.removeAttribute('src'); vid.load(); } catch(e) {}
+  document.getElementById('osd-num').textContent = String(idx + 1);
+  document.getElementById('osd-nome').textContent = ch.nome;
+  document.getElementById('osd-estado').textContent = 'Connecting...';
+  document.getElementById('carregando').style.display = 'block';
+  document.getElementById('tela-home').style.display = 'none';
+  document.getElementById('tela-player').style.display = 'block';
+  mostrarOSD();
+  atualizarBtnFav();
+  clearTimeout(failTmr);
+  // TV antiga eh lenta pra abrir stream: timeout maior
+  failTmr = setTimeout(mostrarErro, IS_TV ? 25000 : 15000);
+
+  var ok = false;
+  function onOk() {
+    if (ok) return; ok = true;
+    clearTimeout(failTmr);
+    skipCount = 0;
+    document.getElementById('carregando').style.display = 'none';
+    document.getElementById('osd-estado').textContent = 'Ao vivo';
+  }
+  vid.oncanplay = onOk;
+  vid.onplaying = onOk;
+  vid.onloadedmetadata = function() { try { vid.play(); } catch(e) {} };
+
+  var url = ch.url;
+  var ehHls = /\.m3u8?($|\?)/i.test(url);
+  // Suporte HLS nativo (Safari, algumas TVs WebKit)
+  var nativeHls = !!vid.canPlayType && (
+    vid.canPlayType('application/vnd.apple.mpegurl') !== '' ||
+    vid.canPlayType('application/x-mpegURL') !== ''
+  );
+  // MSE disponivel? (TV AOC 2012 normalmente NAO tem)
+  var temMSE = (typeof window.MediaSource !== 'undefined') &&
+               (typeof Hls !== 'undefined') && Hls.isSupported();
+
+  function tentarNativo() {
+    vid.onerror = function() {
+      vid.onerror = null;
+      // Se for HLS e tiver MSE, cai pra Hls.js
+      if (ehHls && temMSE) { tentarHlsJs(); }
+      else { clearTimeout(failTmr); mostrarErro(); }
+    };
+    try { vid.src = url; vid.load(); vid.play(); } catch(e) {
+      if (ehHls && temMSE) tentarHlsJs(); else mostrarErro();
+    }
+  }
+  function tentarHlsJs() {
+    try {
+      // Config leve pra nao estourar memoria/CPU
+      hlsObj = new Hls({
+        enableWorker: false,
+        lowLatencyMode: false,
+        backBufferLength: IS_TV ? 10 : 30,
+        maxBufferLength: IS_TV ? 8 : 30,
+        maxMaxBufferLength: IS_TV ? 15 : 60,
+        maxBufferSize: IS_TV ? 10*1000*1000 : 60*1000*1000,
+        capLevelToPlayerSize: true
+      });
+      hlsObj.loadSource(url); hlsObj.attachMedia(vid);
+      hlsObj.on(Hls.Events.MANIFEST_PARSED, function() { try { vid.play(); } catch(e) {} });
+      hlsObj.on(Hls.Events.ERROR, function(ev, d) {
+        if (d && d.fatal) { clearTimeout(failTmr); mostrarErro(); }
+      });
+    } catch(e) { mostrarErro(); }
+  }
+
+  // Estrategia: TV antiga sem MSE -> sempre tenta nativo direto.
+  // Modernos com HLS -> Hls.js primeiro pra HLS; senao nativo.
+  if (ehHls && temMSE && !nativeHls) {
+    tentarHlsJs();
+  } else {
+    tentarNativo();
+  }
+}
+
+function pararVideo() {
+  pararHls();
+  var vid = document.getElementById('vid');
+  vid.onerror = null; vid.oncanplay = null; clearTimeout(failTmr);
+  try { vid.pause(); } catch(e) {} vid.src = ''; try { vid.load(); } catch(e) {}
+}
+
+function voltarHome() {
+  pararVideo(); clearTimeout(osdTmr); clearTimeout(errTmr);
+  skipCount = 0;
+  document.getElementById('toast').style.display = 'none';
+  document.getElementById('tela-player').style.display = 'none';
+  document.getElementById('tela-home').style.display = '';
+  buf = ''; atualizarDisplay();
+}
+
+function mostrarErro() {
+  clearTimeout(failTmr); clearTimeout(errTmr);
+  // Registra defeito e remove da lista
+  if (curCh >= 0 && canais[curCh]) {
+    registrarDefeito(curCh);
+    // Ajusta curCh para nao ultrapassar o tamanho da lista apos remocao
+    if (canais.length === 0) { voltarHome(); return; }
+    curCh = curCh % canais.length;
+  }
+  skipCount++;
+  if (skipCount >= canais.length) {
+    // Todos os canais falharam — desiste e vai para home
+    skipCount = 0;
+    document.getElementById('carregando').style.display = 'none';
+    var t = document.getElementById('toast');
+    t.querySelector('p').textContent = 'Nenhum canal disponivel';
+    t.querySelector('small').textContent = 'Returning to home screen...';
+    t.style.display = 'block';
+    errTmr = setTimeout(function() { t.style.display = 'none'; voltarHome(); }, 2500);
+    return;
+  }
+  // Mostra aviso rapido e pula para o proximo canal
+  document.getElementById('carregando').style.display = 'none';
+  document.getElementById('osd-estado').textContent = 'Sem sinal — pulando...';
+  document.getElementById('osd').style.display = 'block';
+  errTmr = setTimeout(function() {
+    curCh = (curCh + 1) % canais.length;
+    tocar(curCh);
+  }, 800);
+}
+
+function mostrarOSD() {
+  document.getElementById('osd').style.display = 'block'; clearTimeout(osdTmr);
+  osdTmr = setTimeout(function() { document.getElementById('osd').style.display = 'none'; }, 5000);
+}
+
+function digitarNoPlayer(n) {
+  if (pBuf.length >= MAX_DIGITOS) return;
+  pBuf += String(n);
+  document.getElementById('p-canal-val').textContent = pBuf + '_';
+  document.getElementById('p-canal').style.display = 'block';
+  clearTimeout(pBufTmr);
+  pBufTmr = setTimeout(function() {
+    var idx = parseInt(pBuf, 10) - 1; pBuf = '';
+    document.getElementById('p-canal-val').textContent = '_';
+    document.getElementById('p-canal').style.display = 'none';
+    if (idx >= 0 && idx < canais.length) tocar(idx);
+  }, pBuf.length >= MAX_DIGITOS ? 600 : 2000);
+}
+
+function canalCima()  { if (canais.length) { skipCount = 0; curCh = (curCh + 1) % canais.length; tocar(curCh); } }
+function canalBaixo() { if (canais.length) { skipCount = 0; curCh = ((curCh - 1) + canais.length) % canais.length; tocar(curCh); } }
+
+// ── Teclado ────────────────────────────────────────────────────
+document.onkeydown = function(e) {
+  var k = e.keyCode || e.which;
+  var naHome = document.getElementById('tela-home').style.display !== 'none';
+  var eNum = (k >= 48 && k <= 57) || (k >= 96 && k <= 105);
+  var num = k >= 96 ? k - 96 : k - 48;
+  var ok = k === 13 || k === 32;
+  var del = k === 8;
+  var voltar = k === 8 || k === 27 || k === 36 || k === 88 || k === 166 || k === 461;
+  var cima = k === 33 || k === 38 || k === 427;
+  var baixo = k === 34 || k === 40 || k === 428;
+  if (e.preventDefault && (eNum || ok || del || voltar || cima || baixo)) e.preventDefault();
+  if (naHome) {
+    if (eNum && pronto) {
+      if (buf.length >= MAX_DIGITOS + 1) return;
+      buf += String(num); atualizarDisplay(); clearTimeout(bufTmr);
+      if (buf.length > MAX_DIGITOS) irCanal();
+      else bufTmr = setTimeout(irCanal, 2500);
+    } else if (del && buf.length > 0) {
+      buf = buf.slice(0, -1); atualizarDisplay(); clearTimeout(bufTmr);
+    } else if (ok) { clearTimeout(bufTmr); irCanal(); }
+  } else {
+    mostrarOSD();
+    if (voltar && !eNum) voltarHome();
+    else if (cima) canalCima();
+    else if (baixo) canalBaixo();
+    else if (eNum) digitarNoPlayer(num);
+  }
+};
+
+// ── Favoritos ──────────────────────────────────────────────────
+function getFavs() { try { return JSON.parse(localStorage.getItem('k10favs') || '[]'); } catch(e) { return []; } }
+function saveFavs(f) { localStorage.setItem('k10favs', JSON.stringify(f)); }
+
+function isFav(url) { return getFavs().some(function(f){ return f.url === url; }); }
+
+function toggleFav() {
+  if (curCh < 0) return;
+  var ch = canais[curCh];
+  var favs = getFavs();
+  var idx = favs.findIndex(function(f){ return f.url === ch.url; });
+  if (idx === -1) favs.push({ nome: ch.nome, url: ch.url });
+  else favs.splice(idx, 1);
+  saveFavs(favs);
+  aplicarFiltro();
+  // mantem o canal atual em foco apos reordenacao
+  curCh = canais.findIndex(function(c){ return c.url === ch.url; });
+  atualizarBtnFav();
+  renderFavs();
+}
+
+function atualizarBtnFav() {
+  var btn = document.getElementById('btn-fav');
+  if (curCh >= 0 && isFav(canais[curCh].url)) btn.classList.add('favoritado');
+  else btn.classList.remove('favoritado');
+}
+
+function renderFavs() {
+  var favs = getFavs();
+  var el = document.getElementById('favs');
+  if (favs.length === 0) { el.innerHTML = ''; return; }
+  var html = '<div id="favs-titulo">&#9733; Favoritos</div>';
+  favs.forEach(function(f, i) {
+    html += '<div class="fav-item">'
+      + '<span class="fav-nome" onclick="tocarFav(' + i + ')">' + f.nome + '</span>'
+      + '<button class="fav-del" onclick="deletarFav(' + i + ')" title="Remove">&#10005;</button>'
+      + '</div>';
+  });
+  el.innerHTML = html;
+}
+
+function tocarFav(i) {
+  var f = getFavs()[i];
+  // acha o indice do canal na lista principal
+  var idx = canais.findIndex(function(c){ return c.url === f.url; });
+  if (idx !== -1) { tocar(idx); }
+  else {
+    // canal nao esta na lista carregada ainda — adiciona via addCanais
+    // para preservar a ordenacao deterministica e a numeracao estavel
+    curCh = -1;
+    addCanais([f], 'outros');
+    var novoIdx = canais.findIndex(function(c){ return c.url === f.url; });
+    if (novoIdx !== -1) tocar(novoIdx);
+  }
+}
+
+function deletarFav(i) {
+  var favs = getFavs();
+  favs.splice(i, 1);
+  saveFavs(favs);
+  renderFavs();
+  atualizarBtnFav();
+}
+
+document.getElementById('btn-fav').onclick = toggleFav;
+
+// ── Canais defeituosos ─────────────────────────────────────────
+var LS_DEFEITOS = 'k10_canais_defeituosos';
+
+function getDefeitos() {
+  try { return JSON.parse(localStorage.getItem(LS_DEFEITOS) || '{}'); } catch(e) { return {}; }
+}
+function saveDefeitos(d) {
+  try { localStorage.setItem(LS_DEFEITOS, JSON.stringify(d)); } catch(e) {}
+}
+
+// Registra defeito E remove da lista de canais
+function registrarDefeito(idx) {
+  var ch = canais[idx];
+  if (!ch) return;
+  var d = getDefeitos();
+  var agora = new Date().toISOString();
+  if (d[ch.url]) {
+    d[ch.url].tentativas = (d[ch.url].tentativas || 1) + 1;
+    d[ch.url].ultimaVez = agora;
+  } else {
+    d[ch.url] = {
+      nome: ch.nome,
+      url: ch.url,
+      primeiroDef: agora,
+      ultimaVez: agora,
+      tentativas: 1
+    };
+  }
+  saveDefeitos(d);
+  // Remove da lista de canais em memoria, mantendo os grupos sincronizados
+  removerCanalPorUrl(ch.url);
+  // Ajusta indice atual
+  if (curCh >= canais.length) curCh = canais.length - 1;
+  console.log('[K10] Canal removido da lista por defeito: ' + ch.nome);
+}
+
+// Remove um canal pela URL dos grupos e reconstroi a lista principal
+function removerCanalPorUrl(url) {
+  canaisLang   = canaisLang.filter(function(c){ return c.url !== url; });
+  canaisOutros = canaisOutros.filter(function(c){ return c.url !== url; });
+  aplicarFiltro();
+}
+
+// Tenta revalidar canais defeituosos em background — se funcionar volta pra lista
+var LS_REVAL_FILA    = 'k10_reval_fila';     // fila persistente de urls a testar
+var LS_REVAL_DATA    = 'k10_reval_data';     // data da ultima rodada
+var REVAL_LOTE       = 5;
+var REVAL_INTERVALO  = 7 * 24 * 60 * 60 * 1000; // 7 dias
+var REVAL_ESPERA     = 8000;
+
+function revalidarDefeitos() {
+  var d    = getDefeitos();
+  var urls = Object.keys(d);
+  if (urls.length === 0) return;
+
+  // Verifica se passou 7 dias
+  var agora        = Date.now();
+  var ultimaRodada = parseInt(localStorage.getItem(LS_REVAL_DATA) || '0', 10);
+  if (agora - ultimaRodada < REVAL_INTERVALO) {
+    var dias = Math.ceil((REVAL_INTERVALO - (agora - ultimaRodada)) / 86400000);
+    console.log('[K10] Proxima revalidacao em ' + dias + ' dia(s).');
+    return;
+  }
+
+  // Carrega fila salva; se estiver vazia ou com urls que ja saíram dos defeitos, reconstrói
+  var fila = [];
+  try { fila = JSON.parse(localStorage.getItem(LS_REVAL_FILA) || '[]'); } catch(e) {}
+  // Filtra da fila urls que nao existem mais nos defeitos
+  fila = fila.filter(function(u){ return !!d[u]; });
+  // Se a fila esgotou, reconstrói com todos os defeituosos atuais (embaralhados para variedade)
+  if (fila.length === 0) {
+    fila = urls.slice(); // copia
+    // Embaralha (Fisher-Yates) para nao testar sempre na mesma ordem
+    for (var s = fila.length - 1; s > 0; s--) {
+      var r = Math.floor(Math.random() * (s + 1));
+      var tmp = fila[s]; fila[s] = fila[r]; fila[r] = tmp;
+    }
+    console.log('[K10] Fila recriada com ' + fila.length + ' canal(is) defeituoso(s).');
+  }
+
+  // Pega os proximos 5 da fila
+  var lote = fila.splice(0, REVAL_LOTE);
+
+  // Salva fila atualizada e data
+  try { localStorage.setItem(LS_REVAL_FILA, JSON.stringify(fila)); } catch(e) {}
+  try { localStorage.setItem(LS_REVAL_DATA, String(agora)); } catch(e) {}
+
+  console.log('[K10] Testando lote de ' + lote.length + ' canal(is). Restam ' + fila.length + ' na fila.');
+
+  // Testa um por vez com 2s de intervalo
+  var i = 0;
+  function testarProximo() {
+    if (i >= lote.length) return;
+    var url = lote[i++];
+    var ch  = d[url];
+    if (!ch) { testarProximo(); return; }
+
+    var resolvido = false;
+    function onFalha() {
+      if (resolvido) return; resolvido = true;
+      console.log('[K10] Ainda offline: ' + ch.nome);
+      setTimeout(testarProximo, 2000);
+    }
+    function onOk() {
+      if (resolvido) return; resolvido = true;
+      voltarDaDefeituosa(url, ch);
+      setTimeout(testarProximo, 2000);
+    }
+
+    var vid = document.createElement('video');
+    var tmr = setTimeout(function() {
+      vid.src = ''; vid.onerror = null; vid.oncanplay = null;
+      if (typeof Hls !== 'undefined' && Hls.isSupported() && url.indexOf('.m3u') !== -1) {
+        var h = new Hls({ enableWorker: false });
+        var v2 = document.createElement('video');
+        h.loadSource(url); h.attachMedia(v2);
+        h.on(Hls.Events.MANIFEST_PARSED, function() { h.destroy(); onOk(); });
+        h.on(Hls.Events.ERROR, function(ev, data) { if (data.fatal) { h.destroy(); onFalha(); } });
+      } else { onFalha(); }
+    }, REVAL_ESPERA);
+
+    vid.oncanplay = function() { clearTimeout(tmr); vid.src = ''; onOk(); };
+    vid.onerror   = function() { clearTimeout(tmr); onFalha(); };
+    vid.src = url;
+    try { vid.load(); } catch(e) {}
+  }
+  testarProximo();
+}
+
+// Remove dos defeituosos e devolve pra lista de canais
+function voltarDaDefeituosa(url, ch) {
+  var d = getDefeitos();
+  if (!d[url]) return; // ja foi processado
+  delete d[url];
+  saveDefeitos(d);
+  // Adiciona de volta via addCanais — preserva a ordenacao por URL
+  var jaEsta = canais.some(function(c){ return c.url === url; });
+  if (!jaEsta) {
+    addCanais([{ nome: ch.nome, url: url }], 'outros');
+    atualizarTela();
+    console.log('[K10] Canal voltou pra lista: ' + ch.nome);
+  }
+}
+
+// Ao carregar, remove da lista os canais que ja estao registrados como defeituosos
+function filtrarDefeituososDaLista() {
+  var d = getDefeitos();
+  var urls = Object.keys(d);
+  if (urls.length === 0) return;
+  var antes = canais.length;
+  canaisLang   = canaisLang.filter(function(c){ return !d[c.url]; });
+  canaisOutros = canaisOutros.filter(function(c){ return !d[c.url]; });
+  aplicarFiltro();
+  // Atualiza seenUrls
+  seenUrls = {};
+  for (var i = 0; i < canais.length; i++) seenUrls[canais[i].url] = true;
+  var removidos = antes - canais.length;
+  if (removidos > 0) console.log('[K10] ' + removidos + ' canal(is) defeituoso(s) removido(s) da lista.');
+}
+
+// ── Canais novos ───────────────────────────────────────────────
+var LS_CANAIS_VISTOS = 'k10_canais_vistos';
+
+function getCanaisVistos() {
+  try { return JSON.parse(localStorage.getItem(LS_CANAIS_VISTOS) || '[]'); } catch(e) { return []; }
+}
+
+function detectarNovosCanais(listaAtual) {
+  // 'vistos' agora guarda apenas IDs curtos (hash da URL) — ~10 chars vs ~200 chars por URL
+  var vistos = getCanaisVistos();
+  var vistosSet = {};
+  for (var i = 0; i < vistos.length; i++) vistosSet[vistos[i]] = true;
+  // Migracao: se houver URLs antigas no array, converte para id curto
+  var precisaMigrar = vistos.some(function(v){ return typeof v === 'string' && v.indexOf('http') === 0; });
+  if (precisaMigrar) {
+    vistosSet = {};
+    for (var m = 0; m < vistos.length; m++) {
+      var v = vistos[m];
+      vistosSet[v.indexOf('http') === 0 ? urlId(v) : v] = true;
+    }
+  }
+  var novos = listaAtual.filter(function(c){ return !vistosSet[urlId(c.url)]; });
+  if (novos.length > 0) {
+    console.log('[K10] ' + novos.length + ' canais novos detectados.');
+    var agora = new Date().toISOString();
+    var LS_NOVOS = 'k10_canais_novos';
+    var jaReg = []; try { jaReg = JSON.parse(localStorage.getItem(LS_NOVOS) || '[]'); } catch(e) {}
+    var entrada = novos.map(function(c){ return { nome: c.nome, url: c.url, detectadoEm: agora }; });
+    var todos = jaReg.concat(entrada);
+    if (todos.length > 500) todos = todos.slice(todos.length - 500);
+    try { localStorage.setItem(LS_NOVOS, JSON.stringify(todos)); } catch(e) {}
+  }
+  // Salva apenas os IDs curtos — leve
+  try { localStorage.setItem(LS_CANAIS_VISTOS, JSON.stringify(listaAtual.map(function(c){ return urlId(c.url); }))); } catch(e) {}
+}
+
+// ── Comandos de console ────────────────────────────────────────
+window.verDefeitos      = function(){ var d=getDefeitos(); console.table(Object.values(d)); return Object.values(d); };
+window.limparDefeitos   = function(){ localStorage.removeItem(LS_DEFEITOS); console.log('[K10] Defeitos limpos.'); };
+window.verCanaisNovos   = function(){ try{ var l=JSON.parse(localStorage.getItem('k10_canais_novos')||'[]'); console.table(l); return l; }catch(e){ return []; } };
+window.limparCanaisNovos= function(){ localStorage.removeItem('k10_canais_novos'); localStorage.removeItem(LS_CANAIS_VISTOS); console.log('[K10] Canais novos limpos.'); };
+
+// ── Sintonizar canais do idioma ────────────────────────────────
+// Testa cada canal do idioma do usuário sequencialmente, com pausa
+// entre cada teste para nao ser bloqueado pelo proxy (rate limit).
+// Canais que falham vao para a lista de defeituosos automaticamente.
+var sintRodando = false;
+var sintAbortar = false;
+
+function sintonizarIdioma() {
+  var btn = document.getElementById('btn-sintonizar');
+  var prog = document.getElementById('sint-progresso');
+  if (sintRodando) {
+    sintAbortar = true;
+    prog.innerHTML = 'Cancelando...';
+    return;
+  }
+  // Snapshot da lista do idioma — usa canaisLang direto
+  var lista = canaisLang.slice();
+  if (lista.length === 0) {
+    prog.innerHTML = '<span class="err">Nenhum canal do seu idioma carregado ainda.</span>';
+    return;
+  }
+  sintRodando = true; sintAbortar = false;
+  btn.innerHTML = '&#9209; Cancelar sintonia';
+  var i = 0, ok = 0, fail = 0;
+  var INTERVALO = 1500; // pausa entre testes p/ nao saturar proxy
+  var TIMEOUT   = 9000;
+
+  function atualizar(extra) {
+    prog.innerHTML = 'Testando ' + (i) + '/' + lista.length
+      + ' &nbsp; <span class="ok">&#10003; ' + ok + '</span>'
+      + ' &nbsp; <span class="err">&#10005; ' + fail + '</span>'
+      + (extra ? '<br><small>' + extra + '</small>' : '');
+  }
+
+  function fim(msg) {
+    sintRodando = false;
+    btn.innerHTML = '&#128225; <span data-i18n="tune">Sintonizar canais do meu idioma</span>';
+    prog.innerHTML = (msg || 'Sintonia concluída.')
+      + ' <span class="ok">&#10003; ' + ok + '</span>'
+      + ' <span class="err">&#10005; ' + fail + '</span>';
+    atualizarTela();
+  }
+
+  function proximo() {
+    if (sintAbortar) { fim('Sintonia cancelada.'); return; }
+    if (i >= lista.length) { fim('Sintonia concluída.'); return; }
+    var ch = lista[i++];
+    atualizar(ch.nome);
+
+    // Se ja foi marcado como defeituoso por outra rotina, pula
+    var def = getDefeitos();
+    if (def[ch.url]) { fail++; setTimeout(proximo, 50); return; }
+
+    var resolvido = false;
+    var vid = document.createElement('video');
+    vid.muted = true;
+    var hls = null;
+    var tmr = setTimeout(function() { resolver(false); }, TIMEOUT);
+
+    function limpar() {
+      try { vid.pause(); } catch(e) {}
+      vid.onerror = null; vid.oncanplay = null; vid.onloadedmetadata = null;
+      try { vid.src = ''; vid.load(); } catch(e) {}
+      if (hls) { try { hls.destroy(); } catch(e) {} hls = null; }
+    }
+    function resolver(sucesso) {
+      if (resolvido) return; resolvido = true;
+      clearTimeout(tmr); limpar();
+      if (sucesso) { ok++; }
+      else {
+        fail++;
+        // Marca como defeituoso e remove da lista principal
+        var d = getDefeitos();
+        var agora = new Date().toISOString();
+        if (d[ch.url]) {
+          d[ch.url].tentativas = (d[ch.url].tentativas || 1) + 1;
+          d[ch.url].ultimaVez = agora;
+        } else {
+          d[ch.url] = { nome: ch.nome, url: ch.url, primeiroDef: agora, ultimaVez: agora, tentativas: 1 };
+        }
+        saveDefeitos(d);
+        removerCanalPorUrl(ch.url);
+      }
+      // Pausa entre testes — evita bloqueio por rate limit do proxy
+      setTimeout(proximo, INTERVALO);
+    }
+
+    var url = ch.url;
+    var ehHls = url.indexOf('.m3u') !== -1 || url.indexOf('m3u8') !== -1;
+    if (ehHls && typeof Hls !== 'undefined' && Hls.isSupported()) {
+      hls = new Hls({ enableWorker: false, manifestLoadingTimeOut: TIMEOUT - 1000, manifestLoadingMaxRetry: 0 });
+      hls.loadSource(url); hls.attachMedia(vid);
+      hls.on(Hls.Events.MANIFEST_PARSED, function() { resolver(true); });
+      hls.on(Hls.Events.ERROR, function(ev, data) { if (data && data.fatal) resolver(false); });
+    } else {
+      vid.onloadedmetadata = function() { resolver(true); };
+      vid.oncanplay = function() { resolver(true); };
+      vid.onerror = function() { resolver(false); };
+      try { vid.src = url; vid.load(); } catch(e) { resolver(false); }
+    }
+  }
+
+  prog.innerHTML = 'Iniciando sintonia de ' + lista.length + ' canal(is)...';
+  setTimeout(proximo, 300);
+}
+
+// ── Auto-ocultar controles ─────────────────────────────────────
+var hideTmr;
+function mostrarControles() {
+  document.getElementById('controles').classList.remove('oculto');
+  clearTimeout(hideTmr);
+  hideTmr = setTimeout(function(){ document.getElementById('controles').classList.add('oculto'); }, 3000);
+}
+['mousemove','mousedown','touchstart','keydown'].forEach(function(ev){
+  document.addEventListener(ev, mostrarControles);
+});
+renderFavs();
+
+document.getElementById('btn-voltar').onclick = function() { voltarHome(); };
+document.getElementById('btn-ch-cima').onclick = function() { canalCima(); };
+document.getElementById('btn-ch-baixo').onclick = function() { canalBaixo(); };
+popularSelectCategorias();
+carregarUIIdioma();
+carregar();
+</script>
+</body>
+</html>

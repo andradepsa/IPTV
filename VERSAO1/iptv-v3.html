@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>K10 TV</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
+#tela-home{position:absolute;top:0;left:0;width:100%;height:100%;text-align:center}
+#titulo{font-size:36px;font-weight:bold;color:#00aaff;padding-top:30px;margin-bottom:4px}
+#subtitulo{font-size:13px;color:#555;margin-bottom:16px}
+#status-line{font-size:15px;color:#888;margin-bottom:10px}
+#status-line span{color:#00aaff;font-weight:bold}
+#faixas{font-size:13px;color:#555;margin-bottom:16px;line-height:1.9}
+#faixas .dest{color:#00aaff;font-weight:bold;font-size:14px}
+#faixas b{color:#aaa}
+#display-canal{display:inline-block;border:3px solid #333;border-radius:12px;padding:14px 40px;margin-bottom:10px;min-width:260px}
+#display-canal.ativo{border-color:#00aaff}
+#digitos{font-size:58px;font-weight:bold;color:#00aaff;font-family:monospace;letter-spacing:4px;min-height:68px;line-height:1}
+#digitos.vazio{color:#222}
+#instrucao{font-size:12px;color:#444;margin-top:8px}
+#btn-enter{margin-top:14px;background:#111;border:2px solid #00aaff;color:#00aaff;font-size:16px;font-weight:bold;padding:12px 48px;border-radius:30px;cursor:pointer;transition:background .15s,transform .1s}
+#btn-enter:active{background:#00aaff22;transform:scale(.95)}
+#tela-player{position:absolute;top:0;left:0;width:100%;height:100%;background:#000;display:none}
+#vid{width:100%;height:100%;display:block}
+#osd{position:absolute;top:0;left:0;right:0;background:rgba(0,0,0,0.85);padding:16px 24px}
+#osd-num{font-size:40px;font-weight:bold;color:#00aaff;font-family:monospace}
+#osd-nome{font-size:20px;color:#fff;margin-top:4px}
+#osd-estado{font-size:12px;color:#00aaff;margin-top:4px}
+#carregando{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:18px;color:#888;text-align:center}
+#p-canal{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:#111;border:2px solid #ffaa00;border-radius:10px;padding:10px 32px;text-align:center;display:none}
+#p-canal-val{font-size:36px;font-weight:bold;color:#ffaa00;font-family:monospace;letter-spacing:6px}
+#controles{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;transition:opacity .4s}
+#controles.oculto{opacity:0;pointer-events:none}
+#btn-voltar{background:#111;border:2px solid #00aaff;color:#00aaff;font-size:15px;font-weight:bold;padding:12px 40px;border-radius:30px;cursor:pointer}
+.btn-ch{background:#111;border:2px solid #ffaa00;color:#ffaa00;font-size:22px;font-weight:bold;width:52px;height:52px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .1s;user-select:none}
+.btn-ch:active{background:#ffaa0033;transform:scale(.92)}
+#toast{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#111;border:2px solid #ff5555;border-radius:12px;padding:24px 40px;text-align:center;display:none;z-index:99}
+#toast p{font-size:16px;color:#ff8888}
+#toast small{font-size:12px;color:#555}
+#btn-fav{background:#111;border:2px solid #ffdd00;color:#ffdd00;font-size:20px;width:52px;height:52px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .1s}
+#btn-fav:active{transform:scale(.92)}
+#btn-fav.favoritado{background:#ffdd00;color:#000}
+#favs{margin:12px auto 0;max-width:480px;max-height:160px;overflow-y:auto}
+#favs-titulo{font-size:13px;color:#ffdd00;margin-bottom:6px;font-weight:bold}
+.fav-item{display:flex;align-items:center;justify-content:space-between;background:#111;border:1px solid #333;border-radius:8px;padding:8px 14px;margin-bottom:6px;cursor:pointer;transition:border-color .15s}
+.fav-item:hover{border-color:#00aaff}
+.fav-nome{font-size:14px;color:#fff;text-align:left;flex:1}
+.fav-del{background:none;border:none;color:#ff5555;font-size:18px;cursor:pointer;padding:0 0 0 12px;line-height:1}
+</style>
+</head>
+<body>
+
+<div id="tela-home">
+  <div id="titulo">&#128250; K10 TV</div>
+  <div id="subtitulo">TV ao vivo - acesso por numero</div>
+  <div id="status-line">Carregando canais...</div>
+  <div id="faixas"></div>
+  <div id="display-canal">
+    <div id="digitos" class="vazio">_</div>
+  </div>
+  <div id="instrucao">Digite o numero do canal e pressione ENTER</div>
+  <button id="btn-enter" onclick="clearTimeout(bufTmr);irCanal()">&#9654; ENTER</button>
+  <div id="favs"></div>
+</div>
+
+<div id="tela-player">
+  <video id="vid" autoplay></video>
+  <div id="osd">
+    <div id="osd-num">-</div>
+    <div id="osd-nome">Canal</div>
+    <div id="osd-estado">Conectando...</div>
+  </div>
+  <div id="carregando">Conectando ao canal...</div>
+  <div id="p-canal"><div id="p-canal-val">_</div></div>
+  <div id="controles">
+    <button class="btn-ch" id="btn-ch-baixo" title="Canal anterior">&#9660;</button>
+    <button id="btn-voltar">&#9664; Voltar</button>
+    <button class="btn-ch" id="btn-ch-cima" title="Próximo canal">&#9650;</button>
+    <button id="btn-fav" title="Favoritar canal">&#9733;</button>
+  </div>
+</div>
+
+<div id="toast"><p>Canal indisponivel</p><small>Voltando a tela inicial...</small></div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
+<script>
+// ── Idioma do usuario ──────────────────────────────────────────
+var LANG_MAP = {
+  'pt':'por','en':'eng','es':'spa','fr':'fra','de':'deu',
+  'it':'ita','ja':'jpn','ko':'kor','zh':'zho','ru':'rus',
+  'ar':'ara','tr':'tur','nl':'nld','pl':'pol','hi':'hin',
+  'sv':'swe','ro':'ron','cs':'ces','el':'ell','id':'ind'
+};
+var rawLang = ((navigator.languages && navigator.languages[0]) || navigator.language || 'pt').toLowerCase().split('-')[0];
+var LANG_ISO  = LANG_MAP[rawLang] || 'por';
+var LANG_NOME = rawLang.toUpperCase();
+
+// ── Estado ─────────────────────────────────────────────────────
+var canais = [];
+var seenUrls = {};
+var langFim = 0;
+var buf = '', bufTmr = null;
+var pBuf = '', pBufTmr = null;
+var curCh = -1, pronto = false;
+var osdTmr, errTmr, failTmr, hlsObj;
+var skipCount = 0;
+
+var PROXIES = [
+  'https://corsproxy.io/?url=',
+  'https://api.allorigins.win/raw?url='
+];
+var API_BASES = [
+  'https://iptv-org.github.io/api',
+  'https://cdn.jsdelivr.net/gh/iptv-org/api@gh-pages',
+  'https://raw.githubusercontent.com/iptv-org/api/gh-pages'
+];
+
+// ── XHR com fallback proxy ─────────────────────────────────────
+function xhr(url, cb) {
+  var tentativas = [url];
+  for (var i = 0; i < PROXIES.length; i++) tentativas.push(PROXIES[i] + encodeURIComponent(url));
+  var ti = 0;
+  function next() {
+    if (ti >= tentativas.length) { cb('erro'); return; }
+    var r = new XMLHttpRequest();
+    r.open('GET', tentativas[ti++], true);
+    r.onreadystatechange = function() {
+      if (r.readyState !== 4) return;
+      if (r.status === 200) cb(null, r.responseText); else next();
+    };
+    r.onerror = next;
+    try { r.send(); } catch(e) { next(); }
+  }
+  next();
+}
+
+// ── Baixar M3U com proxies ─────────────────────────────────────
+function fetchM3u(urls, cb) {
+  var tentativas = [];
+  for (var i = 0; i < urls.length; i++) {
+    tentativas.push(urls[i]);
+    for (var j = 0; j < PROXIES.length; j++) tentativas.push(PROXIES[j] + encodeURIComponent(urls[i]));
+  }
+  var ti = 0;
+  function next() {
+    if (ti >= tentativas.length) { cb('falhou'); return; }
+    xhr(tentativas[ti++], function(e, t) {
+      if (!e && t && (t.indexOf('#EXTM3U') !== -1 || t.indexOf('#EXTINF') !== -1)) cb(null, t);
+      else next();
+    });
+  }
+  // evitar dupla proxy
+  ti = 0;
+  var raw = [];
+  for (var a = 0; a < urls.length; a++) {
+    raw.push(urls[a]);
+    for (var b = 0; b < PROXIES.length; b++) raw.push(PROXIES[b] + encodeURIComponent(urls[a]));
+  }
+  var ri = 0;
+  function tryNext() {
+    if (ri >= raw.length) { cb('falhou'); return; }
+    var u = raw[ri++];
+    var r = new XMLHttpRequest();
+    r.open('GET', u, true);
+    r.onreadystatechange = function() {
+      if (r.readyState !== 4) return;
+      if (r.status === 200 && r.responseText && (r.responseText.indexOf('#EXTM3U') !== -1 || r.responseText.indexOf('#EXTINF') !== -1)) {
+        cb(null, r.responseText);
+      } else { tryNext(); }
+    };
+    r.onerror = tryNext;
+    try { r.send(); } catch(e) { tryNext(); }
+  }
+  tryNext();
+}
+
+// ── Parse M3U ──────────────────────────────────────────────────
+function parseM3u(txt) {
+  var result = [], cur = null;
+  var lines = txt.split('\n');
+  for (var i = 0; i < lines.length; i++) {
+    var l = lines[i].trim();
+    if (l.indexOf('#EXTINF') === 0) {
+      var nm = l.match(/,(.+)$/);
+      cur = { nome: nm ? nm[1].trim() : 'Canal' };
+    } else if (l && l.indexOf('#') !== 0 && cur) {
+      if (l.indexOf('http') === 0) { cur.url = l; result.push(cur); }
+      cur = null;
+    }
+  }
+  return result;
+}
+
+// ── Adicionar sem duplicatas ───────────────────────────────────
+function addCanais(lista) {
+  for (var i = 0; i < lista.length; i++) {
+    if (!seenUrls[lista[i].url]) {
+      seenUrls[lista[i].url] = true;
+      canais.push(lista[i]);
+    }
+  }
+}
+
+// ── Status e faixas ────────────────────────────────────────────
+function setStatus(txt) { document.getElementById('status-line').innerHTML = txt; }
+
+function atualizarTela() {
+  if (canais.length === 0) return;
+  // Remove canais ja conhecidos como defeituosos
+  filtrarDefeituososDaLista();
+  // Detecta canais novos
+  detectarNovosCanais(canais);
+  if (canais.length === 0) return;
+  pronto = true;
+  // calcular digitos necessarios
+  var total = canais.length;
+  var digitos = String(total).length;
+  if (digitos < 3) digitos = 3;
+  MAX_DIGITOS = digitos;
+  setStatus('Total: <span>' + total + '</span> canais &nbsp;|&nbsp; Digite de 1 a ' + total);
+  // faixa idioma
+  var html = '';
+  if (langFim > 0) {
+    html += '<div class="dest">&#9733; ' + LANG_NOME + ' (seu idioma): canais 1 a ' + langFim + '</div>';
+    if (canais.length > langFim) {
+      html += '<div><b>Outros idiomas:</b> ' + (langFim + 1) + ' a ' + canais.length + '</div>';
+    }
+  } else {
+    html += '<div><b>Todos os canais:</b> 1 a ' + canais.length + '</div>';
+  }
+  document.getElementById('faixas').innerHTML = html;
+}
+
+// ── API iptv-org ───────────────────────────────────────────────
+var apiCache = null;
+function fetchApi(cb) {
+  if (apiCache) { cb(null, apiCache); return; }
+  var ai = 0;
+  function tryBase() {
+    if (ai >= API_BASES.length) { cb('falhou'); return; }
+    var base = API_BASES[ai++], chs, strs, done = 0, errou = false;
+    function check() {
+      done++;
+      if (done < 2) return;
+      if (errou || !chs || !strs) { tryBase(); return; }
+      apiCache = { chs: chs, strs: strs };
+      cb(null, apiCache);
+    }
+    xhr(base + '/channels.json', function(e, t) {
+      if (e) { errou = true; check(); return; }
+      try { chs = JSON.parse(t); } catch(x) { errou = true; } check();
+    });
+    xhr(base + '/streams.json', function(e, t) {
+      if (e) { errou = true; check(); return; }
+      try { strs = JSON.parse(t); } catch(x) { errou = true; } check();
+    });
+  }
+  tryBase();
+}
+
+function buildApi(data, cats) {
+  var sm = {};
+  for (var i = 0; i < data.strs.length; i++) {
+    if (!sm[data.strs[i].channel]) sm[data.strs[i].channel] = data.strs[i].url;
+  }
+  var out = [];
+  for (var j = 0; j < data.chs.length; j++) {
+    var ch = data.chs[j];
+    if (!sm[ch.id]) continue;
+    if (cats) {
+      var ok = false;
+      for (var k = 0; k < (ch.categories || []).length; k++) {
+        if (cats.indexOf(ch.categories[k]) !== -1) { ok = true; break; }
+      }
+      if (!ok) continue;
+    }
+    out.push({ nome: ch.name, url: sm[ch.id] });
+  }
+  return out;
+}
+
+// ── Carregar todas as fontes ───────────────────────────────────
+var MAX_DIGITOS = 3;
+var CATS = ['news','business','weather','documentary','entertainment','comedy',
+  'general','sports','music','movies','series','animation','classic',
+  'kids','family','education','culture','science','cooking','travel',
+  'lifestyle','outdoor','religious','auto','shop','legislative'];
+
+function carregar() {
+  setStatus('Carregando canais em ' + LANG_NOME + '...');
+
+  // 1. Idioma do usuario
+  fetchM3u([
+    'https://iptv-org.github.io/iptv/languages/' + LANG_ISO + '.m3u',
+    'https://raw.githubusercontent.com/iptv-org/iptv/gh-pages/languages/' + LANG_ISO + '.m3u'
+  ], function(e, t) {
+    if (!e) addCanais(parseM3u(t));
+    langFim = canais.length;
+    atualizarTela();
+
+    // 2. Brasil
+    setStatus('Carregando canais Brasil...');
+    fetchM3u([
+      'https://iptv-org.github.io/iptv/countries/br.m3u',
+      'https://raw.githubusercontent.com/rjpontes/iptv-brasil/main/lista.m3u'
+    ], function(e2, t2) {
+      if (!e2) addCanais(parseM3u(t2));
+      atualizarTela();
+
+      // 3. Free-TV
+      setStatus('Carregando Free-TV...');
+      fetchM3u([
+        'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8',
+        'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u'
+      ], function(e3, t3) {
+        if (!e3) addCanais(parseM3u(t3));
+        atualizarTela();
+
+        // 4. Lista mundial
+        setStatus('Carregando lista mundial...');
+        fetchM3u([
+          'https://iptv-org.github.io/iptv/index.m3u',
+          'https://raw.githubusercontent.com/iptv-org/iptv/gh-pages/index.m3u'
+        ], function(e4, t4) {
+          if (!e4) addCanais(parseM3u(t4));
+          atualizarTela();
+
+          // 5. API
+          setStatus('Carregando API (noticias, esportes, filmes...)...');
+          fetchApi(function(eA, data) {
+            if (!eA) {
+              addCanais(buildApi(data, CATS));
+              addCanais(buildApi(data, null));
+            }
+            atualizarTela();
+            // Inicia revalidacao de defeituosos em background (apos 10s para nao sobrecarregar)
+            setTimeout(revalidarDefeitos, 10000);
+          });
+        });
+      });
+    });
+  });
+}
+
+// ── Display numero ─────────────────────────────────────────────
+function atualizarDisplay() {
+  var el = document.getElementById('digitos');
+  var box = document.getElementById('display-canal');
+  if (buf === '') { el.textContent = '_'; el.className = 'vazio'; box.className = ''; }
+  else { el.textContent = buf; el.className = ''; box.className = 'ativo'; }
+}
+
+function irCanal() {
+  if (!pronto || !buf) return;
+  var n = parseInt(buf, 10);
+  buf = ''; atualizarDisplay();
+  if (n >= 1 && n <= canais.length) { tocar(n - 1); }
+  else {
+    setStatus('Canal ' + n + ' nao existe. Digite de 1 a <span>' + canais.length + '</span>');
+    setTimeout(function() { atualizarTela(); }, 2500);
+  }
+}
+
+// ── Player ─────────────────────────────────────────────────────
+function pararHls() { if (hlsObj) { try { hlsObj.destroy(); } catch(e) {} hlsObj = null; } }
+
+function tocar(idx) {
+  var ch = canais[idx]; if (!ch) return;
+  curCh = idx;
+  var vid = document.getElementById('vid');
+  pararHls(); vid.onerror = null; vid.oncanplay = null;
+  try { vid.pause(); } catch(e) {} vid.src = '';
+  document.getElementById('osd-num').textContent = String(idx + 1);
+  document.getElementById('osd-nome').textContent = ch.nome;
+  document.getElementById('osd-estado').textContent = 'Conectando...';
+  document.getElementById('carregando').style.display = 'block';
+  document.getElementById('tela-home').style.display = 'none';
+  document.getElementById('tela-player').style.display = 'block';
+  mostrarOSD();
+  atualizarBtnFav();
+  clearTimeout(failTmr);
+  failTmr = setTimeout(mostrarErro, 15000);
+  function onOk() {
+    clearTimeout(failTmr);
+    skipCount = 0;
+    document.getElementById('carregando').style.display = 'none';
+    document.getElementById('osd-estado').textContent = 'Ao vivo';
+  }
+  function tentarHls() {
+    if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+      hlsObj = new Hls({ enableWorker: false });
+      hlsObj.loadSource(ch.url); hlsObj.attachMedia(vid);
+      hlsObj.on(Hls.Events.MANIFEST_PARSED, function() { try { vid.play(); } catch(e) {} });
+      hlsObj.on(Hls.Events.ERROR, function(ev, d) { if (d.fatal) { clearTimeout(failTmr); mostrarErro(); } });
+      vid.oncanplay = onOk;
+    } else { mostrarErro(); }
+  }
+  vid.oncanplay = onOk;
+  vid.onerror = function() { vid.onerror = null; tentarHls(); };
+  vid.src = ch.url;
+  try { vid.load(); vid.play(); } catch(e) {}
+}
+
+function pararVideo() {
+  pararHls();
+  var vid = document.getElementById('vid');
+  vid.onerror = null; vid.oncanplay = null; clearTimeout(failTmr);
+  try { vid.pause(); } catch(e) {} vid.src = ''; try { vid.load(); } catch(e) {}
+}
+
+function voltarHome() {
+  pararVideo(); clearTimeout(osdTmr); clearTimeout(errTmr);
+  skipCount = 0;
+  document.getElementById('toast').style.display = 'none';
+  document.getElementById('tela-player').style.display = 'none';
+  document.getElementById('tela-home').style.display = 'block';
+  buf = ''; atualizarDisplay();
+}
+
+function mostrarErro() {
+  clearTimeout(failTmr); clearTimeout(errTmr);
+  // Registra defeito e remove da lista
+  if (curCh >= 0 && canais[curCh]) {
+    registrarDefeito(curCh);
+    // Ajusta curCh para nao ultrapassar o tamanho da lista apos remocao
+    if (canais.length === 0) { voltarHome(); return; }
+    curCh = curCh % canais.length;
+  }
+  skipCount++;
+  if (skipCount >= canais.length) {
+    // Todos os canais falharam — desiste e vai para home
+    skipCount = 0;
+    document.getElementById('carregando').style.display = 'none';
+    var t = document.getElementById('toast');
+    t.querySelector('p').textContent = 'Nenhum canal disponivel';
+    t.querySelector('small').textContent = 'Voltando a tela inicial...';
+    t.style.display = 'block';
+    errTmr = setTimeout(function() { t.style.display = 'none'; voltarHome(); }, 2500);
+    return;
+  }
+  // Mostra aviso rapido e pula para o proximo canal
+  document.getElementById('carregando').style.display = 'none';
+  document.getElementById('osd-estado').textContent = 'Sem sinal — pulando...';
+  document.getElementById('osd').style.display = 'block';
+  errTmr = setTimeout(function() {
+    curCh = (curCh + 1) % canais.length;
+    tocar(curCh);
+  }, 800);
+}
+
+function mostrarOSD() {
+  document.getElementById('osd').style.display = 'block'; clearTimeout(osdTmr);
+  osdTmr = setTimeout(function() { document.getElementById('osd').style.display = 'none'; }, 5000);
+}
+
+function digitarNoPlayer(n) {
+  if (pBuf.length >= MAX_DIGITOS) return;
+  pBuf += String(n);
+  document.getElementById('p-canal-val').textContent = pBuf + '_';
+  document.getElementById('p-canal').style.display = 'block';
+  clearTimeout(pBufTmr);
+  pBufTmr = setTimeout(function() {
+    var idx = parseInt(pBuf, 10) - 1; pBuf = '';
+    document.getElementById('p-canal-val').textContent = '_';
+    document.getElementById('p-canal').style.display = 'none';
+    if (idx >= 0 && idx < canais.length) tocar(idx);
+  }, pBuf.length >= MAX_DIGITOS ? 600 : 2000);
+}
+
+function canalCima()  { if (canais.length) { skipCount = 0; curCh = (curCh + 1) % canais.length; tocar(curCh); } }
+function canalBaixo() { if (canais.length) { skipCount = 0; curCh = ((curCh - 1) + canais.length) % canais.length; tocar(curCh); } }
+
+// ── Teclado ────────────────────────────────────────────────────
+document.onkeydown = function(e) {
+  var k = e.keyCode || e.which;
+  var naHome = document.getElementById('tela-home').style.display !== 'none';
+  var eNum = (k >= 48 && k <= 57) || (k >= 96 && k <= 105);
+  var num = k >= 96 ? k - 96 : k - 48;
+  var ok = k === 13 || k === 32;
+  var del = k === 8;
+  var voltar = k === 8 || k === 27 || k === 36 || k === 88 || k === 166 || k === 461;
+  var cima = k === 33 || k === 38 || k === 427;
+  var baixo = k === 34 || k === 40 || k === 428;
+  if (e.preventDefault && (eNum || ok || del || voltar || cima || baixo)) e.preventDefault();
+  if (naHome) {
+    if (eNum && pronto) {
+      if (buf.length >= MAX_DIGITOS + 1) return;
+      buf += String(num); atualizarDisplay(); clearTimeout(bufTmr);
+      if (buf.length > MAX_DIGITOS) irCanal();
+      else bufTmr = setTimeout(irCanal, 2500);
+    } else if (del && buf.length > 0) {
+      buf = buf.slice(0, -1); atualizarDisplay(); clearTimeout(bufTmr);
+    } else if (ok) { clearTimeout(bufTmr); irCanal(); }
+  } else {
+    mostrarOSD();
+    if (voltar && !eNum) voltarHome();
+    else if (cima) canalCima();
+    else if (baixo) canalBaixo();
+    else if (eNum) digitarNoPlayer(num);
+  }
+};
+
+// ── Favoritos ──────────────────────────────────────────────────
+function getFavs() { try { return JSON.parse(localStorage.getItem('k10favs') || '[]'); } catch(e) { return []; } }
+function saveFavs(f) { localStorage.setItem('k10favs', JSON.stringify(f)); }
+
+function isFav(url) { return getFavs().some(function(f){ return f.url === url; }); }
+
+function toggleFav() {
+  if (curCh < 0) return;
+  var ch = canais[curCh];
+  var favs = getFavs();
+  var idx = favs.findIndex(function(f){ return f.url === ch.url; });
+  if (idx === -1) favs.push({ nome: ch.nome, url: ch.url });
+  else favs.splice(idx, 1);
+  saveFavs(favs);
+  atualizarBtnFav();
+  renderFavs();
+}
+
+function atualizarBtnFav() {
+  var btn = document.getElementById('btn-fav');
+  if (curCh >= 0 && isFav(canais[curCh].url)) btn.classList.add('favoritado');
+  else btn.classList.remove('favoritado');
+}
+
+function renderFavs() {
+  var favs = getFavs();
+  var el = document.getElementById('favs');
+  if (favs.length === 0) { el.innerHTML = ''; return; }
+  var html = '<div id="favs-titulo">&#9733; Favoritos</div>';
+  favs.forEach(function(f, i) {
+    html += '<div class="fav-item">'
+      + '<span class="fav-nome" onclick="tocarFav(' + i + ')">' + f.nome + '</span>'
+      + '<button class="fav-del" onclick="deletarFav(' + i + ')" title="Remover">&#10005;</button>'
+      + '</div>';
+  });
+  el.innerHTML = html;
+}
+
+function tocarFav(i) {
+  var f = getFavs()[i];
+  // acha o indice do canal na lista principal
+  var idx = canais.findIndex(function(c){ return c.url === f.url; });
+  if (idx !== -1) { tocar(idx); }
+  else {
+    // canal nao esta na lista carregada ainda, toca direto
+    curCh = -1;
+    canais.push(f);
+    tocar(canais.length - 1);
+  }
+}
+
+function deletarFav(i) {
+  var favs = getFavs();
+  favs.splice(i, 1);
+  saveFavs(favs);
+  renderFavs();
+  atualizarBtnFav();
+}
+
+document.getElementById('btn-fav').onclick = toggleFav;
+
+// ── Canais defeituosos ─────────────────────────────────────────
+var LS_DEFEITOS = 'k10_canais_defeituosos';
+
+function getDefeitos() {
+  try { return JSON.parse(localStorage.getItem(LS_DEFEITOS) || '{}'); } catch(e) { return {}; }
+}
+function saveDefeitos(d) {
+  try { localStorage.setItem(LS_DEFEITOS, JSON.stringify(d)); } catch(e) {}
+}
+
+// Registra defeito E remove da lista de canais
+function registrarDefeito(idx) {
+  var ch = canais[idx];
+  if (!ch) return;
+  var d = getDefeitos();
+  var agora = new Date().toISOString();
+  if (d[ch.url]) {
+    d[ch.url].tentativas = (d[ch.url].tentativas || 1) + 1;
+    d[ch.url].ultimaVez = agora;
+  } else {
+    d[ch.url] = {
+      nome: ch.nome,
+      url: ch.url,
+      primeiroDef: agora,
+      ultimaVez: agora,
+      tentativas: 1
+    };
+  }
+  saveDefeitos(d);
+  // Remove da lista de canais em memoria
+  canais.splice(idx, 1);
+  // Ajusta indice atual
+  if (curCh >= canais.length) curCh = canais.length - 1;
+  console.log('[K10] Canal removido da lista por defeito: ' + ch.nome);
+}
+
+// Tenta revalidar canais defeituosos em background — se funcionar volta pra lista
+var LS_REVAL_FILA    = 'k10_reval_fila';     // fila persistente de urls a testar
+var LS_REVAL_DATA    = 'k10_reval_data';     // data da ultima rodada
+var REVAL_LOTE       = 5;
+var REVAL_INTERVALO  = 7 * 24 * 60 * 60 * 1000; // 7 dias
+var REVAL_ESPERA     = 8000;
+
+function revalidarDefeitos() {
+  var d    = getDefeitos();
+  var urls = Object.keys(d);
+  if (urls.length === 0) return;
+
+  // Verifica se passou 7 dias
+  var agora        = Date.now();
+  var ultimaRodada = parseInt(localStorage.getItem(LS_REVAL_DATA) || '0', 10);
+  if (agora - ultimaRodada < REVAL_INTERVALO) {
+    var dias = Math.ceil((REVAL_INTERVALO - (agora - ultimaRodada)) / 86400000);
+    console.log('[K10] Proxima revalidacao em ' + dias + ' dia(s).');
+    return;
+  }
+
+  // Carrega fila salva; se estiver vazia ou com urls que ja saíram dos defeitos, reconstrói
+  var fila = [];
+  try { fila = JSON.parse(localStorage.getItem(LS_REVAL_FILA) || '[]'); } catch(e) {}
+  // Filtra da fila urls que nao existem mais nos defeitos
+  fila = fila.filter(function(u){ return !!d[u]; });
+  // Se a fila esgotou, reconstrói com todos os defeituosos atuais (embaralhados para variedade)
+  if (fila.length === 0) {
+    fila = urls.slice(); // copia
+    // Embaralha (Fisher-Yates) para nao testar sempre na mesma ordem
+    for (var s = fila.length - 1; s > 0; s--) {
+      var r = Math.floor(Math.random() * (s + 1));
+      var tmp = fila[s]; fila[s] = fila[r]; fila[r] = tmp;
+    }
+    console.log('[K10] Fila recriada com ' + fila.length + ' canal(is) defeituoso(s).');
+  }
+
+  // Pega os proximos 5 da fila
+  var lote = fila.splice(0, REVAL_LOTE);
+
+  // Salva fila atualizada e data
+  try { localStorage.setItem(LS_REVAL_FILA, JSON.stringify(fila)); } catch(e) {}
+  try { localStorage.setItem(LS_REVAL_DATA, String(agora)); } catch(e) {}
+
+  console.log('[K10] Testando lote de ' + lote.length + ' canal(is). Restam ' + fila.length + ' na fila.');
+
+  // Testa um por vez com 2s de intervalo
+  var i = 0;
+  function testarProximo() {
+    if (i >= lote.length) return;
+    var url = lote[i++];
+    var ch  = d[url];
+    if (!ch) { testarProximo(); return; }
+
+    var resolvido = false;
+    function onFalha() {
+      if (resolvido) return; resolvido = true;
+      console.log('[K10] Ainda offline: ' + ch.nome);
+      setTimeout(testarProximo, 2000);
+    }
+    function onOk() {
+      if (resolvido) return; resolvido = true;
+      voltarDaDefeituosa(url, ch);
+      setTimeout(testarProximo, 2000);
+    }
+
+    var vid = document.createElement('video');
+    var tmr = setTimeout(function() {
+      vid.src = ''; vid.onerror = null; vid.oncanplay = null;
+      if (typeof Hls !== 'undefined' && Hls.isSupported() && url.indexOf('.m3u') !== -1) {
+        var h = new Hls({ enableWorker: false });
+        var v2 = document.createElement('video');
+        h.loadSource(url); h.attachMedia(v2);
+        h.on(Hls.Events.MANIFEST_PARSED, function() { h.destroy(); onOk(); });
+        h.on(Hls.Events.ERROR, function(ev, data) { if (data.fatal) { h.destroy(); onFalha(); } });
+      } else { onFalha(); }
+    }, REVAL_ESPERA);
+
+    vid.oncanplay = function() { clearTimeout(tmr); vid.src = ''; onOk(); };
+    vid.onerror   = function() { clearTimeout(tmr); onFalha(); };
+    vid.src = url;
+    try { vid.load(); } catch(e) {}
+  }
+  testarProximo();
+}
+
+// Remove dos defeituosos e devolve pra lista de canais
+function voltarDaDefeituosa(url, ch) {
+  var d = getDefeitos();
+  if (!d[url]) return; // ja foi processado
+  delete d[url];
+  saveDefeitos(d);
+  // Adiciona de volta na lista se nao estiver
+  var jaEsta = canais.some(function(c){ return c.url === url; });
+  if (!jaEsta) {
+    canais.push({ nome: ch.nome, url: url });
+    atualizarTela();
+    console.log('[K10] Canal voltou pra lista: ' + ch.nome);
+  }
+}
+
+// Ao carregar, remove da lista os canais que ja estao registrados como defeituosos
+function filtrarDefeituososDaLista() {
+  var d = getDefeitos();
+  var urls = Object.keys(d);
+  if (urls.length === 0) return;
+  var antes = canais.length;
+  canais = canais.filter(function(c){ return !d[c.url]; });
+  // Atualiza seenUrls
+  seenUrls = {};
+  for (var i = 0; i < canais.length; i++) seenUrls[canais[i].url] = true;
+  var removidos = antes - canais.length;
+  if (removidos > 0) console.log('[K10] ' + removidos + ' canal(is) defeituoso(s) removido(s) da lista.');
+}
+
+// ── Canais novos ───────────────────────────────────────────────
+var LS_CANAIS_VISTOS = 'k10_canais_vistos';
+
+function getCanaisVistos() {
+  try { return JSON.parse(localStorage.getItem(LS_CANAIS_VISTOS) || '[]'); } catch(e) { return []; }
+}
+
+function detectarNovosCanais(listaAtual) {
+  var vistos = getCanaisVistos();
+  var vistosSet = {};
+  for (var i = 0; i < vistos.length; i++) vistosSet[vistos[i]] = true;
+  var novos = listaAtual.filter(function(c){ return !vistosSet[c.url]; });
+  if (novos.length > 0) {
+    console.log('[K10] ' + novos.length + ' canais novos detectados.');
+    var agora = new Date().toISOString();
+    var LS_NOVOS = 'k10_canais_novos';
+    var jaReg = []; try { jaReg = JSON.parse(localStorage.getItem(LS_NOVOS) || '[]'); } catch(e) {}
+    var entrada = novos.map(function(c){ return { nome: c.nome, url: c.url, detectadoEm: agora }; });
+    var todos = jaReg.concat(entrada);
+    if (todos.length > 500) todos = todos.slice(todos.length - 500);
+    try { localStorage.setItem(LS_NOVOS, JSON.stringify(todos)); } catch(e) {}
+  }
+  try { localStorage.setItem(LS_CANAIS_VISTOS, JSON.stringify(listaAtual.map(function(c){ return c.url; }))); } catch(e) {}
+}
+
+// ── Comandos de console ────────────────────────────────────────
+window.verDefeitos      = function(){ var d=getDefeitos(); console.table(Object.values(d)); return Object.values(d); };
+window.limparDefeitos   = function(){ localStorage.removeItem(LS_DEFEITOS); console.log('[K10] Defeitos limpos.'); };
+window.verCanaisNovos   = function(){ try{ var l=JSON.parse(localStorage.getItem('k10_canais_novos')||'[]'); console.table(l); return l; }catch(e){ return []; } };
+window.limparCanaisNovos= function(){ localStorage.removeItem('k10_canais_novos'); localStorage.removeItem(LS_CANAIS_VISTOS); console.log('[K10] Canais novos limpos.'); };
+
+// ── Auto-ocultar controles ─────────────────────────────────────
+var hideTmr;
+function mostrarControles() {
+  document.getElementById('controles').classList.remove('oculto');
+  clearTimeout(hideTmr);
+  hideTmr = setTimeout(function(){ document.getElementById('controles').classList.add('oculto'); }, 3000);
+}
+['mousemove','mousedown','touchstart','keydown'].forEach(function(ev){
+  document.addEventListener(ev, mostrarControles);
+});
+renderFavs();
+
+document.getElementById('btn-voltar').onclick = function() { voltarHome(); };
+document.getElementById('btn-ch-cima').onclick = function() { canalCima(); };
+document.getElementById('btn-ch-baixo').onclick = function() { canalBaixo(); };
+carregar();
+</script>
+</body>
+</html>

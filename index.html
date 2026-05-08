@@ -1415,72 +1415,30 @@ function sintonizarIdioma() {
         entryIdx = canaisExtraLangs.length - 1;
       }
     }
-    var _entryRef   = isPrimary ? null : canaisExtraLangs[entryIdx];
-    var targetMaster = isPrimary ? canaisLangMaster : _entryRef.master;
-    var targetAtivo  = isPrimary ? canaisLang       : _entryRef.canais;
 
-    var jaAprovadosMap = {};
-    for (var ja = 0; ja < targetAtivo.length; ja++) jaAprovadosMap[targetAtivo[ja].url] = true;
+    // ── Configuração de partes ──────────────────────────────────
+    // A lista é dividida em partes para não sobrecarregar a memória
+    // da TV. Cada parte é processada, salva e só então a próxima começa.
+    var PARALELO    = IS_TV ? 2   : 3;
+    var TIMEOUT     = IS_TV ? 5000 : 4000;
+    var PARTE_SIZE  = IS_TV ? 50  : 300;   // canais por parte
+    var PARTE_PAUSE = IS_TV ? 900 : 80;    // pausa (ms) entre partes
 
-    var realmNovos = [];
-    for (var i = 0; i < novosCanais.length; i++) {
-      var c = novosCanais[i];
-      if (!c || !c.url) continue;
-      if (jaAprovadosMap[c.url]) continue;
-      if (seenUrls[c.url]) {
-        var reaproveitado = _extrairCanalPorUrl(canaisOutros, c.url);
-        if (!reaproveitado) continue;
-        if ((!reaproveitado.nome || reaproveitado.nome === 'Canal') && c.nome) reaproveitado.nome = c.nome;
-        if ((!reaproveitado.cats || !reaproveitado.cats.length) && c.cats && c.cats.length) reaproveitado.cats = c.cats.slice();
-        reaproveitado._num = atribuirNumero(reaproveitado.url, 'lang');
-        targetAtivo.push(reaproveitado);
-        targetMaster.push(reaproveitado);
-        realmNovos.push(reaproveitado);
-        continue;
-      }
-      seenUrls[c.url] = true;
-      c._num = atribuirNumero(c.url, 'lang');
-      targetAtivo.push(c);
-      targetMaster.push(c);
-      realmNovos.push(c);
-    }
-    targetAtivo.sort(function(a, b) { return a._num - b._num; });
-    targetMaster.sort(function(a, b) { return a._num - b._num; });
-    if (isPrimary) { canaisLang = targetAtivo; canaisLangMaster = targetMaster; }
-    aplicarFiltro();
-    atualizarTela();
+    var totalPartes = Math.max(1, Math.ceil(novosCanais.length / PARTE_SIZE));
+    var parteNum    = 0;
+    var okTotal     = 0;
+    var failTotal   = 0;
+    var jaAprovados = 0; // visível para _fimSint via closure
 
-    var jaAprovados = targetAtivo.length - realmNovos.length;
-    var lista = realmNovos.slice();
-    var total = lista.length;
-
-    if (total === 0) {
-      sintRodando = false;
-      _btnLabel();
-      if (jaAprovados > 0) {
-        prog.innerHTML = '<span class="ok">&#10003; ' + jaAprovados + ' canal(is) já sintonizado(s) mantidos. Nenhum canal novo para ' + targetNome + '.</span>';
-      } else {
-        prog.innerHTML = '<span class="err">Nenhum canal encontrado para ' + targetNome + '.</span>';
-      }
-      return;
+    function _getRefs() {
+      var _e = isPrimary ? null : canaisExtraLangs[entryIdx];
+      return {
+        master: isPrimary ? canaisLangMaster : _e.master,
+        ativo:  isPrimary ? canaisLang       : _e.canais
+      };
     }
 
-    var idx = 0, ok = 0, fail = 0, ativos = 0;
-    var PARALELO = IS_TV ? 2 : 3;
-    var TIMEOUT  = IS_TV ? 5000 : 4000;
-
-    prog.innerHTML = 'Testando ' + total + ' novo(s) canal(is) [' + targetNome + ']'
-      + (jaAprovados > 0 ? ' &nbsp;<span class="ok">+ ' + jaAprovados + ' já ok</span>' : '') + '...';
-
-    function atualizar(nome) {
-      prog.innerHTML = 'Testando ' + Math.min(idx, total) + '/' + total
-        + ' [' + targetNome + ']'
-        + (jaAprovados > 0 ? ' <span class="ok">+ ' + jaAprovados + ' já ok</span>' : '')
-        + ' &nbsp;<span class="ok">&#10003; ' + ok + '</span>'
-        + ' &nbsp;<span class="err">&#10005; ' + fail + '</span>'
-        + (nome ? '<br><small>' + nome + '</small>' : '');
-    }
-
+    // ── Testa um canal via HEAD (ou GET como fallback) ──────────
     function testarCanal(ch, cb) {
       var url = ch.url;
       var tentativas = [url];
@@ -1518,31 +1476,134 @@ function sintonizarIdioma() {
       next();
     }
 
-    function lancar() {
-      if (sintAbortar) { if (ativos === 0) _fimSint('Sintonia cancelada.', ok, fail); return; }
-      if (idx >= total) { if (ativos === 0) _fimSint('Sintonia concluída.', ok, fail); return; }
-      while (ativos < PARALELO && idx < total) {
-        (function(ch) {
-          ativos++;
-          atualizar(ch.nome);
-          testarCanal(ch, function(sucesso) {
-            if (sucesso) {
-              ok++;
-            } else {
-              fail++;
-              // Canal falhou no teste HTTP mas é mantido na lista.
-              // O player já pula automaticamente canais que não funcionarem.
-              // Não removemos aqui para garantir o maior número de canais possível na TV.
-            }
-            ativos--;
-            atualizar('');
-            lancar();
-          });
-        })(lista[idx++]);
+    // ── Processa uma parte da lista ─────────────────────────────
+    function processarChunk(inicio) {
+      if (sintAbortar) { _fimSint('Sintonia cancelada.', okTotal, failTotal); return; }
+
+      parteNum++;
+      var fim   = Math.min(inicio + PARTE_SIZE, novosCanais.length);
+      var refs  = _getRefs();
+      var targetMaster = refs.master;
+      var targetAtivo  = refs.ativo;
+
+      // Monta a lista deste chunk filtrando duplicatas
+      var lista = [];
+      for (var i = inicio; i < fim; i++) {
+        var c = novosCanais[i];
+        if (!c || !c.url) continue;
+        var jaEsta = false;
+        for (var ja = 0; ja < targetAtivo.length; ja++) {
+          if (targetAtivo[ja].url === c.url) { jaEsta = true; break; }
+        }
+        if (jaEsta) continue;
+        if (seenUrls[c.url]) {
+          var reaproveitado = _extrairCanalPorUrl(canaisOutros, c.url);
+          if (!reaproveitado) continue;
+          if ((!reaproveitado.nome || reaproveitado.nome === 'Canal') && c.nome) reaproveitado.nome = c.nome;
+          if ((!reaproveitado.cats || !reaproveitado.cats.length) && c.cats && c.cats.length) reaproveitado.cats = c.cats.slice();
+          reaproveitado._num = atribuirNumero(reaproveitado.url, 'lang');
+          targetAtivo.push(reaproveitado);
+          targetMaster.push(reaproveitado);
+          lista.push(reaproveitado);
+          continue;
+        }
+        seenUrls[c.url] = true;
+        c._num = atribuirNumero(c.url, 'lang');
+        targetAtivo.push(c);
+        targetMaster.push(c);
+        lista.push(c);
       }
+
+      targetAtivo.sort(function(a, b) { return a._num - b._num; });
+      targetMaster.sort(function(a, b) { return a._num - b._num; });
+      if (isPrimary) { canaisLang = targetAtivo; canaisLangMaster = targetMaster; }
+      jaAprovados = targetAtivo.length - lista.length;
+      aplicarFiltro();
+      atualizarTela();
+
+      var total  = lista.length;
+      var idx    = 0, ok = 0, fail = 0, ativos = 0;
+      var labelP = totalPartes > 1
+        ? '&#9851; Parte ' + parteNum + '/' + totalPartes + ' — '
+        : '&#9851; ';
+
+      // Chunk vazio: avança para o próximo sem pausar
+      if (total === 0) {
+        if (fim < novosCanais.length) {
+          prog.innerHTML = labelP + 'Preparando próxima parte...';
+          setTimeout(function(){ processarChunk(fim); }, 80);
+        } else {
+          if (okTotal === 0 && failTotal === 0 && jaAprovados > 0) {
+            sintRodando = false; _btnLabel();
+            prog.innerHTML = '<span class="ok">&#10003; ' + jaAprovados + ' canal(is) já ok. Nenhum canal novo para ' + targetNome + '.</span>';
+          } else if (okTotal === 0 && failTotal === 0) {
+            sintRodando = false; _btnLabel();
+            prog.innerHTML = '<span class="err">Nenhum canal encontrado para ' + targetNome + '.</span>';
+          } else {
+            _fimSint('Sintonia concluída.', okTotal, failTotal);
+          }
+        }
+        return;
+      }
+
+      prog.innerHTML = labelP + 'Testando ' + total + ' canal(is) [' + targetNome + ']'
+        + (jaAprovados > 0 ? ' &nbsp;<span class="ok">+ ' + jaAprovados + ' ok</span>' : '') + '...';
+
+      function atualizar(nome) {
+        prog.innerHTML = labelP + Math.min(idx, total) + '/' + total
+          + ' [' + targetNome + ']'
+          + (jaAprovados > 0 ? ' <span class="ok">+ ' + jaAprovados + ' ok</span>' : '')
+          + ' &nbsp;<span class="ok">&#10003; ' + (okTotal + ok) + '</span>'
+          + ' &nbsp;<span class="err">&#10005; ' + (failTotal + fail) + '</span>'
+          + (nome ? '<br><small>' + nome + '</small>' : '');
+      }
+
+      function lancar() {
+        if (sintAbortar) { if (ativos === 0) _fimSint('Sintonia cancelada.', okTotal + ok, failTotal + fail); return; }
+        if (idx >= total) {
+          if (ativos === 0) {
+            okTotal   += ok;
+            failTotal += fail;
+            // Salva o progresso ao fim de cada parte — se a TV travar,
+            // os canais desta parte já ficam guardados.
+            try { _salvarSintoniaExtras(); } catch(e) {}
+            if (fim < novosCanais.length) {
+              // Ainda há partes: pausa e continua
+              prog.innerHTML = labelP + '<span class="ok">Parte ' + parteNum + '/' + totalPartes
+                + ' salva</span> — &#10003; ' + okTotal + ' &#10005; ' + failTotal
+                + ' — aguardando próxima parte...';
+              setTimeout(function(){ processarChunk(fim); }, PARTE_PAUSE);
+            } else {
+              _fimSint('Sintonia concluída.', okTotal, failTotal);
+            }
+          }
+          return;
+        }
+        while (ativos < PARALELO && idx < total) {
+          (function(ch) {
+            ativos++;
+            atualizar(ch.nome);
+            testarCanal(ch, function(sucesso) {
+              if (sucesso) {
+                ok++;
+              } else {
+                fail++;
+                // Canal falhou no teste HTTP mas é mantido na lista.
+                // O player pula automaticamente canais que não funcionarem.
+              }
+              ativos--;
+              atualizar('');
+              lancar();
+            });
+          })(lista[idx++]);
+        }
+      }
+
+      setTimeout(lancar, 200);
     }
 
-    setTimeout(lancar, 200);
+    // Inicia a primeira parte
+    processarChunk(0);
   }
 
   function _btnLabel() {

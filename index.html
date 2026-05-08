@@ -303,22 +303,54 @@ function atribuirNumero(url, grupo) {
 
 // ── Adicionar sem duplicatas ───────────────────────────────────
 // Cada canal eh ordenado pelo numero persistente atribuido a sua URL.
+// IMPORTANTE: insere em LOTES com pausa, pra nao travar TVs/PCs antigos.
+// O grupo 'lang' (idioma do usuario) entra PRIMEIRO e completo;
+// depois os 'outros' vao chegando aos poucos.
 var canaisLang   = [];
 var canaisOutros = [];
 
-function addCanais(lista, grupo) {
-  var alvo = (grupo === 'lang') ? canaisLang : canaisOutros;
-  for (var i = 0; i < lista.length; i++) {
+// Detecta dispositivo lento: TV (Tizen/WebOS/SmartTV) ou agente antigo.
+var _ua = (navigator.userAgent || '').toLowerCase();
+var IS_TV = /smart-?tv|smarttv|tizen|web0s|webos|hbbtv|netcast|viera|bravia|aquos|inettvbrowser|crkey|googletv|appletv/.test(_ua);
+// Lote menor e pausa maior em TV; computador moderno usa lote grande.
+var CHUNK_SIZE  = IS_TV ? 25  : 120;
+var CHUNK_PAUSE = IS_TV ? 120 : 30;  // ms entre lotes
+// Lote do idioma do usuario eh maior pra aparecer rapido, mas ainda em pedacos.
+var CHUNK_SIZE_LANG = IS_TV ? 40 : 200;
+
+function _processarLoteCanais(lista, alvo, grupo, idx, tamLote, pausa) {
+  var fim = Math.min(idx + tamLote, lista.length);
+  var mudou = false;
+  for (var i = idx; i < fim; i++) {
     var c = lista[i];
     if (c && c.url && !seenUrls[c.url]) {
       seenUrls[c.url] = true;
       c._num = atribuirNumero(c.url, grupo);
       alvo.push(c);
+      mudou = true;
     }
   }
-  // Ordena pelo numero persistente — ordem estavel para sempre
-  alvo.sort(function(a, b){ return a._num - b._num; });
-  aplicarFiltro();
+  if (mudou) {
+    // Ordena so o grupo afetado (lista pequena, rapido)
+    alvo.sort(function(a, b){ return a._num - b._num; });
+    aplicarFiltro();
+    // Atualiza a tela ja com o que tem ate agora
+    if (typeof atualizarTela === 'function') {
+      try { atualizarTela(); } catch(e) {}
+    }
+  }
+  if (fim < lista.length) {
+    setTimeout(function(){
+      _processarLoteCanais(lista, alvo, grupo, fim, tamLote, pausa);
+    }, pausa);
+  }
+}
+
+function addCanais(lista, grupo) {
+  if (!lista || !lista.length) return;
+  var alvo = (grupo === 'lang') ? canaisLang : canaisOutros;
+  var tam  = (grupo === 'lang') ? CHUNK_SIZE_LANG : CHUNK_SIZE;
+  _processarLoteCanais(lista, alvo, grupo, 0, tam, CHUNK_PAUSE);
 }
 
 // ── Filtro por categoria ───────────────────────────────────────

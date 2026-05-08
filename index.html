@@ -1338,17 +1338,18 @@ function sintonizarIdioma() {
   btn.innerHTML = '&#9209; Cancelar sintonia';
   prog.innerHTML = '&#9851; Limpando registros e baixando lista completa da rede...';
 
-  // ── 1. Limpa defeituosos do idioma atual ──────────────────────
-  var urlsAnteriores = {};
-  for (var mi = 0; mi < canaisLangMaster.length; mi++) urlsAnteriores[canaisLangMaster[mi].url] = true;
-  var def = getDefeitos(), defLimpo = {};
-  for (var du in def) { if (def.hasOwnProperty(du) && !urlsAnteriores[du]) defLimpo[du] = def[du]; }
-  saveDefeitos(defLimpo);
-
-  // ── 2. Apaga listas do idioma em memória (recomeço do zero) ───
-  for (var si = 0; si < canaisLangMaster.length; si++) delete seenUrls[canaisLangMaster[si].url];
+  // ── 1 & 2. Limpa tudo: defeitos + listas em memória ──────────
+  // Defeitos são apagados completamente — serão redescobertos durante o teste.
+  // Isso é necessário porque canais bloqueados como defeituosos ficam em seenUrls
+  // desde o boot (carregar()) e nunca entram no canaisLangMaster, então não
+  // seriam limpos de outra forma. Limpar tudo garante lista 100% fresca.
+  saveDefeitos({});
   canaisLang       = [];
   canaisLangMaster = [];
+  // Reconstrói seenUrls apenas com canaisOutros — permite que todos os canais
+  // do idioma sejam re-adicionados da rede sem restrição.
+  seenUrls = {};
+  for (var si = 0; si < canaisOutros.length; si++) seenUrls[canaisOutros[si].url] = true;
   aplicarFiltro();
   atualizarTela();
 

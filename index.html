@@ -156,7 +156,9 @@ var skipCount = 0;
 
 var PROXIES = [
   'https://corsproxy.io/?url=',
-  'https://api.allorigins.win/raw?url='
+  'https://api.allorigins.win/raw?url=',
+  'https://api.codetabs.com/v1/proxy/?quest=',
+  'https://thingproxy.freeboard.io/fetch/'
 ];
 var API_BASES = [
   'https://iptv-org.github.io/api',
@@ -173,11 +175,13 @@ function xhr(url, cb) {
     if (ti >= tentativas.length) { cb('erro'); return; }
     var r = new XMLHttpRequest();
     r.open('GET', tentativas[ti++], true);
+    try { r.timeout = 12000; } catch(e){}
     r.onreadystatechange = function() {
       if (r.readyState !== 4) return;
       if (r.status === 200) cb(null, r.responseText); else next();
     };
     r.onerror = next;
+    r.ontimeout = next;
     try { r.send(); } catch(e) { next(); }
   }
   next();
@@ -211,6 +215,7 @@ function fetchM3u(urls, cb) {
     var u = raw[ri++];
     var r = new XMLHttpRequest();
     r.open('GET', u, true);
+    try { r.timeout = 12000; } catch(e){}
     r.onreadystatechange = function() {
       if (r.readyState !== 4) return;
       if (r.status === 200 && r.responseText && (r.responseText.indexOf('#EXTM3U') !== -1 || r.responseText.indexOf('#EXTINF') !== -1)) {
@@ -218,6 +223,7 @@ function fetchM3u(urls, cb) {
       } else { tryNext(); }
     };
     r.onerror = tryNext;
+    r.ontimeout = tryNext;
     try { r.send(); } catch(e) { tryNext(); }
   }
   tryNext();
@@ -709,6 +715,7 @@ function carregar() {
 
   // 1. Idioma do usuario
   fetchM3u([
+    'https://cdn.jsdelivr.net/gh/iptv-org/iptv@gh-pages/languages/' + LANG_ISO + '.m3u',
     'https://iptv-org.github.io/iptv/languages/' + LANG_ISO + '.m3u',
     'https://raw.githubusercontent.com/iptv-org/iptv/gh-pages/languages/' + LANG_ISO + '.m3u'
   ], function(e, txt) {

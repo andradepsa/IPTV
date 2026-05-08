@@ -153,7 +153,6 @@ function trocarIdioma(novo) {
   }
 }
 
-// Muda o idioma principal do app (recarrega a pagina)
 function mudarIdiomaBase() {
   var sel = document.getElementById('sel-lang');
   var novo = sel ? sel.value : rawLang;
@@ -171,6 +170,10 @@ var pBuf = '', pBufTmr = null;
 var curCh = -1, pronto = false;
 var osdTmr, errTmr, failTmr, hlsObj;
 var skipCount = 0;
+
+// ── FLAG: indica que canaisLang foi restaurado de uma sintonia salva ──
+// Quando true, carregar() NÃO sobrescreve canaisLang com o M3U bruto.
+var _sintoniaRestaurada = false;
 
 var PROXIES = [
   'https://corsproxy.io/?url=',
@@ -207,21 +210,6 @@ function xhr(url, cb) {
 
 // ── Baixar M3U com proxies ─────────────────────────────────────
 function fetchM3u(urls, cb) {
-  var tentativas = [];
-  for (var i = 0; i < urls.length; i++) {
-    tentativas.push(urls[i]);
-    for (var j = 0; j < PROXIES.length; j++) tentativas.push(PROXIES[j] + encodeURIComponent(urls[i]));
-  }
-  var ti = 0;
-  function next() {
-    if (ti >= tentativas.length) { cb('falhou'); return; }
-    xhr(tentativas[ti++], function(e, t) {
-      if (!e && t && (t.indexOf('#EXTM3U') !== -1 || t.indexOf('#EXTINF') !== -1)) cb(null, t);
-      else next();
-    });
-  }
-  // evitar dupla proxy
-  ti = 0;
   var raw = [];
   for (var a = 0; a < urls.length; a++) {
     raw.push(urls[a]);
@@ -273,23 +261,16 @@ function parseM3u(txt) {
   return result;
 }
 
-// ── Numeracao persistente por URL (via identificador curto) ────
-// Em vez de salvar a URL inteira no localStorage (centenas de bytes cada),
-// geramos um identificador curto (hash base36 de ~8 chars) a partir da URL
-// e usamos esse ID como chave. Reduz o tamanho do storage em ~95%.
-// O numero atribuido a cada ID NUNCA muda.
-var LS_NUM_LANG    = 'k10_num_lang';     // { idCurto: numeroDentroDoGrupo }
-var LS_NUM_OUTROS  = 'k10_num_outros';   // { idCurto: numeroDentroDoGrupo }
-var LS_NEXT_LANG   = 'k10_next_lang';    // proximo numero livre (lang)
-var LS_NEXT_OUTROS = 'k10_next_outros';  // proximo numero livre (outros)
+// ── Numeracao persistente por URL ──────────────────────────────
+var LS_NUM_LANG    = 'k10_num_lang';
+var LS_NUM_OUTROS  = 'k10_num_outros';
+var LS_NEXT_LANG   = 'k10_next_lang';
+var LS_NEXT_OUTROS = 'k10_next_outros';
 
-// Hash determinístico curto da URL — funciona como o identificador do YouTube:
-// dada a URL, sempre retorna o mesmo ID curto. Usa FNV-1a 32-bit + djb2 para
-// reduzir colisao, codificado em base36 (~8 chars).
 function urlId(url) {
   var s = String(url);
-  var h1 = 0x811c9dc5 >>> 0;       // FNV offset
-  var h2 = 5381 >>> 0;             // djb2 init
+  var h1 = 0x811c9dc5 >>> 0;
+  var h2 = 5381 >>> 0;
   for (var i = 0; i < s.length; i++) {
     var c = s.charCodeAt(i);
     h1 = ((h1 ^ c) * 0x01000193) >>> 0;
@@ -299,7 +280,6 @@ function urlId(url) {
   var b = h2.toString(36);
   while (a.length < 7) a = '0' + a;
   while (b.length < 7) b = '0' + b;
-  // Combina os dois hashes alternando — colisao virtualmente impossivel
   return (a + b).slice(0, 10);
 }
 
@@ -308,17 +288,13 @@ function _saveMap(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(
 function _loadNext(k){ var n = parseInt(localStorage.getItem(k) || '1', 10); return isNaN(n) ? 1 : n; }
 function _saveNext(k,v){ try{ localStorage.setItem(k, String(v)); }catch(e){} }
 
-// Migracao: converte mapas antigos (chave = URL inteira) para chave = idCurto.
-// Roda uma unica vez; depois disso o storage fica leve permanentemente.
 function _migrarMapaParaId(mapa) {
   var migrou = false;
   var novo = {};
   for (var k in mapa) {
     if (!mapa.hasOwnProperty(k)) continue;
     if (k.indexOf('http') === 0) {
-      // chave antiga (URL completa) — converte
       var id = urlId(k);
-      // se ja existe um ID com numero menor (raro), mantemos o menor
       if (!novo[id] || mapa[k] < novo[id]) novo[id] = mapa[k];
       migrou = true;
     } else {
@@ -332,14 +308,13 @@ var numLang   = _migrarMapaParaId(_loadMap(LS_NUM_LANG));
 var numOutros = _migrarMapaParaId(_loadMap(LS_NUM_OUTROS));
 var nextLang   = _loadNext(LS_NEXT_LANG);
 var nextOutros = _loadNext(LS_NEXT_OUTROS);
-// Persiste mapas migrados (so escreve uma vez)
 _saveMap(LS_NUM_LANG, numLang);
 _saveMap(LS_NUM_OUTROS, numOutros);
 
 function atribuirNumero(url, grupo) {
   var id   = urlId(url);
   var mapa = (grupo === 'lang') ? numLang : numOutros;
-  if (mapa[id]) return mapa[id]; // ja tem numero — nao muda nunca
+  if (mapa[id]) return mapa[id];
   var n;
   if (grupo === 'lang') { n = nextLang++; numLang[id] = n; _saveMap(LS_NUM_LANG, numLang); _saveNext(LS_NEXT_LANG, nextLang); }
   else                  { n = nextOutros++; numOutros[id] = n; _saveMap(LS_NUM_OUTROS, numOutros); _saveNext(LS_NEXT_OUTROS, nextOutros); }
@@ -347,19 +322,16 @@ function atribuirNumero(url, grupo) {
 }
 
 // ── Adicionar sem duplicatas ───────────────────────────────────
-// Cada canal eh ordenado pelo numero persistente atribuido a sua URL.
-// IMPORTANTE: insere em LOTES com pausa, pra nao travar TVs/PCs antigos.
-// O grupo 'lang' (idioma do usuario) entra PRIMEIRO e completo;
-// depois os 'outros' vao chegando aos poucos.
-var canaisLang       = [];   // lista ativa do idioma principal (sofre poda de defeituosos)
-var canaisLangMaster = [];   // lista completa do idioma principal (usada pelo tune)
-var canaisExtraLangs = [];   // [{iso:'eng', nome:'ENGLISH', canais:[], master:[]}] — idiomas adicionais sintonizados
+var canaisLang       = [];
+var canaisLangMaster = [];
+var canaisExtraLangs = [];
 var canaisOutros = [];
-var tuneTargetLang = rawLang; // idioma selecionado para o próximo tune (pode diferir de rawLang)
+var tuneTargetLang = rawLang;
 
-// ── Persistência da sintonização (idiomas extras + master do principal) ──
+// ── Persistência da sintonização ───────────────────────────────
 var LS_SINT_EXTRAS = 'k10_sint_extras_v2';
 var LS_SINT_MASTER = 'k10_sint_master_v2';
+
 function _salvarSintoniaExtras(){
   try{
     var slim = canaisExtraLangs.map(function(g){
@@ -371,8 +343,11 @@ function _salvarSintoniaExtras(){
     localStorage.setItem(LS_SINT_EXTRAS, JSON.stringify(slim));
     var m = canaisLangMaster.map(function(c){return {nome:c.nome,url:c.url,cats:c.cats||[],_num:c._num};});
     localStorage.setItem(LS_SINT_MASTER, JSON.stringify(m));
-  }catch(e){}
+  }catch(e){
+    console.error('[K60] Falha ao salvar sintonia (quota?):', e);
+  }
 }
+
 function _restaurarSintoniaExtras(){
   try{
     var raw = localStorage.getItem(LS_SINT_EXTRAS);
@@ -394,24 +369,23 @@ function _restaurarSintoniaExtras(){
       var m = JSON.parse(rawM);
       if (m && m.length){
         canaisLangMaster = m.slice();
-        // Pré-popula canaisLang com os já aprovados (serão complementados pelo carregar())
         canaisLang = m.slice();
         for (var j=0;j<m.length;j++) seenUrls[m[j].url] = true;
+        // ── CORREÇÃO: sinaliza que a sintonia foi restaurada ──────────
+        // Impede que carregar() sobrescreva canaisLang com o M3U bruto.
+        _sintoniaRestaurada = true;
+        console.log('[K60] Sintonia restaurada: ' + m.length + ' canal(is).');
       }
     }
   }catch(e){}
 }
 
-
-// Detecta dispositivo lento: TV (Tizen/WebOS/SmartTV) ou agente antigo.
+// ── Detecção de dispositivo ────────────────────────────────────
 var _ua = (navigator.userAgent || '').toLowerCase();
 var IS_TV = /smart-?tv|smarttv|tizen|web0s|webos|hbbtv|netcast|viera|bravia|aquos|inettvbrowser|crkey|googletv|appletv|aoc|philips|samsung.*tv|lg.*tv|tv.*browser/.test(_ua);
-// Override manual: abra console e digite localStorage.setItem('k10_tv','1') para forcar modo TV
 try { if (localStorage.getItem('k10_tv') === '1') IS_TV = true; } catch(e) {}
-// Lote menor e pausa maior em TV; computador moderno usa lote grande.
 var CHUNK_SIZE  = IS_TV ? 25  : 120;
-var CHUNK_PAUSE = IS_TV ? 120 : 30;  // ms entre lotes
-// Lote do idioma do usuario eh maior pra aparecer rapido, mas ainda em pedacos.
+var CHUNK_PAUSE = IS_TV ? 120 : 30;
 var CHUNK_SIZE_LANG = IS_TV ? 40 : 200;
 
 function _processarLoteCanais(lista, alvo, grupo, idx, tamLote, pausa) {
@@ -423,16 +397,15 @@ function _processarLoteCanais(lista, alvo, grupo, idx, tamLote, pausa) {
       seenUrls[c.url] = true;
       c._num = atribuirNumero(c.url, grupo);
       alvo.push(c);
-      // Mantém master completa para o tune re-verificar tudo
-      if (grupo === 'lang') canaisLangMaster.push(c);
+      // Só adiciona ao master se a sintonia NÃO foi restaurada (carga inicial)
+      // Evita contaminar o master salvo com canais não testados após reiniciar.
+      if (grupo === 'lang' && !_sintoniaRestaurada) canaisLangMaster.push(c);
       mudou = true;
     }
   }
   if (mudou) {
-    // Ordena so o grupo afetado (lista pequena, rapido)
     alvo.sort(function(a, b){ return a._num - b._num; });
     aplicarFiltro();
-    // Atualiza a tela ja com o que tem ate agora
     if (typeof atualizarTela === 'function') {
       try { atualizarTela(); } catch(e) {}
     }
@@ -451,8 +424,20 @@ function addCanais(lista, grupo) {
   _processarLoteCanais(lista, alvo, grupo, 0, tam, CHUNK_PAUSE);
 }
 
+// ── Marca URLs do M3U como vistos SEM adicionar à lista ───────
+// Usado quando a sintonia está restaurada: impede que o M3U bruto
+// do idioma reapareça em canaisOutros via lista mundial.
+function _marcarM3uComoVisto(txt) {
+  try {
+    var parsed = parseM3u(txt);
+    for (var i = 0; i < parsed.length; i++) {
+      if (parsed[i] && parsed[i].url) seenUrls[parsed[i].url] = true;
+    }
+  } catch(e) {}
+}
+
 // ── Filtro por categoria ───────────────────────────────────────
-var catFiltro = null; // null = sem filtro
+var catFiltro = null;
 function _matchCat(c, cat) {
   if (!cat) return true;
   var arr = c.cats || [];
@@ -463,14 +448,11 @@ function _matchCat(c, cat) {
   return false;
 }
 function aplicarFiltro() {
-  // Salva URL do canal atual para reancurar curCh depois da reordenação
   var urlAtual = (curCh >= 0 && canais[curCh]) ? canais[curCh].url : null;
-
   function _mc(c) { return _matchCat(c, catFiltro); }
   var L = catFiltro ? canaisLang.filter(_mc) : canaisLang.slice();
-  // Idiomas extras acumulados (tune de outros idiomas)
   var extrasFlat = [];
-  var extrasInfo = []; // [{nome, count}] para exibir faixas
+  var extrasInfo = [];
   for (var ei = 0; ei < canaisExtraLangs.length; ei++) {
     var ec = catFiltro ? canaisExtraLangs[ei].canais.filter(_mc) : canaisExtraLangs[ei].canais.slice();
     extrasInfo.push({ nome: canaisExtraLangs[ei].nome, count: ec.length });
@@ -478,7 +460,6 @@ function aplicarFiltro() {
   }
   var O = catFiltro ? canaisOutros.filter(_mc) : canaisOutros.slice();
   var todos = L.concat(extrasFlat).concat(O);
-  // Favoritos primeiro
   var favs = [];
   try { favs = JSON.parse(localStorage.getItem('k10favs') || '[]'); } catch(e) { favs = []; }
   if (favs && favs.length) {
@@ -495,9 +476,7 @@ function aplicarFiltro() {
     canais = todos;
   }
   langFim = L.length;
-  // Salva info das faixas para atualizarTela
   window._extraLangInfo = extrasInfo;
-  // Reancura curCh pela URL do canal atual — evita que a numeração mude após reordenação
   if (urlAtual) {
     var novoIdx = canais.findIndex(function(c){ return c.url === urlAtual; });
     if (novoIdx !== -1) curCh = novoIdx;
@@ -514,8 +493,7 @@ function setFiltroCategoria(cat) {
   atualizarTela();
 }
 
-
-// ── i18n da interface (auto via API) ───────────────────────────
+// ── i18n da interface ──────────────────────────────────────────
 var UI_EN = {
   subtitle: 'Live TV - access by number',
   all_cats: 'All categories',
@@ -587,7 +565,7 @@ function carregarUIIdioma() {
   next();
 }
 
-// ── i18n de categorias (auto via API) ──────────────────────────
+// ── i18n de categorias ─────────────────────────────────────────
 var LABELS_PT = {
   news:'Notícias', business:'Negócios', weather:'Clima', documentary:'Documentário',
   entertainment:'Entretenimento', comedy:'Comédia', general:'Geral', sports:'Esportes',
@@ -610,14 +588,12 @@ var LABELS_EN = {
 };
 
 function detectarIdioma() {
-  // Prioriza a escolha salva pelo usuário
   try { var s = localStorage.getItem(LS_LANG); if (s && LANG_MAP[s]) return s; } catch(e) {}
   var l = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
   return l.split('-')[0];
 }
 
 function traduzirTexto(texto, destino, cb) {
-  // MyMemory: API gratuita, sem chave
   var url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(texto) + '&langpair=en|' + encodeURIComponent(destino);
   var x = new XMLHttpRequest();
   x.open('GET', url, true);
@@ -625,8 +601,8 @@ function traduzirTexto(texto, destino, cb) {
   x.onload = function() {
     try {
       var d = JSON.parse(x.responseText);
-      var t = (d && d.responseData && d.responseData.translatedText) ? d.responseData.translatedText : texto;
-      cb(t);
+      var tr = (d && d.responseData && d.responseData.translatedText) ? d.responseData.translatedText : texto;
+      cb(tr);
     } catch(e) { cb(texto); }
   };
   x.onerror = x.ontimeout = function() { cb(texto); };
@@ -637,14 +613,11 @@ function obterLabels(cb) {
   var idioma = detectarIdioma();
   if (idioma === 'pt') return cb(LABELS_PT);
   if (idioma === 'en') return cb(LABELS_EN);
-
   var cacheKey = 'k10_cat_labels_' + idioma;
   try {
     var cached = localStorage.getItem(cacheKey);
     if (cached) return cb(JSON.parse(cached));
   } catch(e) {}
-
-  // Traduz a partir do EN, em série
   var keys = Object.keys(LABELS_EN);
   var out = {};
   var i = 0;
@@ -655,13 +628,11 @@ function obterLabels(cb) {
       return;
     }
     var k = keys[i++];
-    traduzirTexto(LABELS_EN[k], idioma, function(t) {
-      out[k] = t;
-      // pequena pausa para nao saturar API publica
+    traduzirTexto(LABELS_EN[k], idioma, function(tr) {
+      out[k] = tr;
       setTimeout(next, 120);
     });
   }
-  // Primeiro mostra EN como fallback enquanto traduz
   cb(LABELS_EN, true);
   next();
 }
@@ -671,7 +642,6 @@ function _renderSelectCategorias(labels) {
   if (!sel) return;
   var optTodas = document.getElementById('opt-todas');
   if (optTodas) optTodas.textContent = '\u2600 ' + (labels._all || 'All categories');
-  // limpa opcoes (exceto a "todas")
   for (var j = sel.options.length - 1; j >= 0; j--) {
     if (sel.options[j].value !== '') sel.remove(j);
   }
@@ -714,7 +684,6 @@ function atualizarTela() {
     html += '<div class="dest">&#9733; ' + LANG_NOME + ': 1 ' + t('to') + ' ' + langFim + '</div>';
     cursor = langFim;
   }
-  // Faixas de idiomas extras sintonizados
   var extras = window._extraLangInfo || [];
   for (var ei = 0; ei < extras.length; ei++) {
     if (extras[ei].count > 0) {
@@ -780,7 +749,6 @@ function buildApi(data, cats) {
   return out;
 }
 
-// Filtra canais da API por idioma (codigo ISO de 3 letras: por, eng, spa, ...)
 function buildApiByLang(data, langIso) {
   var sm = {};
   for (var i = 0; i < data.strs.length; i++) {
@@ -793,7 +761,6 @@ function buildApiByLang(data, langIso) {
     var langs = ch.languages || [];
     var ok = false;
     for (var k = 0; k < langs.length; k++) {
-      // API pode retornar string 'por' ou objeto {name:'Portuguese',code:'por'}
       var lcode = (langs[k] && typeof langs[k] === 'object')
         ? String(langs[k].code || langs[k].name || '').toLowerCase()
         : String(langs[k]).toLowerCase();
@@ -814,9 +781,14 @@ var CATS = ['news','business','weather','documentary','entertainment','comedy',
 
 function carregar() {
   setStatus(t('loading_in') + ' ' + LANG_NOME + '...');
-  // Pre-marca URLs defeituosos como ja vistos para nao entrarem na lista
+
+  // Pré-marca defeituosos como vistos para não entrarem na lista
   var _def = getDefeitos();
   for (var _u in _def) { if (_def.hasOwnProperty(_u)) seenUrls[_u] = true; }
+
+  // ── CORREÇÃO: se a sintonia foi restaurada, NÃO recarrega o M3U bruto ──
+  // Captura o valor da flag agora (antes de qualquer callback assíncrono)
+  var _sintOk = _sintoniaRestaurada;
 
   // 1. Idioma do usuario
   fetchM3u([
@@ -824,14 +796,22 @@ function carregar() {
     'https://iptv-org.github.io/iptv/languages/' + LANG_ISO + '.m3u',
     'https://raw.githubusercontent.com/iptv-org/iptv/gh-pages/languages/' + LANG_ISO + '.m3u'
   ], function(e, txt) {
-    var antes = canaisLang.length;
-    if (!e) addCanais(parseM3u(txt), 'lang');
+    if (!e) {
+      if (_sintOk) {
+        // Sintonia já restaurada: só marca as URLs como vistas.
+        // Isso evita que a lista mundial reinsira esses canais em canaisOutros.
+        _marcarM3uComoVisto(txt);
+      } else {
+        // Carga inicial (sem sintonia): adiciona normalmente
+        addCanais(parseM3u(txt), 'lang');
+      }
+    }
     atualizarTela();
 
-    // Na TV: carrega APENAS o idioma do usuario, para nao travar.
+    // Na TV: carrega APENAS o idioma do usuario
     if (IS_TV) {
-      // Fallback: se o M3U falhou ou trouxe 0 canais, tenta API filtrando por idioma
-      var precisaFallback = (e || canaisLang.length === antes);
+      // Só tenta fallback API se não há sintonia e o M3U falhou ou veio vazio
+      var precisaFallback = !_sintOk && (e || canaisLang.length === 0);
       if (precisaFallback) {
         setStatus(t('loading_api') + ' (' + LANG_NOME + ')...');
         fetchApi(function(eA, data) {
@@ -890,9 +870,7 @@ function carregar() {
               addCanais(buildApi(data, null), 'outros');
             }
             atualizarTela();
-            // Detecta canais novos UMA unica vez, com a lista ja completa e estavel
             detectarNovosCanais(canais);
-            // Inicia revalidacao de defeituosos em background (apos 10s para nao sobrecarregar)
             setTimeout(revalidarDefeitos, 10000);
           });
         });
@@ -929,7 +907,6 @@ function pararVideo() {
   vid.onerror = null; vid.oncanplay = null; vid.onloadedmetadata = null; vid.onplaying = null;
   clearTimeout(failTmr);
   try { vid.pause(); } catch(e) {}
-  // Reset agressivo — libera buffers completamente
   try { vid.src = ''; } catch(e) {}
   try { vid.removeAttribute('src'); } catch(e) {}
   try { vid.load(); } catch(e) {}
@@ -938,12 +915,8 @@ function pararVideo() {
 function tocar(idx) {
   var ch = canais[idx]; if (!ch) return;
   curCh = idx;
-
-  // Para tudo antes de qualquer coisa
   pararVideo();
   var vid = document.getElementById('vid');
-
-  // UI
   document.getElementById('osd-num').textContent = String(idx + 1);
   document.getElementById('osd-nome').textContent = ch.nome;
   document.getElementById('osd-estado').textContent = 'Conectando...';
@@ -952,9 +925,7 @@ function tocar(idx) {
   document.getElementById('tela-player').style.display = 'block';
   mostrarOSD();
   atualizarBtnFav();
-
   failTmr = setTimeout(mostrarErro, IS_TV ? 30000 : 15000);
-
   var okJa = false;
   function onOk() {
     if (okJa) return; okJa = true;
@@ -966,18 +937,15 @@ function tocar(idx) {
   vid.oncanplay  = onOk;
   vid.onplaying  = onOk;
   vid.onloadedmetadata = function() { try { vid.play(); } catch(e) {} };
-
   var url = ch.url;
   var ehHls   = /\.m3u8?($|\?)/i.test(url);
   var nativeHls = !!(vid.canPlayType && (
     vid.canPlayType('application/vnd.apple.mpegurl') !== '' ||
     vid.canPlayType('application/x-mpegURL') !== ''
   ));
-  // Na TV antiga: NUNCA usa HLS.js (pesado demais, trava)
   var temMSE = !IS_TV &&
                typeof window.MediaSource !== 'undefined' &&
                typeof Hls !== 'undefined' && Hls.isSupported();
-
   function onErroNativo() {
     vid.onerror = null;
     var code = 0;
@@ -987,23 +955,16 @@ function tocar(idx) {
     clearTimeout(failTmr); mostrarErro();
   }
   vid.onerror = onErroNativo;
-
   function tentarHlsJs() {
     try {
       hlsObj = new Hls({
-        enableWorker: false,
-        lowLatencyMode: false,
-        backBufferLength: 20,
-        maxBufferLength: 20,
-        maxMaxBufferLength: 40,
-        maxBufferSize: 40 * 1000 * 1000,
-        capLevelToPlayerSize: true
+        enableWorker: false, lowLatencyMode: false, backBufferLength: 20,
+        maxBufferLength: 20, maxMaxBufferLength: 40,
+        maxBufferSize: 40 * 1000 * 1000, capLevelToPlayerSize: true
       });
       hlsObj.loadSource(url);
       hlsObj.attachMedia(vid);
-      hlsObj.on(Hls.Events.MANIFEST_PARSED, function() {
-        try { vid.play(); } catch(e) {}
-      });
+      hlsObj.on(Hls.Events.MANIFEST_PARSED, function() { try { vid.play(); } catch(e) {} });
       hlsObj.on(Hls.Events.ERROR, function(ev, d) {
         if (!d || !d.fatal) return;
         window.__ultimoMotivoErro = (d.type === Hls.ErrorTypes.NETWORK_ERROR) ? 'canal' : 'app';
@@ -1011,12 +972,9 @@ function tocar(idx) {
       });
     } catch(e) { window.__ultimoMotivoErro = 'app'; mostrarErro(); }
   }
-
-  // Computador com HLS.js → tenta HLS.js pra streams .m3u8 sem suporte nativo
   if (ehHls && temMSE && !nativeHls) {
     tentarHlsJs();
   } else {
-    // TV + todos os outros: nativo direto (mais leve)
     try {
       vid.src = url;
       vid.load();
@@ -1031,7 +989,6 @@ function tocar(idx) {
   }
 }
 
-
 function voltarHome() {
   pararVideo(); clearTimeout(osdTmr); clearTimeout(errTmr);
   skipCount = 0;
@@ -1045,41 +1002,32 @@ function mostrarErro() {
   clearTimeout(failTmr); clearTimeout(errTmr);
   var motivo = window.__ultimoMotivoErro || 'canal';
   window.__ultimoMotivoErro = null;
-
-  // Contadores globais para diagnostico
   window.__errCanal = window.__errCanal || 0;
   window.__errApp   = window.__errApp   || 0;
   if (motivo === 'app') window.__errApp++; else window.__errCanal++;
-
-  // Registra defeito e remove da lista
   if (curCh >= 0 && canais[curCh]) {
     registrarDefeito(curCh);
     if (canais.length === 0) { voltarHome(); return; }
     curCh = curCh % canais.length;
   }
   skipCount++;
-
-  // Se a maioria das falhas recentes é do tipo "app" → reprodutor da TV incompatível
   var totalErr = window.__errApp + window.__errCanal;
   var appIncompat = (totalErr >= 5 && window.__errApp / totalErr >= 0.7);
-
   if (skipCount >= canais.length || appIncompat) {
     skipCount = 0;
     document.getElementById('carregando').style.display = 'none';
-    var t = document.getElementById('toast');
+    var tst = document.getElementById('toast');
     if (appIncompat) {
-      t.querySelector('p').innerHTML = '⚠ APLICATIVO DE REPRODUÇÃO COM ERRO';
-      t.querySelector('small').textContent = 'O navegador desta TV não suporta o formato de vídeo (HLS/MSE). Tente em outro dispositivo.';
+      tst.querySelector('p').innerHTML = '⚠ APLICATIVO DE REPRODUÇÃO COM ERRO';
+      tst.querySelector('small').textContent = 'O navegador desta TV não suporta o formato de vídeo (HLS/MSE). Tente em outro dispositivo.';
     } else {
-      t.querySelector('p').textContent = 'Nenhum canal disponível';
-      t.querySelector('small').textContent = 'Voltando para a tela inicial...';
+      tst.querySelector('p').textContent = 'Nenhum canal disponível';
+      tst.querySelector('small').textContent = 'Voltando para a tela inicial...';
     }
-    t.style.display = 'block';
-    errTmr = setTimeout(function() { t.style.display = 'none'; voltarHome(); }, appIncompat ? 6000 : 2500);
+    tst.style.display = 'block';
+    errTmr = setTimeout(function() { tst.style.display = 'none'; voltarHome(); }, appIncompat ? 6000 : 2500);
     return;
   }
-
-  // Mostra aviso rápido diferenciando origem do erro e pula para o próximo canal
   document.getElementById('carregando').style.display = 'none';
   var msg = (motivo === 'app')
     ? '⚠ Reprodutor não suporta este canal — pulando...'
@@ -1147,7 +1095,6 @@ document.onkeydown = function(e) {
 // ── Favoritos ──────────────────────────────────────────────────
 function getFavs() { try { return JSON.parse(localStorage.getItem('k10favs') || '[]'); } catch(e) { return []; } }
 function saveFavs(f) { localStorage.setItem('k10favs', JSON.stringify(f)); }
-
 function isFav(url) { return getFavs().some(function(f){ return f.url === url; }); }
 
 function toggleFav() {
@@ -1159,7 +1106,6 @@ function toggleFav() {
   else favs.splice(idx, 1);
   saveFavs(favs);
   aplicarFiltro();
-  // mantem o canal atual em foco apos reordenacao
   curCh = canais.findIndex(function(c){ return c.url === ch.url; });
   atualizarBtnFav();
   renderFavs();
@@ -1187,12 +1133,9 @@ function renderFavs() {
 
 function tocarFav(i) {
   var f = getFavs()[i];
-  // acha o indice do canal na lista principal
   var idx = canais.findIndex(function(c){ return c.url === f.url; });
   if (idx !== -1) { tocar(idx); }
   else {
-    // canal nao esta na lista carregada ainda — adiciona via addCanais
-    // para preservar a ordenacao deterministica e a numeracao estavel
     curCh = -1;
     addCanais([f], 'outros');
     var novoIdx = canais.findIndex(function(c){ return c.url === f.url; });
@@ -1220,7 +1163,6 @@ function saveDefeitos(d) {
   try { localStorage.setItem(LS_DEFEITOS, JSON.stringify(d)); } catch(e) {}
 }
 
-// Registra defeito E remove da lista de canais
 function registrarDefeito(idx) {
   var ch = canais[idx];
   if (!ch) return;
@@ -1230,23 +1172,14 @@ function registrarDefeito(idx) {
     d[ch.url].tentativas = (d[ch.url].tentativas || 1) + 1;
     d[ch.url].ultimaVez = agora;
   } else {
-    d[ch.url] = {
-      nome: ch.nome,
-      url: ch.url,
-      primeiroDef: agora,
-      ultimaVez: agora,
-      tentativas: 1
-    };
+    d[ch.url] = { nome: ch.nome, url: ch.url, primeiroDef: agora, ultimaVez: agora, tentativas: 1 };
   }
   saveDefeitos(d);
-  // Remove da lista de canais em memoria, mantendo os grupos sincronizados
   removerCanalPorUrl(ch.url);
-  // Ajusta indice atual
   if (curCh >= canais.length) curCh = canais.length - 1;
-  console.log('[K10] Canal removido da lista por defeito: ' + ch.nome);
+  console.log('[K60] Canal removido da lista por defeito: ' + ch.nome);
 }
 
-// Remove um canal pela URL dos grupos e reconstroi a lista principal
 function _spliceUrl(arr, url){ for(var i=arr.length-1;i>=0;i--){ if(arr[i] && arr[i].url===url) arr.splice(i,1); } }
 function _extrairCanalPorUrl(arr, url){
   for (var i = arr.length - 1; i >= 0; i--) {
@@ -1268,72 +1201,46 @@ function removerCanalPorUrl(url) {
   aplicarFiltro();
 }
 
-// Tenta revalidar canais defeituosos em background — se funcionar volta pra lista
-var LS_REVAL_FILA    = 'k10_reval_fila';     // fila persistente de urls a testar
-var LS_REVAL_DATA    = 'k10_reval_data';     // data da ultima rodada
+// ── Revalidação de defeituosos ─────────────────────────────────
+var LS_REVAL_FILA    = 'k10_reval_fila';
+var LS_REVAL_DATA    = 'k10_reval_data';
 var REVAL_LOTE       = 5;
-var REVAL_INTERVALO  = 7 * 24 * 60 * 60 * 1000; // 7 dias
+var REVAL_INTERVALO  = 7 * 24 * 60 * 60 * 1000;
 var REVAL_ESPERA     = 8000;
 
 function revalidarDefeitos() {
   var d    = getDefeitos();
   var urls = Object.keys(d);
   if (urls.length === 0) return;
-
-  // Verifica se passou 7 dias
   var agora        = Date.now();
   var ultimaRodada = parseInt(localStorage.getItem(LS_REVAL_DATA) || '0', 10);
   if (agora - ultimaRodada < REVAL_INTERVALO) {
     var dias = Math.ceil((REVAL_INTERVALO - (agora - ultimaRodada)) / 86400000);
-    console.log('[K10] Proxima revalidacao em ' + dias + ' dia(s).');
+    console.log('[K60] Proxima revalidacao em ' + dias + ' dia(s).');
     return;
   }
-
-  // Carrega fila salva; se estiver vazia ou com urls que ja saíram dos defeitos, reconstrói
   var fila = [];
   try { fila = JSON.parse(localStorage.getItem(LS_REVAL_FILA) || '[]'); } catch(e) {}
-  // Filtra da fila urls que nao existem mais nos defeitos
   fila = fila.filter(function(u){ return !!d[u]; });
-  // Se a fila esgotou, reconstrói com todos os defeituosos atuais (embaralhados para variedade)
   if (fila.length === 0) {
-    fila = urls.slice(); // copia
-    // Embaralha (Fisher-Yates) para nao testar sempre na mesma ordem
+    fila = urls.slice();
     for (var s = fila.length - 1; s > 0; s--) {
       var r = Math.floor(Math.random() * (s + 1));
       var tmp = fila[s]; fila[s] = fila[r]; fila[r] = tmp;
     }
-    console.log('[K10] Fila recriada com ' + fila.length + ' canal(is) defeituoso(s).');
   }
-
-  // Pega os proximos 5 da fila
   var lote = fila.splice(0, REVAL_LOTE);
-
-  // Salva fila atualizada e data
   try { localStorage.setItem(LS_REVAL_FILA, JSON.stringify(fila)); } catch(e) {}
   try { localStorage.setItem(LS_REVAL_DATA, String(agora)); } catch(e) {}
-
-  console.log('[K10] Testando lote de ' + lote.length + ' canal(is). Restam ' + fila.length + ' na fila.');
-
-  // Testa um por vez com 2s de intervalo
   var i = 0;
   function testarProximo() {
     if (i >= lote.length) return;
     var url = lote[i++];
     var ch  = d[url];
     if (!ch) { testarProximo(); return; }
-
     var resolvido = false;
-    function onFalha() {
-      if (resolvido) return; resolvido = true;
-      console.log('[K10] Ainda offline: ' + ch.nome);
-      setTimeout(testarProximo, 2000);
-    }
-    function onOk() {
-      if (resolvido) return; resolvido = true;
-      voltarDaDefeituosa(url, ch);
-      setTimeout(testarProximo, 2000);
-    }
-
+    function onFalha() { if (resolvido) return; resolvido = true; setTimeout(testarProximo, 2000); }
+    function onOk()    { if (resolvido) return; resolvido = true; voltarDaDefeituosa(url, ch); setTimeout(testarProximo, 2000); }
     var vid = document.createElement('video');
     var tmr = setTimeout(function() {
       vid.src = ''; vid.onerror = null; vid.oncanplay = null;
@@ -1345,7 +1252,6 @@ function revalidarDefeitos() {
         h.on(Hls.Events.ERROR, function(ev, data) { if (data.fatal) { h.destroy(); onFalha(); } });
       } else { onFalha(); }
     }, REVAL_ESPERA);
-
     vid.oncanplay = function() { clearTimeout(tmr); vid.src = ''; onOk(); };
     vid.onerror   = function() { clearTimeout(tmr); onFalha(); };
     vid.src = url;
@@ -1354,22 +1260,18 @@ function revalidarDefeitos() {
   testarProximo();
 }
 
-// Remove dos defeituosos e devolve pra lista de canais
 function voltarDaDefeituosa(url, ch) {
   var d = getDefeitos();
-  if (!d[url]) return; // ja foi processado
+  if (!d[url]) return;
   delete d[url];
   saveDefeitos(d);
-  // Adiciona de volta via addCanais — preserva a ordenacao por URL
   var jaEsta = canais.some(function(c){ return c.url === url; });
   if (!jaEsta) {
     addCanais([{ nome: ch.nome, url: url }], 'outros');
     atualizarTela();
-    console.log('[K10] Canal voltou pra lista: ' + ch.nome);
   }
 }
 
-// Ao carregar, remove da lista os canais que ja estao registrados como defeituosos
 function filtrarDefeituososDaLista() {
   var d = getDefeitos();
   var urls = Object.keys(d);
@@ -1384,7 +1286,7 @@ function filtrarDefeituososDaLista() {
   seenUrls = {};
   for (var i = 0; i < canais.length; i++) seenUrls[canais[i].url] = true;
   var removidos = antes - canais.length;
-  if (removidos > 0) console.log('[K10] ' + removidos + ' canal(is) defeituoso(s) removido(s) da lista.');
+  if (removidos > 0) console.log('[K60] ' + removidos + ' canal(is) defeituoso(s) removido(s) da lista.');
 }
 
 // ── Canais novos ───────────────────────────────────────────────
@@ -1395,11 +1297,9 @@ function getCanaisVistos() {
 }
 
 function detectarNovosCanais(listaAtual) {
-  // 'vistos' agora guarda apenas IDs curtos (hash da URL) — ~10 chars vs ~200 chars por URL
   var vistos = getCanaisVistos();
   var vistosSet = {};
   for (var i = 0; i < vistos.length; i++) vistosSet[vistos[i]] = true;
-  // Migracao: se houver URLs antigas no array, converte para id curto
   var precisaMigrar = vistos.some(function(v){ return typeof v === 'string' && v.indexOf('http') === 0; });
   if (precisaMigrar) {
     vistosSet = {};
@@ -1410,7 +1310,6 @@ function detectarNovosCanais(listaAtual) {
   }
   var novos = listaAtual.filter(function(c){ return !vistosSet[urlId(c.url)]; });
   if (novos.length > 0) {
-    console.log('[K10] ' + novos.length + ' canais novos detectados.');
     var agora = new Date().toISOString();
     var LS_NOVOS = 'k10_canais_novos';
     var jaReg = []; try { jaReg = JSON.parse(localStorage.getItem(LS_NOVOS) || '[]'); } catch(e) {}
@@ -1419,20 +1318,22 @@ function detectarNovosCanais(listaAtual) {
     if (todos.length > 500) todos = todos.slice(todos.length - 500);
     try { localStorage.setItem(LS_NOVOS, JSON.stringify(todos)); } catch(e) {}
   }
-  // Salva apenas os IDs curtos — leve
   try { localStorage.setItem(LS_CANAIS_VISTOS, JSON.stringify(listaAtual.map(function(c){ return urlId(c.url); }))); } catch(e) {}
 }
 
 // ── Comandos de console ────────────────────────────────────────
 window.verDefeitos      = function(){ var d=getDefeitos(); console.table(Object.values(d)); return Object.values(d); };
-window.limparDefeitos   = function(){ localStorage.removeItem(LS_DEFEITOS); console.log('[K10] Defeitos limpos.'); };
+window.limparDefeitos   = function(){ localStorage.removeItem(LS_DEFEITOS); console.log('[K60] Defeitos limpos.'); };
 window.verCanaisNovos   = function(){ try{ var l=JSON.parse(localStorage.getItem('k10_canais_novos')||'[]'); console.table(l); return l; }catch(e){ return []; } };
-window.limparCanaisNovos= function(){ localStorage.removeItem('k10_canais_novos'); localStorage.removeItem(LS_CANAIS_VISTOS); console.log('[K10] Canais novos limpos.'); };
+window.limparCanaisNovos= function(){ localStorage.removeItem('k10_canais_novos'); localStorage.removeItem(LS_CANAIS_VISTOS); console.log('[K60] Canais novos limpos.'); };
+// Diagnóstico: mostra se a sintonia está salva
+window.verSintonia = function(){
+  var m = []; try { m = JSON.parse(localStorage.getItem(LS_SINT_MASTER)||'[]'); } catch(e){}
+  console.log('[K60] canaisLangMaster salvo: ' + m.length + ' canal(is). _sintoniaRestaurada=' + _sintoniaRestaurada);
+  return m;
+};
 
-// ── Sintonizar canais do idioma (acumula múltiplos idiomas) ───
-// Tune do idioma principal: substitui canaisLang.
-// Tune de outro idioma: acumula em canaisExtraLangs na ordem feita.
-// Resultado: lista única ordenada: Principal → Extras → Outros.
+// ── Sintonizar canais do idioma ────────────────────────────────
 var sintRodando = false;
 var sintAbortar = false;
 
@@ -1446,7 +1347,6 @@ function sintonizarIdioma() {
     return;
   }
 
-  // Idioma alvo: o selecionado no dropdown
   var targetRaw  = tuneTargetLang || rawLang;
   var targetIso  = LANG_MAP[targetRaw] || LANG_ISO;
   var targetNome = (LANG_NAMES[targetRaw] || targetRaw).toUpperCase();
@@ -1456,12 +1356,12 @@ function sintonizarIdioma() {
   btn.innerHTML = '&#9209; Cancelar sintonia';
   prog.innerHTML = '&#9851; Baixando lista de ' + targetNome + '...';
 
-  // ── Limpa defeitos e reseta estruturas do idioma alvo ─────────
   saveDefeitos({});
 
   if (isPrimary) {
-    // Idioma principal: zera canaisLang e reconstrói seenUrls
     canaisLang = []; canaisLangMaster = [];
+    // ── CORREÇÃO: reseta a flag ao iniciar nova sintonia do idioma principal ──
+    _sintoniaRestaurada = false;
     seenUrls = {};
     for (var si = 0; si < canaisOutros.length; si++) seenUrls[canaisOutros[si].url] = true;
     for (var ei = 0; ei < canaisExtraLangs.length; ei++) {
@@ -1469,7 +1369,6 @@ function sintonizarIdioma() {
       for (var _i = 0; _i < _ec.length; _i++) seenUrls[_ec[_i].url] = true;
     }
   } else {
-    // Idioma extra: acha ou cria entrada; remove suas URLs de seenUrls para retestar
     var entryIdx = -1;
     for (var xi = 0; xi < canaisExtraLangs.length; xi++) {
       if (canaisExtraLangs[xi].iso === targetIso) { entryIdx = xi; break; }
@@ -1485,7 +1384,6 @@ function sintonizarIdioma() {
   aplicarFiltro();
   atualizarTela();
 
-  // ── Baixa M3U do idioma alvo direto da rede ───────────────────
   fetchM3u([
     'https://cdn.jsdelivr.net/gh/iptv-org/iptv@gh-pages/languages/' + targetIso + '.m3u',
     'https://iptv-org.github.io/iptv/languages/' + targetIso + '.m3u',
@@ -1504,13 +1402,10 @@ function sintonizarIdioma() {
     }
   });
 
-  // ── Popula a lista do idioma alvo e inicia teste ──────────────
   function _popularETestar(novosCanais) {
     if (sintAbortar) { _fimSint('Sintonia cancelada.', 0, 0); return; }
 
-    // Determina onde inserir: primary → canaisLang; extra → canaisExtraLangs[entryIdx]
     if (!isPrimary) {
-      // Recomputa entryIdx defensivamente (caso array tenha mudado)
       entryIdx = -1;
       for (var _xi = 0; _xi < canaisExtraLangs.length; _xi++) {
         if (canaisExtraLangs[_xi] && canaisExtraLangs[_xi].iso === targetIso) { entryIdx = _xi; break; }
@@ -1524,19 +1419,15 @@ function sintonizarIdioma() {
     var targetMaster = isPrimary ? canaisLangMaster : _entryRef.master;
     var targetAtivo  = isPrimary ? canaisLang       : _entryRef.canais;
 
-    // Canais que já estavam na lista ativa (já testados e aprovados anteriormente)
     var jaAprovadosMap = {};
     for (var ja = 0; ja < targetAtivo.length; ja++) jaAprovadosMap[targetAtivo[ja].url] = true;
 
-    // Adiciona apenas canais genuinamente novos (não vistos E não já aprovados)
     var realmNovos = [];
     for (var i = 0; i < novosCanais.length; i++) {
       var c = novosCanais[i];
       if (!c || !c.url) continue;
-      if (jaAprovadosMap[c.url]) continue; // já aprovado — mantém na lista sem retestar
+      if (jaAprovadosMap[c.url]) continue;
       if (seenUrls[c.url]) {
-        // Se o canal já existe apenas em "Outros", promove para o idioma sintonizado.
-        // Isso evita que o 2º/3º idioma falhe só porque a lista mundial já trouxe a URL.
         var reaproveitado = _extrairCanalPorUrl(canaisOutros, c.url);
         if (!reaproveitado) continue;
         if ((!reaproveitado.nome || reaproveitado.nome === 'Canal') && c.nome) reaproveitado.nome = c.nome;
@@ -1559,7 +1450,6 @@ function sintonizarIdioma() {
     aplicarFiltro();
     atualizarTela();
 
-    // Só testa os canais realmente novos; os já aprovados são mantidos sem teste
     var jaAprovados = targetAtivo.length - realmNovos.length;
     var lista = realmNovos.slice();
     var total = lista.length;
@@ -1591,13 +1481,11 @@ function sintonizarIdioma() {
         + (nome ? '<br><small>' + nome + '</small>' : '');
     }
 
-    // Teste leve: HEAD request via proxy cascade (sem vídeo, sem HLS.js)
     function testarCanal(ch, cb) {
       var url = ch.url;
       var tentativas = [url];
       for (var pi = 0; pi < PROXIES.length; pi++) tentativas.push(PROXIES[pi] + encodeURIComponent(url));
       var ti = 0, resolvido = false;
-      // Timeout global garante que cb() SEMPRE seja chamado, mesmo com erro inesperado
       var tmr = setTimeout(function() { resolver(false); }, TIMEOUT + 2000);
       function resolver(s) { if (resolvido) return; resolvido = true; clearTimeout(tmr); try { cb(s); } catch(e) {} }
       function next() {
@@ -1671,6 +1559,8 @@ function sintonizarIdioma() {
 
   function _fimSint(msg, ok, fail) {
     sintRodando = false;
+    // ── CORREÇÃO: marca a sintonia como válida ao concluir ──
+    if (isPrimary && msg.indexOf('concluída') !== -1) _sintoniaRestaurada = true;
     try { _salvarSintoniaExtras(); } catch(e) {}
     _btnLabel();
     var extra = (typeof jaAprovados !== 'undefined' && jaAprovados > 0)

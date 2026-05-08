@@ -50,6 +50,12 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
 .fav-item:hover{border-color:#00aaff}
 .fav-nome{font-size:14px;color:#fff;text-align:left;flex:1}
 .fav-del{background:none;border:none;color:#ff5555;font-size:18px;cursor:pointer;padding:0 0 0 12px;line-height:1}
+#btn-sintonizar{margin-top:10px;background:#111;border:2px solid #00ff88;color:#00ff88;font-size:14px;font-weight:bold;padding:10px 28px;border-radius:30px;cursor:pointer;transition:background .15s,transform .1s}
+#btn-sintonizar:active{background:#00ff8822;transform:scale(.95)}
+#btn-sintonizar:disabled{opacity:.6;cursor:not-allowed;border-color:#ffaa00;color:#ffaa00}
+#sint-progresso{font-size:13px;color:#00ff88;margin-top:8px;min-height:18px}
+#sint-progresso .err{color:#ff5555}
+#sint-progresso .ok{color:#00ff88}
 </style>
 </head>
 <body>
@@ -69,6 +75,8 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
   </div>
   <div id="instrucao" data-i18n="instruction">Type the channel number and press ENTER</div>
   <button id="btn-enter" onclick="clearTimeout(bufTmr);irCanal()">&#9654; <span data-i18n="enter">ENTER</span></button>
+  <div><button id="btn-sintonizar" onclick="sintonizarIdioma()">&#128225; <span data-i18n="tune">Sintonizar canais do meu idioma</span></button></div>
+  <div id="sint-progresso"></div>
   <div id="favs"></div>
 </div>
 
@@ -1073,6 +1081,112 @@ window.verDefeitos      = function(){ var d=getDefeitos(); console.table(Object.
 window.limparDefeitos   = function(){ localStorage.removeItem(LS_DEFEITOS); console.log('[K10] Defeitos limpos.'); };
 window.verCanaisNovos   = function(){ try{ var l=JSON.parse(localStorage.getItem('k10_canais_novos')||'[]'); console.table(l); return l; }catch(e){ return []; } };
 window.limparCanaisNovos= function(){ localStorage.removeItem('k10_canais_novos'); localStorage.removeItem(LS_CANAIS_VISTOS); console.log('[K10] Canais novos limpos.'); };
+
+// ── Sintonizar canais do idioma ────────────────────────────────
+// Testa cada canal do idioma do usuário sequencialmente, com pausa
+// entre cada teste para nao ser bloqueado pelo proxy (rate limit).
+// Canais que falham vao para a lista de defeituosos automaticamente.
+var sintRodando = false;
+var sintAbortar = false;
+
+function sintonizarIdioma() {
+  var btn = document.getElementById('btn-sintonizar');
+  var prog = document.getElementById('sint-progresso');
+  if (sintRodando) {
+    sintAbortar = true;
+    prog.innerHTML = 'Cancelando...';
+    return;
+  }
+  // Snapshot da lista do idioma — usa canaisLang direto
+  var lista = canaisLang.slice();
+  if (lista.length === 0) {
+    prog.innerHTML = '<span class="err">Nenhum canal do seu idioma carregado ainda.</span>';
+    return;
+  }
+  sintRodando = true; sintAbortar = false;
+  btn.innerHTML = '&#9209; Cancelar sintonia';
+  var i = 0, ok = 0, fail = 0;
+  var INTERVALO = 1500; // pausa entre testes p/ nao saturar proxy
+  var TIMEOUT   = 9000;
+
+  function atualizar(extra) {
+    prog.innerHTML = 'Testando ' + (i) + '/' + lista.length
+      + ' &nbsp; <span class="ok">&#10003; ' + ok + '</span>'
+      + ' &nbsp; <span class="err">&#10005; ' + fail + '</span>'
+      + (extra ? '<br><small>' + extra + '</small>' : '');
+  }
+
+  function fim(msg) {
+    sintRodando = false;
+    btn.innerHTML = '&#128225; <span data-i18n="tune">Sintonizar canais do meu idioma</span>';
+    prog.innerHTML = (msg || 'Sintonia concluída.')
+      + ' <span class="ok">&#10003; ' + ok + '</span>'
+      + ' <span class="err">&#10005; ' + fail + '</span>';
+    atualizarTela();
+  }
+
+  function proximo() {
+    if (sintAbortar) { fim('Sintonia cancelada.'); return; }
+    if (i >= lista.length) { fim('Sintonia concluída.'); return; }
+    var ch = lista[i++];
+    atualizar(ch.nome);
+
+    // Se ja foi marcado como defeituoso por outra rotina, pula
+    var def = getDefeitos();
+    if (def[ch.url]) { fail++; setTimeout(proximo, 50); return; }
+
+    var resolvido = false;
+    var vid = document.createElement('video');
+    vid.muted = true;
+    var hls = null;
+    var tmr = setTimeout(function() { resolver(false); }, TIMEOUT);
+
+    function limpar() {
+      try { vid.pause(); } catch(e) {}
+      vid.onerror = null; vid.oncanplay = null; vid.onloadedmetadata = null;
+      try { vid.src = ''; vid.load(); } catch(e) {}
+      if (hls) { try { hls.destroy(); } catch(e) {} hls = null; }
+    }
+    function resolver(sucesso) {
+      if (resolvido) return; resolvido = true;
+      clearTimeout(tmr); limpar();
+      if (sucesso) { ok++; }
+      else {
+        fail++;
+        // Marca como defeituoso e remove da lista principal
+        var d = getDefeitos();
+        var agora = new Date().toISOString();
+        if (d[ch.url]) {
+          d[ch.url].tentativas = (d[ch.url].tentativas || 1) + 1;
+          d[ch.url].ultimaVez = agora;
+        } else {
+          d[ch.url] = { nome: ch.nome, url: ch.url, primeiroDef: agora, ultimaVez: agora, tentativas: 1 };
+        }
+        saveDefeitos(d);
+        removerCanalPorUrl(ch.url);
+      }
+      // Pausa entre testes — evita bloqueio por rate limit do proxy
+      setTimeout(proximo, INTERVALO);
+    }
+
+    var url = ch.url;
+    var ehHls = url.indexOf('.m3u') !== -1 || url.indexOf('m3u8') !== -1;
+    if (ehHls && typeof Hls !== 'undefined' && Hls.isSupported()) {
+      hls = new Hls({ enableWorker: false, manifestLoadingTimeOut: TIMEOUT - 1000, manifestLoadingMaxRetry: 0 });
+      hls.loadSource(url); hls.attachMedia(vid);
+      hls.on(Hls.Events.MANIFEST_PARSED, function() { resolver(true); });
+      hls.on(Hls.Events.ERROR, function(ev, data) { if (data && data.fatal) resolver(false); });
+    } else {
+      vid.onloadedmetadata = function() { resolver(true); };
+      vid.oncanplay = function() { resolver(true); };
+      vid.onerror = function() { resolver(false); };
+      try { vid.src = url; vid.load(); } catch(e) { resolver(false); }
+    }
+  }
+
+  prog.innerHTML = 'Iniciando sintonia de ' + lista.length + ' canal(is)...';
+  setTimeout(proximo, 300);
+}
 
 // ── Auto-ocultar controles ─────────────────────────────────────
 var hideTmr;

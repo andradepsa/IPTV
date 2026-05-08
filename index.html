@@ -207,6 +207,11 @@ function setStatus(txt) { document.getElementById('status-line').innerHTML = txt
 
 function atualizarTela() {
   if (canais.length === 0) return;
+  // Remove canais ja conhecidos como defeituosos
+  filtrarDefeituososDaLista();
+  // Detecta canais novos
+  detectarNovosCanais(canais);
+  if (canais.length === 0) return;
   pronto = true;
   // calcular digitos necessarios
   var total = canais.length;
@@ -329,6 +334,8 @@ function carregar() {
               addCanais(buildApi(data, null));
             }
             atualizarTela();
+            // Inicia revalidacao de defeituosos em background (apos 10s para nao sobrecarregar)
+            setTimeout(revalidarDefeitos, 10000);
           });
         });
       });
@@ -413,6 +420,13 @@ function voltarHome() {
 
 function mostrarErro() {
   clearTimeout(failTmr); clearTimeout(errTmr);
+  // Registra defeito e remove da lista
+  if (curCh >= 0 && canais[curCh]) {
+    registrarDefeito(curCh);
+    // Ajusta curCh para nao ultrapassar o tamanho da lista apos remocao
+    if (canais.length === 0) { voltarHome(); return; }
+    curCh = curCh % canais.length;
+  }
   skipCount++;
   if (skipCount >= canais.length) {
     // Todos os canais falharam — desiste e vai para home
@@ -547,6 +561,188 @@ function deletarFav(i) {
 }
 
 document.getElementById('btn-fav').onclick = toggleFav;
+
+// ── Canais defeituosos ─────────────────────────────────────────
+var LS_DEFEITOS = 'k10_canais_defeituosos';
+
+function getDefeitos() {
+  try { return JSON.parse(localStorage.getItem(LS_DEFEITOS) || '{}'); } catch(e) { return {}; }
+}
+function saveDefeitos(d) {
+  try { localStorage.setItem(LS_DEFEITOS, JSON.stringify(d)); } catch(e) {}
+}
+
+// Registra defeito E remove da lista de canais
+function registrarDefeito(idx) {
+  var ch = canais[idx];
+  if (!ch) return;
+  var d = getDefeitos();
+  var agora = new Date().toISOString();
+  if (d[ch.url]) {
+    d[ch.url].tentativas = (d[ch.url].tentativas || 1) + 1;
+    d[ch.url].ultimaVez = agora;
+  } else {
+    d[ch.url] = {
+      nome: ch.nome,
+      url: ch.url,
+      primeiroDef: agora,
+      ultimaVez: agora,
+      tentativas: 1
+    };
+  }
+  saveDefeitos(d);
+  // Remove da lista de canais em memoria
+  canais.splice(idx, 1);
+  // Ajusta indice atual
+  if (curCh >= canais.length) curCh = canais.length - 1;
+  console.log('[K10] Canal removido da lista por defeito: ' + ch.nome);
+}
+
+// Tenta revalidar canais defeituosos em background — se funcionar volta pra lista
+var LS_REVAL_FILA    = 'k10_reval_fila';     // fila persistente de urls a testar
+var LS_REVAL_DATA    = 'k10_reval_data';     // data da ultima rodada
+var REVAL_LOTE       = 5;
+var REVAL_INTERVALO  = 7 * 24 * 60 * 60 * 1000; // 7 dias
+var REVAL_ESPERA     = 8000;
+
+function revalidarDefeitos() {
+  var d    = getDefeitos();
+  var urls = Object.keys(d);
+  if (urls.length === 0) return;
+
+  // Verifica se passou 7 dias
+  var agora        = Date.now();
+  var ultimaRodada = parseInt(localStorage.getItem(LS_REVAL_DATA) || '0', 10);
+  if (agora - ultimaRodada < REVAL_INTERVALO) {
+    var dias = Math.ceil((REVAL_INTERVALO - (agora - ultimaRodada)) / 86400000);
+    console.log('[K10] Proxima revalidacao em ' + dias + ' dia(s).');
+    return;
+  }
+
+  // Carrega fila salva; se estiver vazia ou com urls que ja saíram dos defeitos, reconstrói
+  var fila = [];
+  try { fila = JSON.parse(localStorage.getItem(LS_REVAL_FILA) || '[]'); } catch(e) {}
+  // Filtra da fila urls que nao existem mais nos defeitos
+  fila = fila.filter(function(u){ return !!d[u]; });
+  // Se a fila esgotou, reconstrói com todos os defeituosos atuais (embaralhados para variedade)
+  if (fila.length === 0) {
+    fila = urls.slice(); // copia
+    // Embaralha (Fisher-Yates) para nao testar sempre na mesma ordem
+    for (var s = fila.length - 1; s > 0; s--) {
+      var r = Math.floor(Math.random() * (s + 1));
+      var tmp = fila[s]; fila[s] = fila[r]; fila[r] = tmp;
+    }
+    console.log('[K10] Fila recriada com ' + fila.length + ' canal(is) defeituoso(s).');
+  }
+
+  // Pega os proximos 5 da fila
+  var lote = fila.splice(0, REVAL_LOTE);
+
+  // Salva fila atualizada e data
+  try { localStorage.setItem(LS_REVAL_FILA, JSON.stringify(fila)); } catch(e) {}
+  try { localStorage.setItem(LS_REVAL_DATA, String(agora)); } catch(e) {}
+
+  console.log('[K10] Testando lote de ' + lote.length + ' canal(is). Restam ' + fila.length + ' na fila.');
+
+  // Testa um por vez com 2s de intervalo
+  var i = 0;
+  function testarProximo() {
+    if (i >= lote.length) return;
+    var url = lote[i++];
+    var ch  = d[url];
+    if (!ch) { testarProximo(); return; }
+
+    var resolvido = false;
+    function onFalha() {
+      if (resolvido) return; resolvido = true;
+      console.log('[K10] Ainda offline: ' + ch.nome);
+      setTimeout(testarProximo, 2000);
+    }
+    function onOk() {
+      if (resolvido) return; resolvido = true;
+      voltarDaDefeituosa(url, ch);
+      setTimeout(testarProximo, 2000);
+    }
+
+    var vid = document.createElement('video');
+    var tmr = setTimeout(function() {
+      vid.src = ''; vid.onerror = null; vid.oncanplay = null;
+      if (typeof Hls !== 'undefined' && Hls.isSupported() && url.indexOf('.m3u') !== -1) {
+        var h = new Hls({ enableWorker: false });
+        var v2 = document.createElement('video');
+        h.loadSource(url); h.attachMedia(v2);
+        h.on(Hls.Events.MANIFEST_PARSED, function() { h.destroy(); onOk(); });
+        h.on(Hls.Events.ERROR, function(ev, data) { if (data.fatal) { h.destroy(); onFalha(); } });
+      } else { onFalha(); }
+    }, REVAL_ESPERA);
+
+    vid.oncanplay = function() { clearTimeout(tmr); vid.src = ''; onOk(); };
+    vid.onerror   = function() { clearTimeout(tmr); onFalha(); };
+    vid.src = url;
+    try { vid.load(); } catch(e) {}
+  }
+  testarProximo();
+}
+
+// Remove dos defeituosos e devolve pra lista de canais
+function voltarDaDefeituosa(url, ch) {
+  var d = getDefeitos();
+  if (!d[url]) return; // ja foi processado
+  delete d[url];
+  saveDefeitos(d);
+  // Adiciona de volta na lista se nao estiver
+  var jaEsta = canais.some(function(c){ return c.url === url; });
+  if (!jaEsta) {
+    canais.push({ nome: ch.nome, url: url });
+    atualizarTela();
+    console.log('[K10] Canal voltou pra lista: ' + ch.nome);
+  }
+}
+
+// Ao carregar, remove da lista os canais que ja estao registrados como defeituosos
+function filtrarDefeituososDaLista() {
+  var d = getDefeitos();
+  var urls = Object.keys(d);
+  if (urls.length === 0) return;
+  var antes = canais.length;
+  canais = canais.filter(function(c){ return !d[c.url]; });
+  // Atualiza seenUrls
+  seenUrls = {};
+  for (var i = 0; i < canais.length; i++) seenUrls[canais[i].url] = true;
+  var removidos = antes - canais.length;
+  if (removidos > 0) console.log('[K10] ' + removidos + ' canal(is) defeituoso(s) removido(s) da lista.');
+}
+
+// ── Canais novos ───────────────────────────────────────────────
+var LS_CANAIS_VISTOS = 'k10_canais_vistos';
+
+function getCanaisVistos() {
+  try { return JSON.parse(localStorage.getItem(LS_CANAIS_VISTOS) || '[]'); } catch(e) { return []; }
+}
+
+function detectarNovosCanais(listaAtual) {
+  var vistos = getCanaisVistos();
+  var vistosSet = {};
+  for (var i = 0; i < vistos.length; i++) vistosSet[vistos[i]] = true;
+  var novos = listaAtual.filter(function(c){ return !vistosSet[c.url]; });
+  if (novos.length > 0) {
+    console.log('[K10] ' + novos.length + ' canais novos detectados.');
+    var agora = new Date().toISOString();
+    var LS_NOVOS = 'k10_canais_novos';
+    var jaReg = []; try { jaReg = JSON.parse(localStorage.getItem(LS_NOVOS) || '[]'); } catch(e) {}
+    var entrada = novos.map(function(c){ return { nome: c.nome, url: c.url, detectadoEm: agora }; });
+    var todos = jaReg.concat(entrada);
+    if (todos.length > 500) todos = todos.slice(todos.length - 500);
+    try { localStorage.setItem(LS_NOVOS, JSON.stringify(todos)); } catch(e) {}
+  }
+  try { localStorage.setItem(LS_CANAIS_VISTOS, JSON.stringify(listaAtual.map(function(c){ return c.url; }))); } catch(e) {}
+}
+
+// ── Comandos de console ────────────────────────────────────────
+window.verDefeitos      = function(){ var d=getDefeitos(); console.table(Object.values(d)); return Object.values(d); };
+window.limparDefeitos   = function(){ localStorage.removeItem(LS_DEFEITOS); console.log('[K10] Defeitos limpos.'); };
+window.verCanaisNovos   = function(){ try{ var l=JSON.parse(localStorage.getItem('k10_canais_novos')||'[]'); console.table(l); return l; }catch(e){ return []; } };
+window.limparCanaisNovos= function(){ localStorage.removeItem('k10_canais_novos'); localStorage.removeItem(LS_CANAIS_VISTOS); console.log('[K10] Canais novos limpos.'); };
 
 // ── Auto-ocultar controles ─────────────────────────────────────
 var hideTmr;

@@ -673,6 +673,27 @@ function buildApi(data, cats) {
   return out;
 }
 
+// Filtra canais da API por idioma (codigo ISO de 3 letras: por, eng, spa, ...)
+function buildApiByLang(data, langIso) {
+  var sm = {};
+  for (var i = 0; i < data.strs.length; i++) {
+    if (!sm[data.strs[i].channel]) sm[data.strs[i].channel] = data.strs[i].url;
+  }
+  var out = [];
+  for (var j = 0; j < data.chs.length; j++) {
+    var ch = data.chs[j];
+    if (!sm[ch.id]) continue;
+    var langs = ch.languages || [];
+    var ok = false;
+    for (var k = 0; k < langs.length; k++) {
+      if (String(langs[k]).toLowerCase() === langIso) { ok = true; break; }
+    }
+    if (!ok) continue;
+    out.push({ nome: ch.name, url: sm[ch.id], cats: (ch.categories || []).slice() });
+  }
+  return out;
+}
+
 // ── Carregar todas as fontes ───────────────────────────────────
 var MAX_DIGITOS = 3;
 var CATS = ['news','business','weather','documentary','entertainment','comedy',
@@ -691,11 +712,32 @@ function carregar() {
     'https://iptv-org.github.io/iptv/languages/' + LANG_ISO + '.m3u',
     'https://raw.githubusercontent.com/iptv-org/iptv/gh-pages/languages/' + LANG_ISO + '.m3u'
   ], function(e, txt) {
+    var antes = canaisLang.length;
     if (!e) addCanais(parseM3u(txt), 'lang');
     atualizarTela();
 
     // Na TV: carrega APENAS o idioma do usuario, para nao travar.
     if (IS_TV) {
+      // Fallback: se o M3U falhou ou trouxe 0 canais, tenta API filtrando por idioma
+      var precisaFallback = (e || canaisLang.length === antes);
+      if (precisaFallback) {
+        setStatus(t('loading_api') + ' (' + LANG_NOME + ')...');
+        fetchApi(function(eA, data) {
+          if (!eA) {
+            try { addCanais(buildApiByLang(data, LANG_ISO), 'lang'); } catch(x) {}
+          }
+          atualizarTela();
+          if (canaisLang.length === 0) {
+            setStatus('');
+            var prog = document.getElementById('sint-progresso');
+            if (prog) prog.innerHTML = '<span class="err">Nenhum canal do idioma ' + LANG_NOME + ' pode ser carregado. Verifique a conexao ou troque o idioma.</span>';
+          } else {
+            setStatus('');
+            setTimeout(function(){ detectarNovosCanais(canais); }, 2000);
+          }
+        });
+        return;
+      }
       setStatus('');
       setTimeout(function(){ detectarNovosCanais(canais); }, 2000);
       return;

@@ -1248,6 +1248,12 @@ function registrarDefeito(idx) {
 
 // Remove um canal pela URL dos grupos e reconstroi a lista principal
 function _spliceUrl(arr, url){ for(var i=arr.length-1;i>=0;i--){ if(arr[i] && arr[i].url===url) arr.splice(i,1); } }
+function _extrairCanalPorUrl(arr, url){
+  for (var i = arr.length - 1; i >= 0; i--) {
+    if (arr[i] && arr[i].url === url) return arr.splice(i, 1)[0];
+  }
+  return null;
+}
 function removerCanalPorUrl(url) {
   _spliceUrl(canaisLang, url);
   _spliceUrl(canaisLangMaster, url);
@@ -1528,7 +1534,19 @@ function sintonizarIdioma() {
       var c = novosCanais[i];
       if (!c || !c.url) continue;
       if (jaAprovadosMap[c.url]) continue; // já aprovado — mantém na lista sem retestar
-      if (seenUrls[c.url]) continue;       // já existe em outro grupo
+      if (seenUrls[c.url]) {
+        // Se o canal já existe apenas em "Outros", promove para o idioma sintonizado.
+        // Isso evita que o 2º/3º idioma falhe só porque a lista mundial já trouxe a URL.
+        var reaproveitado = _extrairCanalPorUrl(canaisOutros, c.url);
+        if (!reaproveitado) continue;
+        if ((!reaproveitado.nome || reaproveitado.nome === 'Canal') && c.nome) reaproveitado.nome = c.nome;
+        if ((!reaproveitado.cats || !reaproveitado.cats.length) && c.cats && c.cats.length) reaproveitado.cats = c.cats.slice();
+        reaproveitado._num = atribuirNumero(reaproveitado.url, 'lang');
+        targetAtivo.push(reaproveitado);
+        targetMaster.push(reaproveitado);
+        realmNovos.push(reaproveitado);
+        continue;
+      }
       seenUrls[c.url] = true;
       c._num = atribuirNumero(c.url, 'lang');
       targetAtivo.push(c);

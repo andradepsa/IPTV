@@ -84,6 +84,10 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
     <div id="instrucao" data-i18n="instruction">Type the channel number and press ENTER</div>
     <button id="btn-enter" onclick="clearTimeout(bufTmr);irCanal()">&#9654; <span data-i18n="enter">ENTER</span></button>
     <div><button id="btn-sintonizar" onclick="sintonizarIdioma()">&#128225; <span data-i18n="tune">Sintonizar canais do meu idioma</span></button></div>
+    <div id="lang-picker" style="margin-top:10px;">
+      &#127760; <label for="sel-lang" style="font-size:14px;">Idioma / Language:</label>
+      <select id="sel-lang" onchange="trocarIdioma(this.value)" style="margin-left:6px;padding:4px 8px;font-size:14px;"></select>
+    </div>
     <div id="sint-progresso"></div>
   </div>
   <aside id="home-lado">
@@ -119,9 +123,26 @@ var LANG_MAP = {
   'ar':'ara','tr':'tur','nl':'nld','pl':'pol','hi':'hin',
   'sv':'swe','ro':'ron','cs':'ces','el':'ell','id':'ind'
 };
-var rawLang = ((navigator.languages && navigator.languages[0]) || navigator.language || 'pt').toLowerCase().split('-')[0];
+var LANG_NAMES = {
+  'pt':'Português','en':'English','es':'Español','fr':'Français','de':'Deutsch',
+  'it':'Italiano','ja':'日本語','ko':'한국어','zh':'中文','ru':'Русский',
+  'ar':'العربية','tr':'Türkçe','nl':'Nederlands','pl':'Polski','hi':'हिन्दी',
+  'sv':'Svenska','ro':'Română','cs':'Čeština','el':'Ελληνικά','id':'Indonesia'
+};
+var LS_LANG = 'k10_user_lang';
+var rawLangAuto = ((navigator.languages && navigator.languages[0]) || navigator.language || 'pt').toLowerCase().split('-')[0];
+var rawLang = (function(){
+  try { var s = localStorage.getItem(LS_LANG); if (s && LANG_MAP[s]) return s; } catch(e){}
+  return LANG_MAP[rawLangAuto] ? rawLangAuto : 'pt';
+})();
 var LANG_ISO  = LANG_MAP[rawLang] || 'por';
-var LANG_NOME = rawLang.toUpperCase();
+var LANG_NOME = (LANG_NAMES[rawLang] || rawLang).toUpperCase();
+
+function trocarIdioma(novo) {
+  if (!novo || !LANG_MAP[novo]) return;
+  try { localStorage.setItem(LS_LANG, novo); } catch(e){}
+  location.reload();
+}
 
 // ── Estado ─────────────────────────────────────────────────────
 var canais = [];
@@ -672,6 +693,13 @@ function carregar() {
   ], function(e, txt) {
     if (!e) addCanais(parseM3u(txt), 'lang');
     atualizarTela();
+
+    // Na TV: carrega APENAS o idioma do usuario, para nao travar.
+    if (IS_TV) {
+      setStatus('');
+      setTimeout(function(){ detectarNovosCanais(canais); }, 2000);
+      return;
+    }
 
     // 2. Brasil
     setStatus(t('loading_brazil'));
@@ -1313,6 +1341,19 @@ document.getElementById('btn-ch-cima').onclick = function() { canalCima(); };
 document.getElementById('btn-ch-baixo').onclick = function() { canalBaixo(); };
 popularSelectCategorias();
 carregarUIIdioma();
+(function(){
+  var sel = document.getElementById('sel-lang');
+  if (sel) {
+    var keys = []; for (var k in LANG_MAP) keys.push(k);
+    keys.sort(function(a,b){ return (LANG_NAMES[a]||a).localeCompare(LANG_NAMES[b]||b); });
+    var html = '';
+    for (var i=0;i<keys.length;i++) {
+      var k = keys[i];
+      html += '<option value="'+k+'"'+(k===rawLang?' selected':'')+'>'+(LANG_NAMES[k]||k)+'</option>';
+    }
+    sel.innerHTML = html;
+  }
+})();
 carregar();
 </script>
 </body>

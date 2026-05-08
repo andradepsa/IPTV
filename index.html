@@ -863,11 +863,33 @@ function tocar(idx) {
   function tentarNativo() {
     vid.onerror = function() {
       vid.onerror = null;
+      // Captura motivo do erro (codec vs rede)
+      try {
+        var er = vid.error;
+        if (er) {
+          if (er.code === 3 || er.code === 4) {
+            // 3 = DECODE, 4 = SRC_NOT_SUPPORTED → reprodutor da TV não suporta o formato
+            window.__ultimoMotivoErro = 'app';
+          } else {
+            // 1 = ABORTED, 2 = NETWORK → canal/rede
+            window.__ultimoMotivoErro = 'canal';
+          }
+        }
+      } catch(e) {}
       // Se for HLS e tiver MSE, cai pra Hls.js
       if (ehHls && temMSE) { tentarHlsJs(); }
       else { clearTimeout(failTmr); mostrarErro(); }
     };
-    try { vid.src = url; vid.load(); vid.play(); } catch(e) {
+    try {
+      vid.src = url; vid.load();
+      var p = vid.play();
+      if (p && p.catch) p.catch(function(){ try { vid.muted = true; vid.play(); } catch(e){} });
+      // Fallback extra: se ainda pausado em 1s, tenta mutado
+      setTimeout(function(){
+        if (vid.paused) { try { vid.muted = true; vid.play(); } catch(e){} }
+      }, 1000);
+    } catch(e) {
+      window.__ultimoMotivoErro = 'app';
       if (ehHls && temMSE) tentarHlsJs(); else mostrarErro();
     }
   }
@@ -884,12 +906,39 @@ function tocar(idx) {
         capLevelToPlayerSize: true
       });
       hlsObj.loadSource(url); hlsObj.attachMedia(vid);
-      hlsObj.on(Hls.Events.MANIFEST_PARSED, function() { try { vid.play(); } catch(e) {} });
-      hlsObj.on(Hls.Events.ERROR, function(ev, d) {
-        if (d && d.fatal) { clearTimeout(failTmr); mostrarErro(); }
+      hlsObj.on(Hls.Events.MANIFEST_PARSED, function() {
+        try { vid.play(); } catch(e) {}
+        // Fallback: se autoplay bloqueado, tenta mutado
+        setTimeout(function(){
+          if (vid.paused) { try { vid.muted = true; vid.play(); } catch(e){} }
+        }, 600);
       });
-    } catch(e) { mostrarErro(); }
+      var recoverTries = 0;
+      hlsObj.on(Hls.Events.ERROR, function(ev, d) {
+        if (!d || !d.fatal) return;
+        // Tenta recuperar antes de desistir
+        try {
+          if (d.type === Hls.ErrorTypes.NETWORK_ERROR && recoverTries < 2) {
+            recoverTries++; hlsObj.startLoad(); return;
+          }
+          if (d.type === Hls.ErrorTypes.MEDIA_ERROR && recoverTries < 2) {
+            recoverTries++; hlsObj.recoverMediaError(); return;
+          }
+        } catch(e){}
+        try {
+          if (d.type === Hls.ErrorTypes.NETWORK_ERROR) window.__ultimoMotivoErro = 'canal';
+          else window.__ultimoMotivoErro = 'app';
+        } catch(e){}
+        clearTimeout(failTmr); mostrarErro();
+      });
+    } catch(e) { window.__ultimoMotivoErro = 'app'; mostrarErro(); }
   }
+
+  // Se for HLS mas a TV não tem MSE nem HLS nativo → reprodutor incompatível
+  if (ehHls && !temMSE && !nativeHls) {
+    window.__ultimoMotivoErro = 'app';
+  }
+
 
   // Estrategia: TV antiga sem MSE -> sempre tenta nativo direto.
   // Modernos com HLS -> Hls.js primeiro pra HLS; senao nativo.
@@ -918,33 +967,53 @@ function voltarHome() {
 
 function mostrarErro() {
   clearTimeout(failTmr); clearTimeout(errTmr);
+  var motivo = window.__ultimoMotivoErro || 'canal';
+  window.__ultimoMotivoErro = null;
+
+  // Contadores globais para diagnostico
+  window.__errCanal = window.__errCanal || 0;
+  window.__errApp   = window.__errApp   || 0;
+  if (motivo === 'app') window.__errApp++; else window.__errCanal++;
+
   // Registra defeito e remove da lista
   if (curCh >= 0 && canais[curCh]) {
     registrarDefeito(curCh);
-    // Ajusta curCh para nao ultrapassar o tamanho da lista apos remocao
     if (canais.length === 0) { voltarHome(); return; }
     curCh = curCh % canais.length;
   }
   skipCount++;
-  if (skipCount >= canais.length) {
-    // Todos os canais falharam — desiste e vai para home
+
+  // Se a maioria das falhas recentes é do tipo "app" → reprodutor da TV incompatível
+  var totalErr = window.__errApp + window.__errCanal;
+  var appIncompat = (totalErr >= 5 && window.__errApp / totalErr >= 0.7);
+
+  if (skipCount >= canais.length || appIncompat) {
     skipCount = 0;
     document.getElementById('carregando').style.display = 'none';
     var t = document.getElementById('toast');
-    t.querySelector('p').textContent = 'Nenhum canal disponivel';
-    t.querySelector('small').textContent = 'Returning to home screen...';
+    if (appIncompat) {
+      t.querySelector('p').innerHTML = '⚠ APLICATIVO DE REPRODUÇÃO COM ERRO';
+      t.querySelector('small').textContent = 'O navegador desta TV não suporta o formato de vídeo (HLS/MSE). Tente em outro dispositivo.';
+    } else {
+      t.querySelector('p').textContent = 'Nenhum canal disponível';
+      t.querySelector('small').textContent = 'Voltando para a tela inicial...';
+    }
     t.style.display = 'block';
-    errTmr = setTimeout(function() { t.style.display = 'none'; voltarHome(); }, 2500);
+    errTmr = setTimeout(function() { t.style.display = 'none'; voltarHome(); }, appIncompat ? 6000 : 2500);
     return;
   }
-  // Mostra aviso rapido e pula para o proximo canal
+
+  // Mostra aviso rápido diferenciando origem do erro e pula para o próximo canal
   document.getElementById('carregando').style.display = 'none';
-  document.getElementById('osd-estado').textContent = 'Sem sinal — pulando...';
+  var msg = (motivo === 'app')
+    ? '⚠ Reprodutor não suporta este canal — pulando...'
+    : 'Sem sinal (canal fora do ar) — pulando...';
+  document.getElementById('osd-estado').textContent = msg;
   document.getElementById('osd').style.display = 'block';
   errTmr = setTimeout(function() {
     curCh = (curCh + 1) % canais.length;
     tocar(curCh);
-  }, 800);
+  }, 900);
 }
 
 function mostrarOSD() {

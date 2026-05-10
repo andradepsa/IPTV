@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>K60 Rádio</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
+
+/* ── HOME ── */
+#tela-home{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:flex-start;justify-content:center;gap:20px;padding:0 20px;overflow:hidden}
+#home-centro{flex:1;max-width:560px;height:100%;overflow-y:auto;padding-bottom:20px;text-align:center}
+#home-lado{width:320px;max-width:35%;height:100%;padding:30px 0 20px;display:flex;flex-direction:column}
+@media(max-width:720px){#tela-home{flex-direction:column;align-items:stretch;padding:0 10px;overflow-y:auto}#home-centro{height:auto;max-width:none;overflow:visible}#home-lado{width:100%;max-width:none;height:300px;padding:0 0 20px}}
+
+#titulo{font-size:36px;font-weight:bold;color:#00ff88;padding-top:30px;margin-bottom:4px}
+#subtitulo{font-size:13px;color:#555;margin-bottom:16px}
+#status-line{font-size:15px;color:#888;margin-bottom:10px}
+#status-line span{color:#00ff88;font-weight:bold}
+#faixas{font-size:13px;color:#555;margin-bottom:16px;line-height:1.9}
+#faixas .dest{color:#00ff88;font-weight:bold;font-size:14px}
+#faixas b{color:#aaa}
+
+#lang-picker{margin-bottom:10px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;justify-content:center}
+#lang-picker label{font-size:14px;color:#888}
+#sel-lang{padding:5px 10px;font-size:14px;background:#111;color:#00ff88;border:2px solid #00ff88;border-radius:12px;cursor:pointer;outline:none;max-width:220px}
+#btn-principal{padding:4px 10px;font-size:12px;background:#111;border:1px solid #555;color:#888;border-radius:12px;cursor:pointer;white-space:nowrap}
+#btn-principal:hover{border-color:#00ff88;color:#00ff88}
+
+#btn-sintonizar{margin-top:10px;background:#111;border:2px solid #00ff88;color:#00ff88;font-size:14px;font-weight:bold;padding:10px 28px;border-radius:30px;cursor:pointer;transition:background .15s,transform .1s}
+#btn-sintonizar:active{background:#00ff8822;transform:scale(.95)}
+#sint-progresso{font-size:13px;color:#00ff88;margin-top:8px;min-height:18px}
+#sint-progresso .err{color:#ff5555}
+#sint-progresso .ok{color:#00ff88}
+
+#filtro-cat{margin-bottom:14px;margin-top:10px}
+#filtro-cat select{background:#111;color:#00ff88;border:2px solid #00ff88;border-radius:20px;padding:8px 16px;font-size:14px;font-weight:bold;font-family:Arial,sans-serif;cursor:pointer;outline:none}
+#filtro-cat select:focus{border-color:#ffaa00;color:#ffaa00}
+
+#display-canal{display:inline-block;border:3px solid #333;border-radius:12px;padding:14px 40px;margin-bottom:10px;min-width:260px}
+#display-canal.ativo{border-color:#00ff88}
+#digitos{font-size:58px;font-weight:bold;color:#00ff88;font-family:monospace;letter-spacing:4px;min-height:68px;line-height:1}
+#digitos.vazio{color:#222}
+#instrucao{font-size:12px;color:#444;margin-top:8px}
+#btn-enter{margin-top:14px;background:#111;border:2px solid #00ff88;color:#00ff88;font-size:16px;font-weight:bold;padding:12px 48px;border-radius:30px;cursor:pointer;transition:background .15s,transform .1s}
+#btn-enter:active{background:#00ff8822;transform:scale(.95)}
+
+#favs{margin:0;width:100%;height:100%;overflow-y:auto;background:#0a0a0a;border:2px solid #333;border-radius:12px;padding:12px;text-align:left;scrollbar-width:thin;scrollbar-color:#00ff88 #111}
+#favs::-webkit-scrollbar{width:10px}
+#favs::-webkit-scrollbar-track{background:#111;border-radius:5px}
+#favs::-webkit-scrollbar-thumb{background:#00ff88;border-radius:5px}
+#favs::-webkit-scrollbar-thumb:hover{background:#00cc66}
+#favs-titulo{font-size:13px;color:#00ff88;margin-bottom:6px;font-weight:bold}
+.fav-item{display:flex;align-items:center;justify-content:space-between;background:#111;border:1px solid #333;border-radius:8px;padding:8px 14px;margin-bottom:6px;cursor:pointer;transition:border-color .15s}
+.fav-item:hover{border-color:#00ff88}
+.fav-nome{font-size:14px;color:#fff;text-align:left;flex:1}
+.fav-del{background:none;border:none;color:#ff5555;font-size:18px;cursor:pointer;padding:0 0 0 12px;line-height:1}
+
+/* ── PLAYER ── */
+#tela-player{position:absolute;top:0;left:0;width:100%;height:100%;background:#000;display:none}
+#vid{width:100%;height:100%;display:block}
+#osd{position:absolute;top:0;left:0;right:0;background:rgba(0,0,0,0.85);padding:16px 24px}
+#osd-num{font-size:40px;font-weight:bold;color:#00ff88;font-family:monospace}
+#osd-nome{font-size:20px;color:#fff;margin-top:4px}
+#osd-estado{font-size:12px;color:#00ff88;margin-top:4px}
+#carregando{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:18px;color:#888;text-align:center}
+#p-canal{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:#111;border:2px solid #ffaa00;border-radius:10px;padding:10px 32px;text-align:center;display:none}
+#p-canal-val{font-size:36px;font-weight:bold;color:#ffaa00;font-family:monospace;letter-spacing:6px}
+#controles{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;transition:opacity .4s}
+#controles.oculto{opacity:0;pointer-events:none}
+#btn-voltar{background:#111;border:2px solid #00ff88;color:#00ff88;font-size:15px;font-weight:bold;padding:12px 40px;border-radius:30px;cursor:pointer}
+.btn-ch{background:#111;border:2px solid #ffaa00;color:#ffaa00;font-size:22px;font-weight:bold;width:52px;height:52px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .1s;user-select:none}
+.btn-ch:active{background:#ffaa0033;transform:scale(.92)}
+#btn-fav{background:#111;border:2px solid #ffdd00;color:#ffdd00;font-size:20px;width:52px;height:52px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .1s}
+#btn-fav:active{transform:scale(.92)}
+#btn-fav.favoritado{background:#ffdd00;color:#000}
+#toast{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#111;border:2px solid #ff5555;border-radius:12px;padding:24px 40px;text-align:center;display:none;z-index:99}
+#toast p{font-size:16px;color:#ff8888}
+#toast small{font-size:12px;color:#555}
+
+#volume-ctrl{position:absolute;bottom:96px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.75);border:2px solid #00ff88;border-radius:30px;padding:8px 18px;transition:opacity .4s;z-index:10}
+#volume-ctrl.oculto{opacity:0;pointer-events:none}
+#btn-mute{background:none;border:none;color:#00ff88;font-size:22px;cursor:pointer;width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0}
+#btn-mute:active{transform:scale(.88)}
+#vol-slider{-webkit-appearance:none;appearance:none;width:130px;height:5px;border-radius:4px;background:#333;outline:none;cursor:pointer}
+#vol-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:#00ff88;cursor:pointer;border:2px solid #fff}
+#vol-slider::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#00ff88;cursor:pointer;border:2px solid #fff}
+#vol-label{font-size:13px;color:#00ff88;font-weight:bold;font-family:monospace;width:34px;text-align:right}
+
+#radio-vis-wrap{position:absolute;top:0;left:0;right:0;bottom:0;display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;z-index:5}
+#radio-vis{width:140px;height:140px;border-radius:50%;border:4px solid #00ff88;display:flex;align-items:center;justify-content:center;font-size:64px;background:#0a0a0a}
+#radio-vis.tocando{animation:rpulse 2s ease-in-out infinite}
+@keyframes rpulse{0%,100%{box-shadow:0 0 0 0 rgba(0,255,136,.4)}50%{box-shadow:0 0 0 18px rgba(0,255,136,0)}}
+#radio-vis img{width:120px;height:120px;border-radius:50%;object-fit:cover}
+</style>
+</head>
+<body>
+
+<div id="tela-home">
+  <div id="home-centro">
+    <div id="titulo">&#127925; K60 R&Aacute;DIO</div>
+    <div id="subtitulo">R&aacute;dio ao vivo do mundo todo</div>
+    <div id="status-line">Carregando esta&ccedil;&otilde;es...</div>
+    <div id="faixas"></div>
+    <div id="lang-picker">
+      &#127760; <label for="sel-lang">Idioma:</label>
+      <select id="sel-lang" onchange="selecionarIdioma(this.value)"></select>
+      <button id="btn-principal" onclick="definirPrincipal()" title="Definir como idioma principal (recarrega)">&#127968; Principal</button>
+    </div>
+    <div>
+      <button id="btn-sintonizar" onclick="sintonizar()">&#128225; Sintonizar esta&ccedil;&otilde;es do meu idioma</button>
+    </div>
+    <div id="sint-progresso"></div>
+    <div id="filtro-cat">
+      <select id="sel-cat" onchange="setFiltro(this.value)">
+        <option value="">&#9788; Todos os g&ecirc;neros</option>
+      </select>
+    </div>
+    <div id="display-canal">
+      <div id="digitos" class="vazio">_</div>
+    </div>
+    <div id="instrucao">Digite o n&uacute;mero da esta&ccedil;&atilde;o e pressione ENTER</div>
+    <button id="btn-enter" onclick="clearTimeout(bufTmr);irCanal()">&#9654; ENTER</button>
+  </div>
+  <aside id="home-lado">
+    <div id="favs"></div>
+  </aside>
+</div>
+
+<div id="tela-player" onmousemove="mostrarVolume()">
+  <video id="vid" autoplay></video>
+  <div id="radio-vis-wrap">
+    <div id="radio-vis">&#127925;</div>
+  </div>
+  <div id="osd">
+    <div id="osd-num">-</div>
+    <div id="osd-nome">Esta&ccedil;&atilde;o</div>
+    <div id="osd-estado">Conectando...</div>
+  </div>
+  <div id="carregando">Conectando &agrave; esta&ccedil;&atilde;o...</div>
+  <div id="p-canal"><div id="p-canal-val">_</div></div>
+  <div id="volume-ctrl" class="oculto">
+    <button id="btn-mute" title="Mudo/Som">&#128266;</button>
+    <input id="vol-slider" type="range" min="0" max="100" value="100">
+    <span id="vol-label">100%</span>
+  </div>
+  <div id="controles">
+    <button class="btn-ch" id="btn-ch-baixo" title="Anterior">&#9660;</button>
+    <button id="btn-voltar">&#9664; Voltar</button>
+    <button class="btn-ch" id="btn-ch-cima" title="Pr&oacute;xima">&#9650;</button>
+    <button id="btn-fav" title="Favoritar">&#9733;</button>
+  </div>
+</div>
+
+<div id="toast"><p>Esta&ccedil;&atilde;o indispon&iacute;vel</p><small>Pulando para a pr&oacute;xima...</small></div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+// MAPAS DE IDIOMA
+// ═══════════════════════════════════════════════════════
+var RADIO_LANG_EN = {
+  'pt':'portuguese','en':'english','es':'spanish','fr':'french','de':'german',
+  'it':'italian','ja':'japanese','ko':'korean','zh':'chinese','ru':'russian',
+  'ar':'arabic','tr':'turkish','nl':'dutch','pl':'polish','hi':'hindi',
+  'sv':'swedish','ro':'romanian','cs':'czech','el':'greek','id':'indonesian',
+  'uk':'ukrainian','bg':'bulgarian','hr':'croatian','sk':'slovak','sr':'serbian',
+  'da':'danish','fi':'finnish','nb':'norwegian','he':'hebrew','fa':'persian',
+  'bn':'bengali','vi':'vietnamese','th':'thai','ms':'malay','ta':'tamil',
+  'ur':'urdu','az':'azerbaijani','ka':'georgian','hy':'armenian','sw':'swahili',
+  'af':'afrikaans','mk':'macedonian','sl':'slovenian','lt':'lithuanian',
+  'lv':'latvian','et':'estonian','sq':'albanian','be':'belarusian',
+  'ca':'catalan','eu':'basque','gl':'galician','uz':'uzbek','mn':'mongolian',
+  'am':'amharic','so':'somali','ha':'hausa','yo':'yoruba','zu':'zulu',
+  'si':'sinhala','my':'burmese','km':'khmer','lo':'lao'
+};
+var RADIO_LANG_DISPLAY = {
+  'pt':'Português','en':'English','es':'Español','fr':'Français','de':'Deutsch',
+  'it':'Italiano','ja':'日本語','ko':'한국어','zh':'中文','ru':'Русский',
+  'ar':'العربية','tr':'Türkçe','nl':'Nederlands','pl':'Polski','hi':'हिन्दी',
+  'sv':'Svenska','ro':'Română','cs':'Čeština','el':'Ελληνικά','id':'Indonesia',
+  'uk':'Українська','bg':'Български','hr':'Hrvatski','sk':'Slovenčina',
+  'sr':'Srpski','da':'Dansk','fi':'Suomi','nb':'Norsk','he':'עברית',
+  'fa':'فارسی','bn':'বাংলা','vi':'Tiếng Việt','th':'ภาษาไทย',
+  'ms':'Bahasa Melayu','ta':'தமிழ்','ur':'اردو','az':'Azərbaycan',
+  'ka':'ქართული','hy':'Հայերեն','sw':'Kiswahili','af':'Afrikaans',
+  'mk':'Македонски','sl':'Slovenščina','lt':'Lietuvių','lv':'Latviešu',
+  'et':'Eesti','sq':'Shqip','be':'Беларуская','ca':'Català','eu':'Euskara',
+  'gl':'Galego','uz':"O'zbek",'mn':'Монгол','am':'አማርኛ',
+  'so':'Soomaali','ha':'Hausa','yo':'Yorùbá','zu':'isiZulu',
+  'si':'සිංහල','my':'မြန်မာ','km':'ខ្មែរ','lo':'ລາວ'
+};
+
+// ═══════════════════════════════════════════════════════
+// DETECÇÃO AUTOMÁTICA DE IDIOMA
+// ═══════════════════════════════════════════════════════
+var LS_LANG = 'k60r_lang';
+var _rawAuto = ((navigator.languages && navigator.languages[0]) || navigator.language || 'pt')
+                .toLowerCase().replace(/-.*/, '');
+
+// Idioma principal: salvo > detectado automaticamente > fallback pt
+var targetLang = (function(){
+  try {
+    var salvo = localStorage.getItem(LS_LANG);
+    if (salvo && RADIO_LANG_EN[salvo]) return salvo;
+  } catch(e){}
+  return RADIO_LANG_EN[_rawAuto] ? _rawAuto : 'pt';
+})();
+
+// Idioma alvo do botão sintonizar (pode ser outro além do principal)
+var sintTargetLang = targetLang;
+
+function langNome(c) { return RADIO_LANG_DISPLAY[c] || c; }
+function langEN(c)   { return RADIO_LANG_EN[c]      || 'portuguese'; }
+
+// Popular select, pré-selecionando o idioma detectado
+renderLangSelect();
+
+function selecionarIdioma(lang) {
+  if (!lang || !RADIO_LANG_EN[lang]) return;
+  sintTargetLang = lang;
+  if (!sintRodando) _atualizarBtnSint();
+}
+
+function definirPrincipal() {
+  var sel  = document.getElementById('sel-lang');
+  var lang = sel ? sel.value : targetLang;
+  if (!lang || !RADIO_LANG_EN[lang]) return;
+  try { localStorage.setItem(LS_LANG, lang); } catch(e){}
+  location.reload();
+}
+
+// ═══════════════════════════════════════════════════════
+// INFRAESTRUTURA
+// ═══════════════════════════════════════════════════════
+var PROXIES = [
+  'https://corsproxy.io/?url=',
+  'https://api.allorigins.win/raw?url=',
+  'https://api.codetabs.com/v1/proxy/?quest=',
+  'https://thingproxy.freeboard.io/fetch/'
+];
+var RADIO_BASES = [
+  'https://de1.api.radio-browser.info',
+  'https://nl1.api.radio-browser.info',
+  'https://at1.api.radio-browser.info'
+];
+
+var _ua  = (navigator.userAgent || '').toLowerCase();
+var IS_TV = /smart-?tv|smarttv|tizen|web0s|webos|hbbtv|netcast|viera|bravia|aquos|samsung.*tv|lg.*tv/.test(_ua);
+try { if (localStorage.getItem('k60r_tv') === '1') IS_TV = true; } catch(e){}
+
+function radioXhr(path, cb) {
+  var urls = [];
+  for (var i = 0; i < RADIO_BASES.length; i++) urls.push(RADIO_BASES[i] + path);
+  for (var p = 0; p < PROXIES.length; p++) urls.push(PROXIES[p] + encodeURIComponent(RADIO_BASES[0] + path));
+  var ti = 0;
+  function next() {
+    if (ti >= urls.length) { cb('erro'); return; }
+    var r = new XMLHttpRequest();
+    r.open('GET', urls[ti++], true);
+    r.setRequestHeader('User-Agent','K60Radio/1.0');
+    try { r.timeout = 12000; } catch(e){}
+    r.onreadystatechange = function() {
+      if (r.readyState !== 4) return;
+      if (r.status === 200) { try { cb(null, JSON.parse(r.responseText)); return; } catch(e){} }
+      next();
+    };
+    r.onerror = next; r.ontimeout = next;
+    try { r.send(); } catch(e){ next(); }
+  }
+  next();
+}
+
+// ═══════════════════════════════════════════════════════
+// ESTADO
+// ═══════════════════════════════════════════════════════
+var estacoesLang       = [];   // estações do idioma principal (sintonizadas)
+var estacoesExtraLangs = {};   // { 'en': [...], 'es': [...] } — outros idiomas sintonizados
+var extrasOrder        = [];   // ordem em que foram sintonizados ['en','es',...]
+var estacoesOutros     = [];   // estações globais (não sintonizadas)
+var seenUuids          = {};
+var filtradas          = [];
+var langFim            = 0;
+var langSegments       = [];   // [{lang, de, ate}] para exibição das faixas
+var curCh          = -1;
+var pronto         = false;
+var maxDig         = 3;
+var filtroTag      = null;
+var buf = '', bufTmr = null;
+var pBuf = '', pBufTmr = null;
+var osdTmr, errTmr, failTmr, hlsObj;
+
+// ── Persistência da sintonização ───────────────────────
+var LS_SINT       = 'k60r_sint_v1';
+var LS_SINT_LANGS = 'k60r_sint_langs';
+var LS_SINT_EXTRA = 'k60r_sint_extra_v1';  // idiomas extras sintonizados
+var _sintoniaRestaurada = false;
+
+function getSintLangs() {
+  try { return JSON.parse(localStorage.getItem(LS_SINT_LANGS) || '{}'); } catch(e){ return {}; }
+}
+function marcarLangSintonizado(lang) {
+  try {
+    var obj = getSintLangs();
+    obj[lang] = Date.now();
+    localStorage.setItem(LS_SINT_LANGS, JSON.stringify(obj));
+  } catch(e){}
+}
+function isLangSintonizado(lang) {
+  var obj = getSintLangs();
+  return !!obj[lang];
+}
+
+function renderLangSelect() {
+  var sel  = document.getElementById('sel-lang');
+  if (!sel) return;
+  var keys = Object.keys(RADIO_LANG_EN);
+  keys.sort(function(a,b){ return langNome(a).localeCompare(langNome(b)); });
+  var curVal = sel.value || targetLang;
+  var html = '';
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    var label = (isLangSintonizado(k) ? '\u2705 ' : '') + langNome(k);
+    html += '<option value="'+k+'"'+(k===curVal?' selected':'')+'>'+label+'</option>';
+  }
+  sel.innerHTML = html;
+}
+
+function _salvarSintonia() {
+  try {
+    var slim = estacoesLang.map(function(s){
+      return { uuid:s.uuid,nome:s.nome,url:s.url,tags:s.tags,pais:s.pais,lingua:s.lingua,bitrate:s.bitrate,favicon:s.favicon };
+    });
+    localStorage.setItem(LS_SINT, JSON.stringify({ lang: targetLang, lista: slim }));
+  } catch(e){ console.warn('[K60R] Falha ao salvar sintonia:', e); }
+}
+
+function _restaurarSintonia() {
+  try {
+    var raw = localStorage.getItem(LS_SINT);
+    if (!raw) return;
+    var obj = JSON.parse(raw);
+    if (!obj || !obj.lista || !obj.lista.length) return;
+    if (obj.lang !== targetLang) return; // idioma diferente, ignora
+    for (var i = 0; i < obj.lista.length; i++) {
+      var s = obj.lista[i];
+      if (!s || !s.uuid || seenUuids[s.uuid]) continue;
+      seenUuids[s.uuid] = true;
+      estacoesLang.push(s);
+    }
+    if (estacoesLang.length) {
+      _sintoniaRestaurada = true;
+      console.log('[K60R] Sintonia restaurada: ' + estacoesLang.length + ' estação(ões).');
+    }
+  } catch(e){}
+}
+
+function _salvarExtras() {
+  try {
+    var obj = {};
+    for (var i = 0; i < extrasOrder.length; i++) {
+      var lg = extrasOrder[i];
+      obj[lg] = (estacoesExtraLangs[lg] || []).map(function(s){
+        return { uuid:s.uuid,nome:s.nome,url:s.url,tags:s.tags,pais:s.pais,lingua:s.lingua,bitrate:s.bitrate,favicon:s.favicon };
+      });
+    }
+    localStorage.setItem(LS_SINT_EXTRA, JSON.stringify({ order: extrasOrder, map: obj }));
+  } catch(e){ console.warn('[K60R] Falha ao salvar extras:', e); }
+}
+
+function _restaurarExtras() {
+  try {
+    var raw = localStorage.getItem(LS_SINT_EXTRA);
+    if (!raw) return;
+    var obj = JSON.parse(raw);
+    if (!obj || !obj.order || !obj.map) return;
+    for (var i = 0; i < obj.order.length; i++) {
+      var lg   = obj.order[i];
+      var list = obj.map[lg] || [];
+      if (!list.length) continue;
+      estacoesExtraLangs[lg] = [];
+      extrasOrder.push(lg);
+      for (var j = 0; j < list.length; j++) {
+        var s = list[j];
+        if (!s || !s.uuid || seenUuids[s.uuid]) continue;
+        seenUuids[s.uuid] = true;
+        estacoesExtraLangs[lg].push(s);
+      }
+    }
+    if (extrasOrder.length) console.log('[K60R] Extras restaurados: ' + extrasOrder.join(', '));
+  } catch(e){}
+}
+
+
+// ═══════════════════════════════════════════════════════
+function _parseEstacao(s) {
+  var url = s.url_resolved || s.url;
+  if (!url) return null;
+  return {
+    uuid:    s.stationuuid || s.uuid || '',
+    nome:    (s.name || s.nome || 'Estação').trim(),
+    url:     url,
+    tags:    Array.isArray(s.tags) ? s.tags
+             : (s.tags||'').split(',').map(function(t){ return t.trim().toLowerCase(); }).filter(Boolean),
+    pais:    s.countrycode || s.pais || '',
+    lingua:  s.language   || s.lingua || '',
+    bitrate: s.bitrate    || 0,
+    favicon: s.favicon    || ''
+  };
+}
+
+function addEstacoes(lista, grupo) {
+  var alvo = (grupo === 'lang') ? estacoesLang : estacoesOutros;
+  var mudou = false;
+  for (var i = 0; i < lista.length; i++) {
+    var s    = lista[i];
+    var uuid = s.stationuuid || s.uuid || '';
+    if (!uuid || seenUuids[uuid]) continue;
+    var est = _parseEstacao(s);
+    if (!est) continue;
+    seenUuids[uuid] = true;
+    alvo.push(est);
+    mudou = true;
+  }
+  if (mudou) { aplicarFiltro(); atualizarTela(); }
+}
+
+// ═══════════════════════════════════════════════════════
+// CARREGAR ESTAÇÕES (automático ao abrir)
+// ═══════════════════════════════════════════════════════
+function carregar() {
+  var le = langEN(targetLang);
+  var ln = langNome(targetLang);
+  setStatus('Carregando em ' + ln + '...');
+
+  // Se a sintonia já foi restaurada, as estações do idioma vêm só do localStorage;
+  // o M3U bruto vai para "outros" para não sobrescrever.
+  var grupoLang = _sintoniaRestaurada ? 'outros' : 'lang';
+
+  var fontes = [
+    { path: '/json/stations/search?language='+encodeURIComponent(le)+'&limit=500&hidebroken=true&order=votes&reverse=true',      grupo: grupoLang },
+    { path: '/json/stations/search?language='+encodeURIComponent(le)+'&limit=500&hidebroken=true&order=clickcount&reverse=true', grupo: grupoLang },
+    { path: '/json/stations/topvote/500',                                                                                        grupo: 'outros' },
+    { path: '/json/stations/search?order=clickcount&reverse=true&limit=500&hidebroken=true',                                    grupo: 'outros' },
+    { path: '/json/stations/search?order=clicktrend&reverse=true&limit=300&hidebroken=true',                                    grupo: 'outros' },
+    { path: '/json/stations/search?countrycode=BR&limit=300&hidebroken=true&order=clickcount&reverse=true',                     grupo: 'outros' },
+    { path: '/json/stations/search?countrycode=US&limit=300&hidebroken=true&order=votes&reverse=true',                          grupo: 'outros' },
+    { path: '/json/stations/search?countrycode=AR&limit=150&hidebroken=true&order=votes&reverse=true',                          grupo: 'outros' },
+    { path: '/json/stations/search?countrycode=MX&limit=150&hidebroken=true&order=votes&reverse=true',                          grupo: 'outros' },
+    { path: '/json/stations/search?countrycode=CO&limit=100&hidebroken=true&order=votes&reverse=true',                          grupo: 'outros' },
+    { path: '/json/stations/search?countrycode=CA&limit=100&hidebroken=true&order=votes&reverse=true',                          grupo: 'outros' },
+    { path: '/json/stations/search?countrycode=GB&limit=200&hidebroken=true&order=votes&reverse=true',                          grupo: 'outros' },
+    { path: '/json/stations/search?countrycode=DE&limit=200&hidebroken=true&order=votes&reverse=true',                          grupo: 'outros' },
+    { path: '/json/stations/search?countrycode=FR&limit=200&hidebroken=true&order=votes&reverse=true',                          grupo: 'outros' },
+    { path: '/json/stations/search?countrycode=ES&limit=150&hidebroken=true&order=votes&reverse=true',                          grupo: 'outros' },
+    { path: '/json/stations/search?countrycode=PT&limit=150&hidebroken=true&order=votes&reverse=true',                          grupo: 'outros' },
+    { path: '/json/stations/search?countrycode=IT&limit=150&hidebroken=true&order=votes&reverse=true',                          grupo: 'outros' },
+    { path: '/json/stations/search?countrycode=RU&limit=150&hidebroken=true&order=votes&reverse=true',                          grupo: 'outros' },
+    { path: '/json/stations/search?countrycode=TR&limit=150&hidebroken=true&order=votes&reverse=true',                          grupo: 'outros' },
+    { path: '/json/stations/search?countrycode=JP&limit=150&hidebroken=true&order=votes&reverse=true',                          grupo: 'outros' },
+    { path: '/json/stations/search?countrycode=IN&limit=150&hidebroken=true&order=votes&reverse=true',                          grupo: 'outros' },
+    { path: '/json/stations/search?countrycode=AU&limit=100&hidebroken=true&order=votes&reverse=true',                          grupo: 'outros' },
+    { path: '/json/stations/search?countrycode=ZA&limit=100&hidebroken=true&order=votes&reverse=true',                          grupo: 'outros' },
+    { path: '/json/stations/search?tagList=pop&limit=200&hidebroken=true&order=votes&reverse=true',                             grupo: 'outros' },
+    { path: '/json/stations/search?tagList=rock&limit=200&hidebroken=true&order=votes&reverse=true',                            grupo: 'outros' },
+    { path: '/json/stations/search?tagList=news&limit=200&hidebroken=true&order=votes&reverse=true',                            grupo: 'outros' },
+    { path: '/json/stations/search?tagList=jazz&limit=150&hidebroken=true&order=votes&reverse=true',                            grupo: 'outros' },
+    { path: '/json/stations/search?tagList=classical&limit=150&hidebroken=true&order=votes&reverse=true',                       grupo: 'outros' },
+    { path: '/json/stations/search?tagList=electronic&limit=150&hidebroken=true&order=votes&reverse=true',                      grupo: 'outros' },
+    { path: '/json/stations/search?tagList=hiphop&limit=150&hidebroken=true&order=votes&reverse=true',                          grupo: 'outros' },
+    { path: '/json/stations/search?tagList=reggae&limit=100&hidebroken=true&order=votes&reverse=true',                          grupo: 'outros' },
+    { path: '/json/stations/search?tagList=gospel&limit=100&hidebroken=true&order=votes&reverse=true',                          grupo: 'outros' },
+    { path: '/json/stations/search?tagList=sertanejo&limit=100&hidebroken=true&order=votes&reverse=true',                       grupo: 'outros' },
+    { path: '/json/stations/search?tagList=talk&limit=100&hidebroken=true&order=votes&reverse=true',                            grupo: 'outros' }
+  ];
+
+  var total = fontes.length, done = 0;
+  function checkFim() { done++; if (done >= total) { atualizarTela(); popularTags(); } }
+  for (var f = 0; f < fontes.length; f++) {
+    (function(item){
+      radioXhr(item.path, function(e, d) {
+        if (!e && d && d.length) addEstacoes(d, item.grupo);
+        checkFim();
+      });
+    })(fontes[f]);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// SINTONIZAR — igual ao da TV
+// ═══════════════════════════════════════════════════════
+var sintRodando = false;
+var sintAbortar = false;
+
+function sintonizar() {
+  var btn  = document.getElementById('btn-sintonizar');
+  var prog = document.getElementById('sint-progresso');
+
+  if (sintRodando) { sintAbortar = true; prog.innerHTML = 'Cancelando...'; return; }
+
+  var lang      = sintTargetLang || targetLang;
+  var le        = langEN(lang);
+  var ln        = langNome(lang).toUpperCase();
+  var isPrimary = (lang === targetLang);
+
+  sintRodando = true; sintAbortar = false;
+  btn.innerHTML = '&#9209; Cancelar sintonia';
+  prog.innerHTML = '&#9851; Baixando lista de ' + ln + '...';
+
+  // Limpa lista anterior do idioma para nova sintonia
+  if (isPrimary) {
+    for (var vi = 0; vi < estacoesLang.length; vi++) delete seenUuids[estacoesLang[vi].uuid];
+    estacoesLang = [];
+    _sintoniaRestaurada = false;
+  } else {
+    // Limpa grupo anterior deste idioma extra (re-sintonização)
+    if (estacoesExtraLangs[lang]) {
+      for (var vi2 = 0; vi2 < estacoesExtraLangs[lang].length; vi2++) delete seenUuids[estacoesExtraLangs[lang][vi2].uuid];
+    }
+    estacoesExtraLangs[lang] = [];
+    if (extrasOrder.indexOf(lang) === -1) extrasOrder.push(lang);
+  }
+  aplicarFiltro(); atualizarTela();
+
+  // Baixa até 1000 estações do idioma
+  radioXhr(
+    '/json/stations/search?language='+encodeURIComponent(le)+'&limit=1000&hidebroken=true&order=votes&reverse=true',
+    function(err, data) {
+      if (sintAbortar) { _fimSint('Sintonia cancelada.', 0, 0); return; }
+      if (err || !data || !data.length) {
+        prog.innerHTML = '<span class="err">Nenhuma esta&ccedil;&atilde;o encontrada para ' + ln + '.</span>';
+        _fimSint('', 0, 0); return;
+      }
+
+      // Separa as que ainda não foram vistas
+      var novas = [];
+      for (var n = 0; n < data.length; n++) {
+        var s    = data[n];
+        var uuid = s.stationuuid;
+        if (!uuid || seenUuids[uuid]) continue;
+        var est = _parseEstacao(s);
+        if (est) novas.push(est);
+      }
+
+      if (!novas.length) { _fimSint('Sintonia conclu\xedda.', estacoesLang.length, 0); return; }
+
+      var total    = novas.length;
+      var idx      = 0, ok = 0, fail = 0, ativos = 0;
+      var PARALELO = IS_TV ? 2 : 4;
+      var TIMEOUT  = IS_TV ? 5000 : 4000;
+
+      prog.innerHTML = 'Testando ' + total + ' esta&ccedil;&atilde;o(ões) [' + ln + ']...';
+
+      function atualizar(nome) {
+        prog.innerHTML = 'Testando ' + Math.min(idx, total) + '/' + total
+          + ' [' + ln + ']'
+          + ' &nbsp;<span class="ok">&#10003; ' + ok + '</span>'
+          + ' &nbsp;<span class="err">&#10005; ' + fail + '</span>'
+          + (nome ? '<br><small>' + nome + '</small>' : '');
+      }
+
+      function testar(est, cb) {
+        var url   = est.url;
+        var tries = [url];
+        for (var pi = 0; pi < PROXIES.length; pi++) tries.push(PROXIES[pi] + encodeURIComponent(url));
+        var ti = 0, done = false;
+        var tmr = setTimeout(function(){ resolver(false); }, TIMEOUT + 2000);
+        function resolver(ok2) { if (done) return; done = true; clearTimeout(tmr); try { cb(ok2); } catch(e){} }
+        function next() {
+          if (ti >= tries.length) { resolver(false); return; }
+          var u = tries[ti++];
+          try {
+            var r = new XMLHttpRequest();
+            r.open('HEAD', u, true);
+            try { r.timeout = Math.floor(TIMEOUT * 0.55); } catch(e){}
+            r.onreadystatechange = function() {
+              if (r.readyState !== 4) return;
+              if (r.status >= 200 && r.status < 400) { resolver(true); }
+              else if (r.status === 405) {
+                try {
+                  var r2 = new XMLHttpRequest();
+                  r2.open('GET', u, true);
+                  try { r2.timeout = Math.floor(TIMEOUT * 0.45); } catch(e){}
+                  r2.onreadystatechange = function() {
+                    if (r2.readyState >= 2) {
+                      try { r2.abort(); } catch(e){}
+                      if (r2.status >= 200 && r2.status < 400) resolver(true); else next();
+                    }
+                  };
+                  r2.onerror = r2.ontimeout = function(){ try { next(); } catch(e){ resolver(false); } };
+                  r2.send();
+                } catch(e2){ next(); }
+              } else { next(); }
+            };
+            r.onerror = r.ontimeout = function(){ try { next(); } catch(e){ resolver(false); } };
+            r.send();
+          } catch(e){ next(); }
+        }
+        next();
+      }
+
+      function lancar() {
+        if (sintAbortar) { if (ativos === 0) _fimSint('Sintonia cancelada.', ok, fail); return; }
+        if (idx >= total) { if (ativos === 0) _fimSint('Sintonia conclu\xedda.', ok, fail); return; }
+        while (ativos < PARALELO && idx < total) {
+          (function(est){
+            ativos++;
+            atualizar(est.nome);
+            testar(est, function(sucesso) {
+              if (sucesso) {
+                ok++;
+                if (!seenUuids[est.uuid]) {
+                  seenUuids[est.uuid] = true;
+                  if (isPrimary) estacoesLang.push(est);
+                  else {
+                    if (!estacoesExtraLangs[lang]) estacoesExtraLangs[lang] = [];
+                    estacoesExtraLangs[lang].push(est);
+                  }
+                }
+                aplicarFiltro(); atualizarTela();
+              } else { fail++; }
+              ativos--; atualizar(''); lancar();
+            });
+          })(novas[idx++]);
+        }
+      }
+
+      setTimeout(lancar, 200);
+    }
+  );
+
+  function _fimSint(msg, nOk, nFail) {
+    sintRodando = false;
+    if (isPrimary && msg.indexOf('conclu') !== -1) {
+      _sintoniaRestaurada = true;
+      _salvarSintonia();
+    }
+    if (msg.indexOf('conclu') !== -1 && nOk > 0) {
+      marcarLangSintonizado(lang);
+      if (!isPrimary) _salvarExtras();
+      renderLangSelect();
+    }
+    _atualizarBtnSint();
+    aplicarFiltro(); atualizarTela();
+    if (msg) {
+      prog.innerHTML = msg
+        + (nOk || nFail
+          ? ' <span class="ok">&#10003; ' + nOk + '</span> <span class="err">&#10005; ' + nFail + '</span>'
+          : '');
+    }
+  }
+}
+
+function _atualizarBtnSint() {
+  var sel  = document.getElementById('sel-lang');
+  var lang = sel ? sel.value : targetLang;
+  var btn  = document.getElementById('btn-sintonizar');
+  if (!btn) return;
+  var jaSint = isLangSintonizado(lang);
+  var nome = (lang === targetLang) ? 'este idioma' : langNome(lang).toUpperCase();
+  btn.innerHTML = jaSint
+    ? '&#9654; Re-sintonizar ' + nome
+    : '&#128225; Sintonizar ' + nome;
+  btn.title = jaSint ? ('Já sintonizado! Clique para atualizar ' + langNome(lang)) : '';
+  btn.style.borderColor = jaSint ? '#ffaa00' : '';
+  btn.style.color       = jaSint ? '#ffaa00' : '';
+}
+
+// ═══════════════════════════════════════════════════════
+// FILTRO E TELA
+// ═══════════════════════════════════════════════════════
+function aplicarFiltro() {
+  var urlAtual = (curCh >= 0 && filtradas[curCh]) ? filtradas[curCh].url : null;
+
+  function mc(s) {
+    if (!filtroTag) return true;
+    return s.tags && s.tags.indexOf(filtroTag) !== -1;
+  }
+
+  var L = estacoesLang.filter(mc);
+
+  // Extras em ordem
+  var extrasFlat = [];
+  var extrasCounts = [];
+  for (var xi = 0; xi < extrasOrder.length; xi++) {
+    var lg  = extrasOrder[xi];
+    var arr = (estacoesExtraLangs[lg] || []).filter(mc);
+    extrasFlat = extrasFlat.concat(arr);
+    extrasCounts.push({ lang: lg, count: arr.length });
+  }
+
+  var O    = estacoesOutros.filter(mc);
+  var todos = L.concat(extrasFlat, O);
+
+  // Favoritos no topo
+  var favs = getFavs();
+  if (favs.length) {
+    var fm = {};
+    for (var i = 0; i < favs.length; i++) fm[favs[i].uuid] = i;
+    var fa = [], out = [];
+    for (var j = 0; j < todos.length; j++) {
+      if (fm.hasOwnProperty(todos[j].uuid)) fa.push(todos[j]); else out.push(todos[j]);
+    }
+    fa.sort(function(a,b){ return fm[a.uuid] - fm[b.uuid]; });
+    filtradas = fa.concat(out);
+    langFim = 0;
+    for (var k = 0; k < out.length; k++) {
+      var inL = L.indexOf(out[k]) !== -1;
+      var inE = extrasFlat.indexOf(out[k]) !== -1;
+      if (inL || inE) langFim++;
+    }
+    langFim += fa.filter(function(s){ return L.indexOf(s) !== -1 || extrasFlat.indexOf(s) !== -1; }).length;
+  } else {
+    filtradas = todos;
+    langFim   = L.length + extrasFlat.length;
+  }
+
+  // Calcular segmentos para exibição (sem levar favs em conta — posição aproximada)
+  langSegments = [];
+  var pos = 1;
+  if (L.length) {
+    langSegments.push({ lang: targetLang, de: pos, ate: pos + L.length - 1 });
+    pos += L.length;
+  }
+  for (var si = 0; si < extrasCounts.length; si++) {
+    if (extrasCounts[si].count > 0) {
+      langSegments.push({ lang: extrasCounts[si].lang, de: pos, ate: pos + extrasCounts[si].count - 1 });
+      pos += extrasCounts[si].count;
+    }
+  }
+
+  if (urlAtual) {
+    for (var m = 0; m < filtradas.length; m++) {
+      if (filtradas[m].url === urlAtual) { curCh = m; break; }
+    }
+  }
+}
+
+function setFiltro(tag) { filtroTag = tag || null; aplicarFiltro(); atualizarTela(); }
+
+function popularTags() {
+  var todas = estacoesLang.concat(estacoesOutros);
+  var cnt = {};
+  for (var i = 0; i < todas.length; i++) {
+    var ts = todas[i].tags || [];
+    for (var j = 0; j < ts.length; j++) if (ts[j]) cnt[ts[j]] = (cnt[ts[j]]||0)+1;
+  }
+  var sorted = Object.keys(cnt).filter(function(t){ return cnt[t] >= 3; });
+  sorted.sort(function(a,b){ return cnt[b]-cnt[a]; });
+  var sel = document.getElementById('sel-cat'); if (!sel) return;
+  var prev = sel.value;
+  sel.innerHTML = '<option value="">&#9788; Todos os g&ecirc;neros</option>';
+  var top = sorted.slice(0,50);
+  for (var k = 0; k < top.length; k++) {
+    var o = document.createElement('option');
+    o.value = top[k];
+    o.textContent = top[k].charAt(0).toUpperCase() + top[k].slice(1) + ' (' + cnt[top[k]] + ')';
+    sel.appendChild(o);
+  }
+  if (prev) sel.value = prev;
+}
+
+function setStatus(txt) { document.getElementById('status-line').innerHTML = txt; }
+
+function atualizarTela() {
+  if (!filtradas.length) return;
+  pronto = true;
+  var total = filtradas.length;
+  var digs  = String(total).length; if (digs < 3) digs = 3;
+  maxDig = digs;
+  setStatus('Total: <span>' + total + '</span> esta&ccedil;&otilde;es | Digite 1 a ' + total);
+  var html = '';
+  for (var i = 0; i < langSegments.length; i++) {
+    var seg = langSegments[i];
+    html += '<div class="dest">&#9733; ' + langNome(seg.lang).toUpperCase() + ': ' + seg.de + ' a ' + seg.ate + '</div>';
+  }
+  if (total > langFim)
+    html += langFim === 0
+      ? '<div><b>Todas as esta&ccedil;&otilde;es:</b> 1 a ' + total + '</div>'
+      : '<div><b>Outras l&iacute;nguas / mundial:</b> ' + (langFim+1) + ' a ' + total + '</div>';
+  document.getElementById('faixas').innerHTML = html;
+}
+
+function atualizarDisplay() {
+  var el  = document.getElementById('digitos');
+  var box = document.getElementById('display-canal');
+  if (buf === '') { el.textContent = '_'; el.className = 'vazio'; box.className = ''; }
+  else            { el.textContent = buf; el.className = ''; box.className = 'ativo'; }
+}
+
+function irCanal() {
+  if (!pronto || !buf) return;
+  var n = parseInt(buf, 10); buf = ''; atualizarDisplay();
+  if (n >= 1 && n <= filtradas.length) { tocar(n - 1); }
+  else {
+    setStatus('Esta&ccedil;&atilde;o ' + n + ' n&atilde;o existe. Digite 1 a <span>' + filtradas.length + '</span>');
+    setTimeout(atualizarTela, 2500);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// PLAYER
+// ═══════════════════════════════════════════════════════
+function pararHls() { if (hlsObj) { try { hlsObj.destroy(); } catch(e){} hlsObj = null; } }
+
+function pararVideo() {
+  pararHls();
+  var vid = document.getElementById('vid');
+  vid.onerror = null; vid.oncanplay = null; vid.onloadedmetadata = null; vid.onplaying = null;
+  clearTimeout(failTmr);
+  try { vid.pause(); } catch(e){}
+  try { vid.src = ''; } catch(e){}
+  try { vid.removeAttribute('src'); } catch(e){}
+  try { vid.load(); } catch(e){}
+  try { vid.muted = false; vid.volume = 1; } catch(e){}
+}
+
+function tocar(idx) {
+  var st = filtradas[idx]; if (!st) return;
+  curCh = idx; pararVideo();
+
+  var vis  = document.getElementById('radio-vis');
+  var wrap = document.getElementById('radio-vis-wrap');
+  vis.classList.remove('tocando');
+  if (st.favicon) {
+    vis.innerHTML = '';
+    var img = document.createElement('img');
+    img.src = st.favicon;
+    img.onerror = function(){ vis.innerHTML = '&#127925;'; };
+    vis.appendChild(img);
+  } else { vis.innerHTML = '&#127925;'; }
+  wrap.style.display = 'flex';
+
+  var info = [st.pais, st.lingua, st.bitrate ? st.bitrate+'kbps' : ''].filter(Boolean).join(' \xb7 ');
+  document.getElementById('osd-num').textContent  = String(idx+1);
+  document.getElementById('osd-nome').textContent = st.nome + (info ? '  \u2014  '+info : '');
+  document.getElementById('osd-estado').textContent = 'Conectando...';
+  setTimeout(sincVolSlider, 100);
+  document.getElementById('carregando').style.display = 'block';
+  document.getElementById('tela-home').style.display   = 'none';
+  document.getElementById('tela-player').style.display = 'block';
+  mostrarOSD(); atualizarBtnFav();
+
+  var vid = document.getElementById('vid');
+  failTmr = setTimeout(mostrarErro, IS_TV ? 30000 : 15000);
+  var okJa = false;
+  function onOk() {
+    if (okJa) return; okJa = true; clearTimeout(failTmr);
+    document.getElementById('carregando').style.display = 'none';
+    document.getElementById('osd-estado').textContent = 'Ao vivo \u266a';
+    vis.classList.add('tocando');
+    try { if (vid.muted) { vid.muted = false; vid.volume = 1; } } catch(e){}
+  }
+  vid.oncanplay = onOk; vid.onplaying = onOk;
+  vid.onloadedmetadata = function(){ try { vid.play(); } catch(e){} };
+
+  var url      = st.url;
+  var ehHls    = /\.m3u8?($|\?)/i.test(url);
+  var nativeHls = !!(vid.canPlayType &&
+    (vid.canPlayType('application/vnd.apple.mpegurl') !== '' ||
+     vid.canPlayType('application/x-mpegURL') !== ''));
+  var temMSE = !IS_TV && typeof window.MediaSource !== 'undefined' &&
+               typeof Hls !== 'undefined' && Hls.isSupported();
+
+  vid.onerror = function() {
+    vid.onerror = null;
+    if (ehHls && temMSE) { tentarHlsJs(); return; }
+    clearTimeout(failTmr); mostrarErro();
+  };
+
+  function tentarHlsJs() {
+    try {
+      hlsObj = new Hls({ enableWorker:false, lowLatencyMode:false, backBufferLength:20,
+                          maxBufferLength:20, maxMaxBufferLength:40 });
+      hlsObj.loadSource(url); hlsObj.attachMedia(vid);
+      hlsObj.on(Hls.Events.MANIFEST_PARSED, function(){ try { vid.play(); } catch(e){} });
+      hlsObj.on(Hls.Events.ERROR, function(ev, d){
+        if (!d || !d.fatal) return; clearTimeout(failTmr); mostrarErro();
+      });
+    } catch(e){ mostrarErro(); }
+  }
+
+  if (ehHls && temMSE && !nativeHls) {
+    tentarHlsJs();
+  } else {
+    try {
+      vid.src = url; vid.load();
+      var p = vid.play();
+      if (p && p.catch) p.catch(function(){
+        try {
+          vid.muted = true;
+          var p2 = vid.play();
+          if (p2 && p2.then) p2.then(function(){
+            setTimeout(function(){ try { vid.muted=false; vid.volume=1; } catch(e){} }, 800);
+          }).catch(function(){});
+        } catch(e){}
+      });
+    } catch(e){ clearTimeout(failTmr); mostrarErro(); }
+  }
+}
+
+function voltarHome() {
+  pararVideo(); clearTimeout(osdTmr); clearTimeout(errTmr);
+  document.getElementById('toast').style.display = 'none';
+  document.getElementById('tela-player').style.display = 'none';
+  document.getElementById('radio-vis-wrap').style.display = 'none';
+  document.getElementById('tela-home').style.display = '';
+  buf = ''; atualizarDisplay();
+}
+
+function mostrarErro() {
+  clearTimeout(failTmr); clearTimeout(errTmr);
+  if (!filtradas.length) { voltarHome(); return; }
+  document.getElementById('carregando').style.display = 'none';
+  document.getElementById('osd-estado').textContent = 'Sem sinal \u2014 pulando...';
+  document.getElementById('osd').style.display = 'block';
+  errTmr = setTimeout(function(){
+    curCh = (curCh + 1) % filtradas.length; tocar(curCh);
+  }, IS_TV ? 1800 : 900);
+}
+
+function mostrarOSD() {
+  document.getElementById('osd').style.display = 'block'; clearTimeout(osdTmr);
+  osdTmr = setTimeout(function(){ document.getElementById('osd').style.display = 'none'; }, 5000);
+}
+
+function canalCima()  { if (filtradas.length) { curCh = (curCh+1)%filtradas.length; tocar(curCh); } }
+function canalBaixo() { if (filtradas.length) { curCh = ((curCh-1)+filtradas.length)%filtradas.length; tocar(curCh); } }
+
+function digitarNoPlayer(n) {
+  if (pBuf.length >= maxDig) return;
+  pBuf += String(n);
+  document.getElementById('p-canal-val').textContent = pBuf + '_';
+  document.getElementById('p-canal').style.display = 'block';
+  clearTimeout(pBufTmr);
+  pBufTmr = setTimeout(function(){
+    var idx = parseInt(pBuf,10)-1; pBuf = '';
+    document.getElementById('p-canal-val').textContent = '_';
+    document.getElementById('p-canal').style.display = 'none';
+    if (idx >= 0 && idx < filtradas.length) tocar(idx);
+  }, pBuf.length >= maxDig ? 600 : 2000);
+}
+
+// ═══════════════════════════════════════════════════════
+// VOLUME
+// ═══════════════════════════════════════════════════════
+var volTmr;
+function atualizarIconeMute() {
+  var vid = document.getElementById('vid');
+  var btn = document.getElementById('btn-mute');
+  var mudo = vid.muted || vid.volume === 0;
+  btn.innerHTML = mudo ? '&#128264;' : (vid.volume < 0.4 ? '&#128265;' : '&#128266;');
+}
+function mostrarVolume() {
+  var ctrl = document.getElementById('volume-ctrl');
+  ctrl.classList.remove('oculto'); clearTimeout(volTmr);
+  volTmr = setTimeout(function(){ ctrl.classList.add('oculto'); }, 3500);
+}
+function sincVolSlider() {
+  var vid = document.getElementById('vid');
+  var v = vid.muted ? 0 : Math.round(vid.volume*100);
+  document.getElementById('vol-slider').value = v;
+  document.getElementById('vol-label').textContent = v + '%';
+  atualizarIconeMute();
+}
+document.getElementById('btn-mute').onclick = function(){
+  var vid = document.getElementById('vid');
+  vid.muted = !vid.muted;
+  if (!vid.muted && vid.volume === 0) vid.volume = 0.5;
+  sincVolSlider(); mostrarVolume();
+};
+document.getElementById('vol-slider').oninput = function(){
+  var vid = document.getElementById('vid');
+  var v = parseInt(this.value,10)/100;
+  vid.volume = v; vid.muted = (v === 0);
+  document.getElementById('vol-label').textContent = this.value + '%';
+  atualizarIconeMute(); mostrarVolume();
+};
+
+// ═══════════════════════════════════════════════════════
+// FAVORITOS
+// ═══════════════════════════════════════════════════════
+var LS_FAVS = 'k60r_favs';
+function getFavs()   { try { return JSON.parse(localStorage.getItem(LS_FAVS)||'[]'); } catch(e){ return []; } }
+function saveFavs(f) { try { localStorage.setItem(LS_FAVS, JSON.stringify(f)); } catch(e){} }
+function isFav(uuid) { return getFavs().some(function(f){ return f.uuid === uuid; }); }
+
+function toggleFav() {
+  if (curCh < 0 || !filtradas[curCh]) return;
+  var st = filtradas[curCh], favs = getFavs(), idx = -1;
+  for (var k = 0; k < favs.length; k++) if (favs[k].uuid === st.uuid) { idx = k; break; }
+  if (idx === -1) favs.push({ uuid:st.uuid, nome:st.nome, url:st.url }); else favs.splice(idx, 1);
+  saveFavs(favs); aplicarFiltro();
+  for (var j = 0; j < filtradas.length; j++) if (filtradas[j].uuid === st.uuid) { curCh = j; break; }
+  atualizarBtnFav(); renderFavs();
+}
+
+function atualizarBtnFav() {
+  var btn = document.getElementById('btn-fav'); if (!btn) return;
+  var st = filtradas[curCh];
+  if (st && isFav(st.uuid)) btn.classList.add('favoritado'); else btn.classList.remove('favoritado');
+}
+
+function renderFavs() {
+  var favs = getFavs(), el = document.getElementById('favs'); if (!el) return;
+  if (!favs.length) { el.innerHTML = ''; return; }
+  var html = '<div id="favs-titulo">&#9733; Favoritos</div>';
+  for (var i = 0; i < favs.length; i++) {
+    html += '<div class="fav-item">'
+      + '<span class="fav-nome" onclick="tocarFav('+i+')">'+favs[i].nome+'</span>'
+      + '<button class="fav-del" onclick="delFav('+i+')" title="Remover">&#10005;</button>'
+      + '</div>';
+  }
+  el.innerHTML = html;
+}
+
+function tocarFav(i) {
+  var f = getFavs()[i]; if (!f) return;
+  for (var k = 0; k < filtradas.length; k++) if (filtradas[k].uuid === f.uuid) { tocar(k); return; }
+  if (!seenUuids[f.uuid]) {
+    seenUuids[f.uuid] = true;
+    estacoesOutros.unshift({ uuid:f.uuid,nome:f.nome,url:f.url,tags:[],pais:'',lingua:'',bitrate:0,favicon:'' });
+    aplicarFiltro();
+  }
+  for (var j = 0; j < filtradas.length; j++) if (filtradas[j].uuid === f.uuid) { tocar(j); return; }
+}
+
+function delFav(i) {
+  var favs = getFavs(); favs.splice(i,1); saveFavs(favs); aplicarFiltro(); renderFavs();
+}
+
+// ═══════════════════════════════════════════════════════
+// TECLADO
+// ═══════════════════════════════════════════════════════
+document.onkeydown = function(e) {
+  var k      = e.keyCode || e.which;
+  var naHome = document.getElementById('tela-home').style.display !== 'none';
+  var eNum   = (k >= 48 && k <= 57) || (k >= 96 && k <= 105);
+  var num    = k >= 96 ? k - 96 : k - 48;
+  var ok_k   = k === 13 || k === 32;
+  var del    = k === 8;
+  var back   = k === 8 || k === 27 || k === 36 || k === 88 || k === 166 || k === 461;
+  var up     = k === 33 || k === 38 || k === 427;
+  var dn     = k === 34 || k === 40 || k === 428;
+  if (e.preventDefault && (eNum||ok_k||del||back||up||dn)) e.preventDefault();
+  if (naHome) {
+    if (eNum && pronto) {
+      if (buf.length >= maxDig + 1) return;
+      buf += String(num); atualizarDisplay(); clearTimeout(bufTmr);
+      if (buf.length > maxDig) irCanal(); else bufTmr = setTimeout(irCanal, 2500);
+    } else if (del && buf.length > 0) {
+      buf = buf.slice(0,-1); atualizarDisplay(); clearTimeout(bufTmr);
+    } else if (ok_k) { clearTimeout(bufTmr); irCanal(); }
+  } else {
+    var vid = document.getElementById('vid');
+    if (k === 107 || k === 187) { vid.volume=Math.min(1,(vid.muted?0:vid.volume)+0.1); vid.muted=false; sincVolSlider(); mostrarVolume(); e.preventDefault(); return; }
+    if (k === 109 || k === 189) { var nv=Math.max(0,(vid.muted?0:vid.volume)-0.1); vid.volume=nv; vid.muted=(nv===0); sincVolSlider(); mostrarVolume(); e.preventDefault(); return; }
+    if (k === 77) { vid.muted=!vid.muted; if(!vid.muted&&vid.volume===0)vid.volume=0.5; sincVolSlider(); mostrarVolume(); e.preventDefault(); return; }
+    mostrarOSD();
+    if (back && !eNum) voltarHome();
+    else if (up)       canalCima();
+    else if (dn)       canalBaixo();
+    else if (eNum)     digitarNoPlayer(num);
+  }
+};
+
+// Auto-ocultar controles
+var hideTmr;
+function mostrarControles() {
+  document.getElementById('controles').classList.remove('oculto'); clearTimeout(hideTmr);
+  hideTmr = setTimeout(function(){ document.getElementById('controles').classList.add('oculto'); }, 3000);
+}
+['mousemove','mousedown','touchstart','keydown'].forEach(function(ev){ document.addEventListener(ev, mostrarControles); });
+
+// Bind botões
+document.getElementById('btn-voltar').onclick   = function(){ voltarHome(); };
+document.getElementById('btn-ch-cima').onclick  = function(){ canalCima(); };
+document.getElementById('btn-ch-baixo').onclick = function(){ canalBaixo(); };
+document.getElementById('btn-fav').onclick      = function(){ toggleFav(); };
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+renderFavs();
+_restaurarSintonia();  // restaura sintonia salva (se existir e mesmo idioma)
+_restaurarExtras();    // restaura idiomas extras sintonizados
+aplicarFiltro();
+atualizarTela();
+_atualizarBtnSint();   // atualiza botão (já sintonizado ou não)
+carregar();            // carrega estações globais, idioma detectado em destaque
+</script>
+</body>
+</html>

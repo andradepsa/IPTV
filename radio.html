@@ -487,7 +487,7 @@ function carregar() {
 }
 
 // ═══════════════════════════════════════════════════════
-// SINTONIZAR — igual ao da TV
+// SINTONIZAR — em lotes (evita travar PC e TV antiga)
 // ═══════════════════════════════════════════════════════
 var sintRodando = false;
 var sintAbortar = false;
@@ -505,7 +505,6 @@ function sintonizar() {
 
   sintRodando = true; sintAbortar = false;
   btn.innerHTML = '&#9209; Cancelar sintonia';
-  prog.innerHTML = '&#9851; Baixando lista de ' + ln + '...';
 
   // Limpa lista anterior do idioma para nova sintonia
   if (isPrimary) {
@@ -513,7 +512,6 @@ function sintonizar() {
     estacoesLang = [];
     _sintoniaRestaurada = false;
   } else {
-    // Limpa grupo anterior deste idioma extra (re-sintonização)
     if (estacoesExtraLangs[lang]) {
       for (var vi2 = 0; vi2 < estacoesExtraLangs[lang].length; vi2++) delete seenUuids[estacoesExtraLangs[lang][vi2].uuid];
     }
@@ -522,112 +520,152 @@ function sintonizar() {
   }
   aplicarFiltro(); atualizarTela();
 
-  // Baixa até 1000 estações do idioma
-  radioXhr(
-    '/json/stations/search?language='+encodeURIComponent(le)+'&limit=1000&hidebroken=true&order=votes&reverse=true',
-    function(err, data) {
-      if (sintAbortar) { _fimSint('Sintonia cancelada.', 0, 0); return; }
-      if (err || !data || !data.length) {
-        prog.innerHTML = '<span class="err">Nenhuma esta&ccedil;&atilde;o encontrada para ' + ln + '.</span>';
-        _fimSint('', 0, 0); return;
-      }
+  var LOTE      = IS_TV ? 100 : 200;
+  var MAX_TOTAL = IS_TV ? 500 : 1000;
+  var PARALELO  = IS_TV ? 2   : 4;
+  var TIMEOUT   = IS_TV ? 5000 : 4000;
+  var okTotal = 0, failTotal = 0, offset = 0;
 
-      // Separa as que ainda não foram vistas
-      var novas = [];
-      for (var n = 0; n < data.length; n++) {
-        var s    = data[n];
-        var uuid = s.stationuuid;
-        if (!uuid || seenUuids[uuid]) continue;
-        var est = _parseEstacao(s);
-        if (est) novas.push(est);
-      }
+  function buscarLote() {
+    if (sintAbortar) { _fimSint('Sintonia cancelada.', okTotal, failTotal); return; }
+    if (offset >= MAX_TOTAL) { _fimSint('Sintonia conclu\xedda.', okTotal, failTotal); return; }
 
-      if (!novas.length) { _fimSint('Sintonia conclu\xedda.', estacoesLang.length, 0); return; }
+    var numLote = Math.floor(offset / LOTE) + 1;
+    prog.innerHTML = '&#9851; Baixando lote ' + numLote + ' [' + ln + ']...';
 
-      var total    = novas.length;
-      var idx      = 0, ok = 0, fail = 0, ativos = 0;
-      var PARALELO = IS_TV ? 2 : 4;
-      var TIMEOUT  = IS_TV ? 5000 : 4000;
+    radioXhr(
+      '/json/stations/search?language=' + encodeURIComponent(le)
+        + '&limit=' + LOTE + '&offset=' + offset
+        + '&hidebroken=true&order=votes&reverse=true',
+      function(err, data) {
+        if (sintAbortar) { _fimSint('Sintonia cancelada.', okTotal, failTotal); return; }
+        if (err || !data || !data.length) {
+          if (offset === 0) {
+            prog.innerHTML = '<span class="err">Nenhuma esta&ccedil;&atilde;o encontrada para ' + ln + '.</span>';
+            _fimSint('', 0, 0);
+          } else {
+            _fimSint('Sintonia conclu\xedda.', okTotal, failTotal);
+          }
+          return;
+        }
 
-      prog.innerHTML = 'Testando ' + total + ' esta&ccedil;&atilde;o(ões) [' + ln + ']...';
+        var recebidas = data.length;
+        offset += recebidas;
 
-      function atualizar(nome) {
-        prog.innerHTML = 'Testando ' + Math.min(idx, total) + '/' + total
-          + ' [' + ln + ']'
-          + ' &nbsp;<span class="ok">&#10003; ' + ok + '</span>'
-          + ' &nbsp;<span class="err">&#10005; ' + fail + '</span>'
-          + (nome ? '<br><small>' + nome + '</small>' : '');
-      }
+        // Filtra apenas estações novas
+        var novas = [];
+        for (var n = 0; n < data.length; n++) {
+          var s = data[n], uuid = s.stationuuid;
+          if (!uuid || seenUuids[uuid]) continue;
+          var est = _parseEstacao(s);
+          if (est) novas.push(est);
+        }
 
-      function testar(est, cb) {
-        var url   = est.url;
-        var tries = [url];
-        for (var pi = 0; pi < PROXIES.length; pi++) tries.push(PROXIES[pi] + encodeURIComponent(url));
-        var ti = 0, done = false;
-        var tmr = setTimeout(function(){ resolver(false); }, TIMEOUT + 2000);
-        function resolver(ok2) { if (done) return; done = true; clearTimeout(tmr); try { cb(ok2); } catch(e){} }
-        function next() {
-          if (ti >= tries.length) { resolver(false); return; }
-          var u = tries[ti++];
-          try {
-            var r = new XMLHttpRequest();
-            r.open('HEAD', u, true);
-            try { r.timeout = Math.floor(TIMEOUT * 0.55); } catch(e){}
-            r.onreadystatechange = function() {
-              if (r.readyState !== 4) return;
-              if (r.status >= 200 && r.status < 400) { resolver(true); }
-              else if (r.status === 405) {
-                try {
-                  var r2 = new XMLHttpRequest();
-                  r2.open('GET', u, true);
-                  try { r2.timeout = Math.floor(TIMEOUT * 0.45); } catch(e){}
-                  r2.onreadystatechange = function() {
-                    if (r2.readyState >= 2) {
-                      try { r2.abort(); } catch(e){}
-                      if (r2.status >= 200 && r2.status < 400) resolver(true); else next();
+        if (!novas.length) {
+          // Lote sem novidades — próximo lote se houver mais
+          if (recebidas < LOTE || offset >= MAX_TOTAL) {
+            _fimSint('Sintonia conclu\xedda.', okTotal, failTotal);
+          } else {
+            buscarLote();
+          }
+          return;
+        }
+
+        // Testa o lote atual
+        var total = novas.length, idx = 0, ok = 0, fail = 0, ativos = 0;
+
+        function atualizar(nome) {
+          prog.innerHTML = 'Lote ' + Math.floor((offset - 1) / LOTE)
+            + ' — testando ' + Math.min(idx, total) + '/' + total
+            + ' [' + ln + ']'
+            + ' &nbsp;<span class="ok">&#10003; ' + (okTotal + ok) + '</span>'
+            + ' &nbsp;<span class="err">&#10005; ' + (failTotal + fail) + '</span>'
+            + (nome ? '<br><small>' + nome + '</small>' : '');
+        }
+
+        function testar(est, cb) {
+          var url = est.url;
+          var tries = [url];
+          for (var pi = 0; pi < PROXIES.length; pi++) tries.push(PROXIES[pi] + encodeURIComponent(url));
+          var ti = 0, done = false;
+          var tmr = setTimeout(function(){ resolver(false); }, TIMEOUT + 2000);
+          function resolver(ok2) { if (done) return; done = true; clearTimeout(tmr); try { cb(ok2); } catch(e){} }
+          function next() {
+            if (ti >= tries.length) { resolver(false); return; }
+            var u = tries[ti++];
+            try {
+              var r = new XMLHttpRequest();
+              r.open('HEAD', u, true);
+              try { r.timeout = Math.floor(TIMEOUT * 0.55); } catch(e){}
+              r.onreadystatechange = function() {
+                if (r.readyState !== 4) return;
+                if (r.status >= 200 && r.status < 400) { resolver(true); }
+                else if (r.status === 405) {
+                  try {
+                    var r2 = new XMLHttpRequest();
+                    r2.open('GET', u, true);
+                    try { r2.timeout = Math.floor(TIMEOUT * 0.45); } catch(e){}
+                    r2.onreadystatechange = function() {
+                      if (r2.readyState >= 2) {
+                        try { r2.abort(); } catch(e){}
+                        if (r2.status >= 200 && r2.status < 400) resolver(true); else next();
+                      }
+                    };
+                    r2.onerror = r2.ontimeout = function(){ try { next(); } catch(e){ resolver(false); } };
+                    r2.send();
+                  } catch(e2){ next(); }
+                } else { next(); }
+              };
+              r.onerror = r.ontimeout = function(){ try { next(); } catch(e){ resolver(false); } };
+              r.send();
+            } catch(e){ next(); }
+          }
+          next();
+        }
+
+        function lancar() {
+          if (sintAbortar) { if (ativos === 0) { okTotal += ok; failTotal += fail; _fimSint('Sintonia cancelada.', okTotal, failTotal); } return; }
+          if (idx >= total) {
+            if (ativos === 0) {
+              okTotal += ok; failTotal += fail;
+              // Lote concluído — buscar próximo se houver mais
+              if (recebidas < LOTE || offset >= MAX_TOTAL) {
+                _fimSint('Sintonia conclu\xedda.', okTotal, failTotal);
+              } else {
+                buscarLote();
+              }
+            }
+            return;
+          }
+          while (ativos < PARALELO && idx < total) {
+            (function(est){
+              ativos++;
+              atualizar(est.nome);
+              testar(est, function(sucesso) {
+                if (sucesso) {
+                  ok++;
+                  if (!seenUuids[est.uuid]) {
+                    seenUuids[est.uuid] = true;
+                    if (isPrimary) estacoesLang.push(est);
+                    else {
+                      if (!estacoesExtraLangs[lang]) estacoesExtraLangs[lang] = [];
+                      estacoesExtraLangs[lang].push(est);
                     }
-                  };
-                  r2.onerror = r2.ontimeout = function(){ try { next(); } catch(e){ resolver(false); } };
-                  r2.send();
-                } catch(e2){ next(); }
-              } else { next(); }
-            };
-            r.onerror = r.ontimeout = function(){ try { next(); } catch(e){ resolver(false); } };
-            r.send();
-          } catch(e){ next(); }
-        }
-        next();
-      }
-
-      function lancar() {
-        if (sintAbortar) { if (ativos === 0) _fimSint('Sintonia cancelada.', ok, fail); return; }
-        if (idx >= total) { if (ativos === 0) _fimSint('Sintonia conclu\xedda.', ok, fail); return; }
-        while (ativos < PARALELO && idx < total) {
-          (function(est){
-            ativos++;
-            atualizar(est.nome);
-            testar(est, function(sucesso) {
-              if (sucesso) {
-                ok++;
-                if (!seenUuids[est.uuid]) {
-                  seenUuids[est.uuid] = true;
-                  if (isPrimary) estacoesLang.push(est);
-                  else {
-                    if (!estacoesExtraLangs[lang]) estacoesExtraLangs[lang] = [];
-                    estacoesExtraLangs[lang].push(est);
                   }
-                }
-                aplicarFiltro(); atualizarTela();
-              } else { fail++; }
-              ativos--; atualizar(''); lancar();
-            });
-          })(novas[idx++]);
+                  aplicarFiltro(); atualizarTela();
+                } else { fail++; }
+                ativos--; atualizar(''); lancar();
+              });
+            })(novas[idx++]);
+          }
         }
-      }
 
-      setTimeout(lancar, 200);
-    }
-  );
+        setTimeout(lancar, 200);
+      }
+    );
+  }
+
+  buscarLote();
 
   function _fimSint(msg, nOk, nFail) {
     sintRodando = false;

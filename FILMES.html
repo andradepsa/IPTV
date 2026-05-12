@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cine Arquivo</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size:14px}
+.hd{background:#000;padding:10px;text-align:center;border-bottom:2px solid #e50914}
+.hd h1{font-size:22px;color:#e50914}
+.sb{padding:10px;background:#1a1a1a;text-align:center}
+.sb input{width:60%;max-width:500px;padding:8px;border:1px solid #444;background:#222;color:#fff;font-size:14px;border-radius:4px}
+.sb button{padding:8px 16px;border:none;background:#e50914;color:#fff;font-size:14px;cursor:pointer;border-radius:4px;margin-left:4px}
+.cats{padding:6px;text-align:center;background:#1a1a1a}
+.cb{display:inline-block;background:#333;border:none;color:#ccc;padding:4px 10px;margin:2px;cursor:pointer;font-size:12px;border-radius:3px}
+.cb:hover,.cb.on{background:#e50914;color:#fff}
+.ib{text-align:center;padding:6px;font-size:12px;color:#888;background:#111}
+.gr{padding:10px;max-width:1200px;margin:0 auto;text-align:center}
+.cd{display:inline-block;vertical-align:top;width:220px;margin:8px;background:#1a1a1a;border:1px solid #333;cursor:pointer;text-align:left;overflow:hidden;border-radius:4px}
+.cd:hover{border-color:#e50914}
+.cd img{width:220px;height:300px;display:block;background:#222}
+.ci{padding:8px}
+.ct{font-size:13px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:204px}
+.cm{font-size:11px;color:#e50914;margin-top:3px}
+.cc{font-size:11px;color:#888;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:204px}
+.pg{text-align:center;padding:10px}
+.pb{display:inline-block;background:#333;border:none;color:#fff;padding:6px 12px;margin:2px;cursor:pointer;font-size:13px;border-radius:3px}
+.pb:hover,.pb.on{background:#e50914}
+.pb[disabled]{opacity:.4;cursor:default}
+.ld{text-align:center;padding:40px;color:#888}
+.mo{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:99}
+.mo.show{display:block}
+.mc{position:relative;width:90%;max-width:900px;margin:30px auto}
+.mh{padding:8px;overflow:hidden}
+.mh h3{float:left;color:#fff;font-size:16px}
+.mx{float:right;cursor:pointer;font-size:24px;color:#fff}
+.mv{position:relative;width:100%;padding-bottom:56.25%;background:#000}
+.mv iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none}
+.ft{text-align:center;padding:8px;font-size:11px;color:#555;background:#000;border-top:1px solid #222}
+</style>
+</head>
+<body>
+<div class="hd"><h1>CINE ARQUIVO</h1></div>
+<div class="sb">
+<input type="text" id="si" placeholder="Buscar filmes...">
+<button id="bt">BUSCAR</button>
+</div>
+<div class="cats" id="cats">
+<span class="cb on" data-c="">TODOS</span>
+<span class="cb" data-c="feature_films">FEATURE FILMS</span>
+<span class="cb" data-c="Comedy_Films">COMEDIA</span>
+<span class="cb" data-c="Film_Noir">FILM NOIR</span>
+<span class="cb" data-c="SciFi_Horror">SCI-FI/HORROR</span>
+<span class="cb" data-c="film_scifi">SCI-FI</span>
+<span class="cb" data-c="silent_films">MUDOS</span>
+<span class="cb" data-c="short_films">CURTAS</span>
+<span class="cb" data-c="movie_trailers">TRAILERS</span>
+<span class="cb" data-c="prelinger">PRELINGER</span>
+<span class="cb" data-c="classic_tv">CLASSIC TV</span>
+<span class="cb" data-c="animationandcartoons">ANIMACAO</span>
+<span class="cb" data-c="moviesandfilms">MOVIES&amp;FILMS</span>
+<span class="cb" data-c="collectie_filmcollectief">FILM COLLECTIEF</span>
+<span class="cb" data-c="german_cinema">ALEMAO</span>
+<span class="cb" data-c="KINOfilm">KINO</span>
+</div>
+<div class="ib" id="ib">Carregando...</div>
+<div class="gr" id="gr"><div class="ld">Conectando ao Archive...</div></div>
+<div class="pg" id="pg"></div>
+<div class="mo" id="mo">
+<div class="mc">
+<div class="mh"><h3 id="mt">Filme</h3><span class="mx" id="mx">&times;</span></div>
+<div class="mv"><iframe id="mf" allowfullscreen></iframe></div>
+</div>
+</div>
+<div class="ft">Cine Arquivo | Internet Archive | 15 colecoes</div>
+<script>
+(function(){
+var pg=1,qr="",cc="",tot=0,pp=24;
+var gr=document.getElementById("gr");
+var ib=document.getElementById("ib");
+var si=document.getElementById("si");
+var pgd=document.getElementById("pg");
+var mo=document.getElementById("mo");
+var mf=document.getElementById("mf");
+var mt=document.getElementById("mt");
+var allC="(collection:feature_films OR collection:Comedy_Films OR collection:Film_Noir OR collection:SciFi_Horror OR collection:film_scifi OR collection:silent_films OR collection:short_films OR collection:classic_tv OR collection:prelinger OR collection:collectie_filmcollectief OR collection:german_cinema OR collection:KINOfilm) AND mediatype:movies";
+
+var bs=document.getElementById("cats").getElementsByTagName("span");
+for(var i=0;i<bs.length;i++){
+  bs[i].onclick=(function(el){
+    return function(){
+      for(var j=0;j<bs.length;j++)bs[j].className="cb";
+      el.className="cb on";
+      cc=el.getAttribute("data-c");
+      qr="";pg=1;si.value="";
+      carregar();
+    };
+  })(bs[i]);
+}
+
+document.getElementById("bt").onclick=function(){
+  var v=si.value;
+  if(!v)return;
+  qr=v;cc="";pg=1;
+  for(var j=0;j<bs.length;j++)bs[j].className="cb";
+  bs[0].className="cb on";
+  carregar();
+};
+
+si.onkeydown=function(e){
+  if((e.keyCode||e.which)===13)document.getElementById("bt").onclick();
+};
+
+document.getElementById("mx").onclick=fechar;
+mo.onclick=function(e){if(e.target===mo)fechar();};
+document.onkeydown=function(e){if((e.keyCode||e.which)===27)fechar();};
+
+function fechar(){
+  mo.className="mo";
+  mf.src="";
+}
+
+function carregar(){
+  gr.innerHTML='<div class="ld">Buscando...</div>';
+  var q="";
+  if(qr){
+    q="("+encodeURIComponent(qr)+") AND mediatype:movies";
+  }else if(cc){
+    q='collection:"'+cc+'" AND mediatype:movies';
+  }else{
+    q=allC;
+  }
+  var url="https://archive.org/advancedsearch.php?q="+q+"&fl[]=identifier,title,creator,year,downloads&rows="+pp+"&page="+pg+"&output=json&sort[]=downloads desc";
+  ib.textContent="Buscando...";
+  var xhr=new XMLHttpRequest();
+  xhr.open("GET",url,true);
+  xhr.onreadystatechange=function(){
+    if(xhr.readyState!==4)return;
+    if(xhr.status===200){
+      try{
+        var data=JSON.parse(xhr.responseText);
+        var docs=data.response.docs;
+        tot=data.response.numFound||0;
+        ib.textContent=tot+" filmes | Pag "+pg;
+        if(!docs.length){
+          gr.innerHTML='<div class="ld">Nenhum filme encontrado.</div>';
+          pgd.innerHTML="";return;
+        }
+        render(docs);
+        paginacao();
+      }catch(e){
+        gr.innerHTML='<div class="ld">Erro ao processar.</div>';
+      }
+    }else{
+      gr.innerHTML='<div class="ld">Erro de conexao.</div>';
+    }
+  };
+  xhr.send();
+}
+
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
+
+function render(docs){
+  var h="",i,d,id,t,ts,cr,yr,dl,img;
+  for(i=0;i<docs.length;i++){
+    d=docs[i];
+    id=d.identifier;
+    t=d.title||"Sem titulo";
+    ts=t.length>40?t.substring(0,40)+"...":t;
+    cr=d.creator||"?";
+    if(cr.length>35)cr=cr.substring(0,35)+"...";
+    yr=d.year||"?";
+    dl=d.downloads?d.downloads:"0";
+    img="https://archive.org/services/img/"+id;
+    h+='<div class="cd" data-id="'+esc(id)+'" data-t="'+esc(t)+'">';
+    h+='<img src="'+img+'" alt="" onerror="this.style.display=\'none\'">';
+    h+='<div class="ci">';
+    h+='<div class="ct">'+esc(ts)+'</div>';
+    h+='<div class="cm">'+esc(yr)+" | "+dl+' views</div>';
+    h+='<div class="cc">'+esc(cr)+'</div>';
+    h+='</div></div>';
+  }
+  gr.innerHTML=h;
+  var cards=gr.getElementsByClassName("cd");
+  for(i=0;i<cards.length;i++){
+    cards[i].onclick=(function(el){
+      return function(){
+        mt.textContent=el.getAttribute("data-t");
+        mf.src="https://archive.org/embed/"+el.getAttribute("data-id")+"?autoplay=1";
+        mo.className="mo show";
+      };
+    })(cards[i]);
+  }
+}
+
+function paginacao(){
+  var tp=Math.ceil(tot/pp);
+  if(tp<=1){pgd.innerHTML="";return;}
+  var h="",s,e,i;
+  s=Math.max(1,pg-3);
+  e=Math.min(tp,s+6);
+  if(e-s<6)s=Math.max(1,e-6);
+  h+='<span class="pb" data-p="'+(pg-1)+'">Ant</span>';
+  for(i=s;i<=e;i++){
+    h+='<span class="pb'+(i===pg?" on":"")+'" data-p="'+i+'">'+i+'</span>';
+  }
+  h+='<span class="pb" data-p="'+(pg+1)+'">Prox</span>';
+  pgd.innerHTML=h;
+  var pbs=pgd.getElementsByClassName("pb");
+  for(i=0;i<pbs.length;i++){
+    pbs[i].onclick=(function(el){
+      return function(){
+        var p=parseInt(el.getAttribute("data-p"),10);
+        var tp2=Math.ceil(tot/pp);
+        if(p<1||p>tp2)return;
+        pg=p;carregar();
+        window.scrollTo(0,0);
+      };
+    })(pbs[i]);
+  }
+}
+
+carregar();
+})();
+</script>
+</body>
+</html>

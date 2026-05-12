@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>K60 — TV & Rádio (Cursor com Passo Ajustado)</title>
+<title>K60 — TV & Rádio (Controle Remoto - 3 botões)</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
 
@@ -11,7 +11,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  user-select: none; /* evita seleção na TV */
+  user-select: none;
 }
 
 :root {
@@ -28,10 +28,9 @@ html, body {
   color: #fff;
   font-family: 'Share Tech Mono', monospace;
   overflow: hidden;
-  cursor: none; /* esconde o cursor padrão da TV */
 }
 
-/* Scanlines e ruído (mantido) */
+/* Scanlines e ruído (mantido por estilo) */
 body::before {
   content: '';
   position: fixed; inset: 0;
@@ -48,7 +47,6 @@ body::after {
   opacity: .35;
 }
 
-/* Layout principal */
 .stage {
   position: relative;
   height: 100vh;
@@ -107,14 +105,19 @@ body::after {
   border-radius: 4px;
   text-decoration: none;
   color: #fff;
-  transition: transform 0.1s ease, border-color 0.1s;
-  cursor: pointer;
+  transition: all 0.15s ease;
   text-align: center;
+  cursor: pointer;
+  outline: none;
 }
-.card:hover, .card.hover-cursor {
-  transform: scale(1.02);
+
+/* Estilo de foco para TV (destaque bem visível) */
+.card:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 15px rgba(0,0,0,0.5);
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.2), 0 0 0 6px var(--accent);
+  transform: scale(1.02);
+  background: #111;
+  outline: none;
 }
 
 /* Cores individuais */
@@ -126,7 +129,7 @@ body::after {
 .card-title { font-family: 'Orbitron'; font-size: 22px; font-weight: 700; letter-spacing: 3px; color: var(--accent); margin-bottom: 10px; }
 .card-desc { font-size: 11px; color: #aaa; line-height: 1.6; }
 .card-cta { margin-top: 24px; font-size: 11px; letter-spacing: 3px; color: var(--accent); opacity: .7; }
-.card:hover .card-cta, .card.hover-cursor .card-cta { opacity: 1; }
+.card:focus .card-cta, .card:hover .card-cta { opacity: 1; }
 
 .card-badge {
   position: absolute;
@@ -163,40 +166,24 @@ body::after {
   50% { opacity: 1; }
 }
 
-/* CUSTOM CURSOR (círculo neon) */
-#custom-cursor {
-  position: fixed;
-  width: 32px;
-  height: 32px;
-  border: 2px solid #00ffcc;
-  border-radius: 50%;
-  background: rgba(0, 255, 204, 0.2);
-  pointer-events: none;
-  z-index: 10000;
-  transform: translate(-50%, -50%);
-  transition: all 0.05s linear;
-  box-shadow: 0 0 10px #00ffcc, inset 0 0 5px #00ffcc;
-}
-
-/* Indicador de passo e instrução */
-.info-bar {
+.help-text {
   position: fixed;
   bottom: 60px;
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 11px;
-  color: #00ffcc;
+  font-size: 12px;
+  color: #88ffcc;
   background: rgba(0,0,0,0.7);
-  padding: 4px;
+  padding: 6px;
   font-family: monospace;
-  z-index: 10001;
+  z-index: 10000;
+  letter-spacing: 1px;
 }
 
 @media (max-width: 540px) {
   .cards { flex-direction: column; align-items: center; }
   .card { width: 90%; }
-  #custom-cursor { width: 26px; height: 26px; }
 }
 </style>
 </head>
@@ -210,129 +197,108 @@ body::after {
   <div class="hbar"></div>
 
   <div class="cards">
-    <a href="tv.html" class="card card-tv" data-url="tv.html">
+    <a href="tv.html" class="card card-tv" data-url="tv.html" tabindex="0">
       <div class="card-badge"><div class="badge-dot"></div>AO VIVO</div>
       <span class="card-icon">📺</span>
       <div class="card-title">TV</div>
       <div class="card-desc">Canais ao vivo<br>do mundo todo</div>
-      <div class="card-cta">ACESSAR →</div>
+      <div class="card-cta">SELECIONAR →</div>
     </a>
-    <a href="radio.html" class="card card-radio" data-url="radio.html">
+    <a href="radio.html" class="card card-radio" data-url="radio.html" tabindex="0">
       <div class="card-badge"><div class="badge-dot"></div>AO VIVO</div>
       <span class="card-icon">📻</span>
       <div class="card-title">RÁDIO</div>
       <div class="card-desc">Estações de rádio<br>em todos os idiomas</div>
-      <div class="card-cta">ACESSAR →</div>
+      <div class="card-cta">SELECIONAR →</div>
     </a>
-    <a href="filmes.html" class="card card-filmes" data-url="filmes.html">
+    <a href="filmes.html" class="card card-filmes" data-url="filmes.html" tabindex="0">
       <div class="card-badge"><div class="badge-dot"></div>LANÇAMENTOS</div>
       <span class="card-icon">🎬</span>
       <div class="card-title">FILMES</div>
       <div class="card-desc">Cinema em casa<br>sessão contínua</div>
-      <div class="card-cta">ACESSAR →</div>
+      <div class="card-cta">SELECIONAR →</div>
     </a>
   </div>
   <div class="hbar"></div>
-  <footer class="footer">K60 Broadcast · Controle remoto: SETAS movem o cursor · OK/Enter clica</footer>
+  <footer class="footer">K60 Broadcast · Controle remoto: ◀  ▶  alterna entre os serviços · OK seleciona</footer>
 </div>
 
-<div id="custom-cursor"></div>
-<div class="info-bar" id="info-bar">⬅️  ➡️  ⬆️  ⬇️  |  OK = Selecionar</div>
+<div class="help-text">
+  🎮 Use as SETAS DIREITA / ESQUERDA para escolher TV, Rádio ou Filmes. Pressione OK (Enter) para entrar.
+</div>
 
 <script>
   (function() {
-    // ---------- CONFIGURAÇÃO DO PASSO DINÂMICO (CÁLCULO PARA TV) ----------
-    const LARGURA_TELA = window.innerWidth;
-    const PASSOS_PARA_ATRAVESSAR = 18;   // número ideal de cliques para ir de um lado ao outro
-    const PASSO_X = Math.floor(LARGURA_TELA / PASSOS_PARA_ATRAVESSAR);
-    const PASSO_Y = Math.floor(window.innerHeight / PASSOS_PARA_ATRAVESSAR);
-    
-    // Limites mínimos e máximos para não ficar muito lento nem rápido demais
-    const PASSO_FINAL_X = Math.min(150, Math.max(40, PASSO_X));
-    const PASSO_FINAL_Y = Math.min(120, Math.max(30, PASSO_Y));
-    
-    // Exibe na tela a informação do passo (para debug)
-    const infoBar = document.getElementById('info-bar');
-    infoBar.innerHTML = `📺 Passo do cursor: ${PASSO_FINAL_X}px horizontal / ${PASSO_FINAL_Y}px vertical  |  SETAS movem · OK clica`;
-    
-    // Posição inicial do cursor (centro da tela)
-    let cursorX = window.innerWidth / 2;
-    let cursorY = window.innerHeight / 2;
-    const cursorDiv = document.getElementById('custom-cursor');
-    
-    function atualizarCursor() {
-      cursorDiv.style.left = cursorX + 'px';
-      cursorDiv.style.top = cursorY + 'px';
-      
-      // Detectar qual elemento está sob o cursor (usando elementFromPoint)
-      const elemSobCursor = document.elementFromPoint(cursorX, cursorY);
-      // Remove a classe 'hover-cursor' de todos os cards
-      document.querySelectorAll('.card').forEach(card => card.classList.remove('hover-cursor'));
-      
-      // Se o elemento sob o cursor for um card ou estiver dentro de um card, aplica destaque
-      let targetCard = elemSobCursor?.closest('.card');
-      if (targetCard) {
-        targetCard.classList.add('hover-cursor');
-      }
+    // Pega os três cards
+    const cards = document.querySelectorAll('.card');
+    let currentIndex = 0;  // começa no TV (índice 0)
+
+    // Função para atualizar o foco visual e o foco real do navegador
+    function setFocus(index) {
+      if (index < 0) index = cards.length - 1;
+      if (index >= cards.length) index = 0;
+      currentIndex = index;
+      cards[currentIndex].focus();
     }
-    
-    // Movimento com as setas do controle remoto
+
+    // Inicializa o foco no primeiro card (TV)
+    setFocus(0);
+
+    // Navegação pelas setas direcionais (esquerda/direita)
     window.addEventListener('keydown', function(e) {
       const key = e.key;
-      let moved = false;
       
-      switch(key) {
-        case 'ArrowRight':
-          cursorX = Math.min(window.innerWidth - 20, cursorX + PASSO_FINAL_X);
-          moved = true;
-          break;
-        case 'ArrowLeft':
-          cursorX = Math.max(20, cursorX - PASSO_FINAL_X);
-          moved = true;
-          break;
-        case 'ArrowDown':
-          cursorY = Math.min(window.innerHeight - 20, cursorY + PASSO_FINAL_Y);
-          moved = true;
-          break;
-        case 'ArrowUp':
-          cursorY = Math.max(20, cursorY - PASSO_FINAL_Y);
-          moved = true;
-          break;
-        case 'Enter':
-        case ' ':
-          e.preventDefault();
-          // Simula clique no elemento sob o cursor
-          const elem = document.elementFromPoint(cursorX, cursorY);
-          const card = elem?.closest('.card');
-          if (card && card.href) {
-            window.location.href = card.href;
-          }
-          return;
-        default:
-          return;
-      }
-      
-      if (moved) {
+      // Seta esquerda ou direita para navegar entre os 3 botões
+      if (key === 'ArrowLeft') {
         e.preventDefault();
-        atualizarCursor();
+        setFocus(currentIndex - 1);
+      } 
+      else if (key === 'ArrowRight') {
+        e.preventDefault();
+        setFocus(currentIndex + 1);
+      }
+      // Opcional: seta cima/baixo também podem navegar (mantendo mesma lógica circular)
+      else if (key === 'ArrowUp' || key === 'ArrowDown') {
+        e.preventDefault();
+        // Nesse layout com 3 cards em linha ou coluna responsiva, 
+        // o mais intuitivo é também alternar a seleção (esquerda/direita).
+        // Mas se preferir que cima/baixo façam o mesmo:
+        if (key === 'ArrowUp') setFocus(currentIndex - 1);
+        if (key === 'ArrowDown') setFocus(currentIndex + 1);
+      }
+      else if (key === 'Enter' || key === ' ' || key === 'Space') {
+        e.preventDefault();
+        // Simula clique no card atualmente focado
+        const focusedCard = cards[currentIndex];
+        if (focusedCard && focusedCard.href) {
+          window.location.href = focusedCard.href;
+        }
       }
     });
-    
-    // Garantir que o cursor não saia da tela ao redimensionar
-    window.addEventListener('resize', function() {
-      cursorX = Math.min(window.innerWidth - 20, Math.max(20, cursorX));
-      cursorY = Math.min(window.innerHeight - 20, Math.max(20, cursorY));
-      atualizarCursor();
+
+    // Prevenir comportamento padrão do espaço (rolagem da página)
+    window.addEventListener('keyup', function(e) {
+      if (e.key === ' ' || e.key === 'Space' || e.key === 'Enter') {
+        e.preventDefault();
+      }
     });
-    
-    // Inicializar cursor
-    atualizarCursor();
-    
-    // Pequeno efeito de pulsação ao mover (opcional)
-    setInterval(() => {
-      cursorDiv.style.transform = 'translate(-50%, -50%) scale(1)';
-      setTimeout(() => { cursorDiv.style.transform = 'translate(-50%, -50%) scale(1.02)'; }, 80);
-    }, 500);
+
+    // Opcional: ao clicar com mouse (caso alguém use), atualiza o índice e foco
+    cards.forEach((card, idx) => {
+      card.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.location.href = card.href;
+      });
+      card.addEventListener('focus', () => {
+        currentIndex = idx;
+      });
+    });
+
+    // Pequeno ajuste para garantir que o foco fique centralizado na TV (caso a página carregue)
+    // e o scroll não atrapalhe
+    window.addEventListener('load', () => {
+      setFocus(0);
+    });
   })();
 </script>
 </body>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>K60 — TV & Rádio (Controle Remoto - 3 botões)</title>
+<title>K60 — TV & Rádio (Controle Direcional: 3 opções)</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
 
@@ -11,7 +11,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  user-select: none;
+  user-select: none; /* evita seleção de texto na TV */
 }
 
 :root {
@@ -28,9 +28,11 @@ html, body {
   color: #fff;
   font-family: 'Share Tech Mono', monospace;
   overflow: hidden;
+  /* Opcional: esconde o cursor do mouse para não distrair */
+  cursor: none;
 }
 
-/* Scanlines e ruído (mantido por estilo) */
+/* Scanlines e ruído (estilo) */
 body::before {
   content: '';
   position: fixed; inset: 0;
@@ -105,18 +107,26 @@ body::after {
   border-radius: 4px;
   text-decoration: none;
   color: #fff;
-  transition: all 0.15s ease;
+  transition: all 0.1s ease;
   text-align: center;
   cursor: pointer;
   outline: none;
 }
 
-/* Estilo de foco para TV (destaque bem visível) */
-.card:focus {
+/* ESTILO DE FOCO PARA TV (bem chamativo) */
+.card:focus-visible {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(255,255,255,0.2), 0 0 0 6px var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.5), 0 0 0 6px var(--accent), 0 0 20px var(--accent);
   transform: scale(1.02);
   background: #111;
+  outline: none;
+}
+
+/* Fallback para navegadores antigos */
+.card:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.5), 0 0 0 6px var(--accent);
+  transform: scale(1.02);
   outline: none;
 }
 
@@ -168,17 +178,18 @@ body::after {
 
 .help-text {
   position: fixed;
-  bottom: 60px;
+  bottom: 55px;
   left: 0;
   right: 0;
   text-align: center;
   font-size: 12px;
   color: #88ffcc;
   background: rgba(0,0,0,0.7);
-  padding: 6px;
+  padding: 8px;
   font-family: monospace;
   z-index: 10000;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
+  backdrop-filter: blur(4px);
 }
 
 @media (max-width: 540px) {
@@ -197,21 +208,21 @@ body::after {
   <div class="hbar"></div>
 
   <div class="cards">
-    <a href="tv.html" class="card card-tv" data-url="tv.html" tabindex="0">
+    <a href="tv.html" class="card card-tv" data-url="tv.html" tabindex="0" id="card-tv">
       <div class="card-badge"><div class="badge-dot"></div>AO VIVO</div>
       <span class="card-icon">📺</span>
       <div class="card-title">TV</div>
       <div class="card-desc">Canais ao vivo<br>do mundo todo</div>
       <div class="card-cta">SELECIONAR →</div>
     </a>
-    <a href="radio.html" class="card card-radio" data-url="radio.html" tabindex="0">
+    <a href="radio.html" class="card card-radio" data-url="radio.html" tabindex="0" id="card-radio">
       <div class="card-badge"><div class="badge-dot"></div>AO VIVO</div>
       <span class="card-icon">📻</span>
       <div class="card-title">RÁDIO</div>
       <div class="card-desc">Estações de rádio<br>em todos os idiomas</div>
       <div class="card-cta">SELECIONAR →</div>
     </a>
-    <a href="filmes.html" class="card card-filmes" data-url="filmes.html" tabindex="0">
+    <a href="filmes.html" class="card card-filmes" data-url="filmes.html" tabindex="0" id="card-filmes">
       <div class="card-badge"><div class="badge-dot"></div>LANÇAMENTOS</div>
       <span class="card-icon">🎬</span>
       <div class="card-title">FILMES</div>
@@ -220,20 +231,20 @@ body::after {
     </a>
   </div>
   <div class="hbar"></div>
-  <footer class="footer">K60 Broadcast · Controle remoto: ◀  ▶  alterna entre os serviços · OK seleciona</footer>
+  <footer class="footer">K60 Broadcast · Controle remoto: SETAS (← →) alternam · OK/Enter seleciona</footer>
 </div>
 
 <div class="help-text">
-  🎮 Use as SETAS DIREITA / ESQUERDA para escolher TV, Rádio ou Filmes. Pressione OK (Enter) para entrar.
+  🎮 USE AS SETAS ESQUERDA / DIREITA → MUDAR A SELEÇÃO │ OK → ENTRAR
 </div>
 
 <script>
   (function() {
-    // Pega os três cards
-    const cards = document.querySelectorAll('.card');
-    let currentIndex = 0;  // começa no TV (índice 0)
+    // Lista dos três cards
+    const cards = Array.from(document.querySelectorAll('.card'));
+    let currentIndex = 0;   // 0 = TV, 1 = Rádio, 2 = Filmes
 
-    // Função para atualizar o foco visual e o foco real do navegador
+    // Função que atualiza o foco visual e real para o índice indicado
     function setFocus(index) {
       if (index < 0) index = cards.length - 1;
       if (index >= cards.length) index = 0;
@@ -241,63 +252,65 @@ body::after {
       cards[currentIndex].focus();
     }
 
-    // Inicializa o foco no primeiro card (TV)
+    // Inicia com o foco no primeiro card (TV)
     setFocus(0);
 
-    // Navegação pelas setas direcionais (esquerda/direita)
+    // Captura os eventos do teclado / controle remoto
     window.addEventListener('keydown', function(e) {
       const key = e.key;
-      
-      // Seta esquerda ou direita para navegar entre os 3 botões
+      // Teclas direcionais: Esquerda, Direita (também aceita Cima/Baixo por segurança)
       if (key === 'ArrowLeft') {
         e.preventDefault();
         setFocus(currentIndex - 1);
-      } 
+      }
       else if (key === 'ArrowRight') {
         e.preventDefault();
         setFocus(currentIndex + 1);
       }
-      // Opcional: seta cima/baixo também podem navegar (mantendo mesma lógica circular)
-      else if (key === 'ArrowUp' || key === 'ArrowDown') {
+      // Se o controle da TV enviar ArrowUp/ArrowDown (alguns modelos), também alterna
+      else if (key === 'ArrowUp') {
         e.preventDefault();
-        // Nesse layout com 3 cards em linha ou coluna responsiva, 
-        // o mais intuitivo é também alternar a seleção (esquerda/direita).
-        // Mas se preferir que cima/baixo façam o mesmo:
-        if (key === 'ArrowUp') setFocus(currentIndex - 1);
-        if (key === 'ArrowDown') setFocus(currentIndex + 1);
+        setFocus(currentIndex - 1);
       }
+      else if (key === 'ArrowDown') {
+        e.preventDefault();
+        setFocus(currentIndex + 1);
+      }
+      // Tecla OK/Enter (funciona em TVs e PC)
       else if (key === 'Enter' || key === ' ' || key === 'Space') {
         e.preventDefault();
-        // Simula clique no card atualmente focado
-        const focusedCard = cards[currentIndex];
-        if (focusedCard && focusedCard.href) {
-          window.location.href = focusedCard.href;
+        const selectedCard = cards[currentIndex];
+        if (selectedCard && selectedCard.href) {
+          window.location.href = selectedCard.href;
         }
       }
     });
 
-    // Prevenir comportamento padrão do espaço (rolagem da página)
+    // Previne a rolagem da página com a barra de espaço (em navegadores)
     window.addEventListener('keyup', function(e) {
       if (e.key === ' ' || e.key === 'Space' || e.key === 'Enter') {
         e.preventDefault();
       }
     });
 
-    // Opcional: ao clicar com mouse (caso alguém use), atualiza o índice e foco
+    // Opcional: se o usuário clicar em um card com o mouse, ainda funciona,
+    // mas o próximo movimento de seta vai retomar a navegação a partir do índice daquele card.
     cards.forEach((card, idx) => {
       card.addEventListener('click', (e) => {
-        e.preventDefault();
-        window.location.href = card.href;
+        // Não faz nada além do clique normal (redireciona)
+        // Mas atualiza o índice atual para manter consistência
+        currentIndex = idx;
       });
       card.addEventListener('focus', () => {
-        currentIndex = idx;
+        // Quando o foco chegar em um card via seta (ou qualquer outro meio), atualiza o índice
+        currentIndex = cards.indexOf(card);
       });
     });
 
-    // Pequeno ajuste para garantir que o foco fique centralizado na TV (caso a página carregue)
-    // e o scroll não atrapalhe
-    window.addEventListener('load', () => {
-      setFocus(0);
+    // Pequeno ajuste para garantir que o cursor do mouse não apareça (se quiser que apareça, remova o CSS "cursor: none")
+    // E garante que nenhum elemento externo roube o foco.
+    document.body.addEventListener('click', () => {
+      // sem ação extra – só para manter o foco nos cards se necessário
     });
   })();
 </script>

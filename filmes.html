@@ -3,690 +3,953 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Cine Arquivo +18</title>
+<title>CineStream — Multi API</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
 <style>
+:root{
+  --red:#e50914;--red2:#b0060f;
+  --gold:#f5c518;--teal:#00d4b4;--purple:#7c4dff;--blue:#2979ff;--orange:#ff6d00;--green:#00c853;
+  --bg:#0a0a0f;--bg2:#111118;--bg3:#18181f;--bg4:#22222c;
+  --text:#f0f0f5;--muted:#888;--border:#2a2a3a;
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size:14px}
-.hd{background:#000;padding:10px;text-align:center;border-bottom:2px solid #e50914}
-.hd h1{font-size:22px;color:#e50914}
-.sb{padding:10px;background:#1a1a1a;text-align:center}
-.sb input{width:60%;max-width:500px;padding:8px;border:1px solid #444;background:#222;color:#fff;font-size:14px;border-radius:4px}
-.sb button{padding:8px 16px;border:none;background:#e50914;color:#fff;font-size:14px;cursor:pointer;border-radius:4px;margin-left:4px}
-.cats{padding:6px;text-align:center;background:#1a1a1a;max-height:140px;overflow-y:auto;scrollbar-width:thin}
-.cb{display:inline-block;background:#333;border:none;color:#ccc;padding:4px 10px;margin:2px;cursor:pointer;font-size:12px;border-radius:3px}
-.cb:hover,.cb.on{background:#e50914;color:#fff}
-.ib{text-align:center;padding:6px;font-size:12px;color:#888;background:#111}
-.gr{padding:10px;max-width:1200px;margin:0 auto;text-align:center}
-.cd{display:inline-block;vertical-align:top;width:220px;margin:8px;background:#1a1a1a;border:1px solid #333;cursor:pointer;text-align:left;overflow:hidden;border-radius:4px;transition:transform 0.1s}
-.cd:hover{border-color:#e50914;transform:scale(1.01)}
-.cd img{width:220px;height:300px;display:block;background:#222;object-fit:cover}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;font-size:14px;min-height:100vh}
+
+/* ── HEADER ── */
+.hd{background:linear-gradient(180deg,#000 0%,rgba(0,0,0,.7) 100%);padding:0 16px;border-bottom:2px solid var(--red);position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:12px;height:52px}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--red);letter-spacing:1px;white-space:nowrap;flex-shrink:0}
+.logo span{color:var(--teal);font-size:14px;vertical-align:super;font-family:'Nunito',sans-serif;font-weight:700}
+.nav-tabs{display:flex;gap:2px;flex:1;overflow-x:auto;scrollbar-width:none}
+.nav-tabs::-webkit-scrollbar{display:none}
+.nt{padding:6px 14px;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;border-radius:4px;white-space:nowrap;transition:all .2s;font-family:'Nunito',sans-serif;display:flex;align-items:center;gap:5px}
+.nt:hover{color:var(--text);background:var(--bg4)}
+.nt.on{color:#fff;background:var(--red)}
+.nt .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.hd-right{display:flex;gap:8px;flex-shrink:0}
+.btn-guide{padding:5px 12px;border:1px solid var(--teal);background:transparent;color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;border-radius:4px;font-family:'Nunito',sans-serif;white-space:nowrap}
+.btn-guide:hover{background:var(--teal);color:#000}
+
+/* ── SEARCH BAR ── */
+.sb{padding:10px 16px;background:var(--bg2);display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)}
+.sb input{flex:1;max-width:520px;padding:8px 12px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;border-radius:6px;font-family:'Nunito',sans-serif;outline:none;transition:border-color .2s}
+.sb input:focus{border-color:var(--red)}
+.sb button{padding:8px 18px;border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px;font-family:'Nunito',sans-serif;transition:background .2s}
+.sb button:hover{background:var(--red2)}
+.src-badge{padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700;flex-shrink:0}
+
+/* ── CATEGORY BAR ── */
+.cats{padding:8px 12px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;gap:4px;flex-wrap:wrap}
+.cb{display:inline-block;background:var(--bg4);border:1px solid var(--border);color:var(--muted);padding:4px 12px;cursor:pointer;font-size:12px;font-weight:700;border-radius:20px;transition:all .2s;white-space:nowrap;font-family:'Nunito',sans-serif}
+.cb:hover{border-color:var(--red);color:var(--text)}
+.cb.on{background:var(--red);border-color:var(--red);color:#fff}
+
+/* ── INFO BAR ── */
+.ib{text-align:center;padding:6px;font-size:12px;color:var(--muted);background:var(--bg);border-bottom:1px solid var(--border)}
+
+/* ── GRID ── */
+.gr{padding:14px 12px;max-width:1400px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.cd{background:var(--bg3);border:1px solid var(--border);cursor:pointer;border-radius:8px;overflow:hidden;transition:transform .18s,border-color .18s,box-shadow .18s;position:relative}
+.cd:hover{transform:translateY(-4px) scale(1.02);border-color:var(--red);box-shadow:0 8px 32px rgba(229,9,20,.25)}
+.cd img{width:100%;aspect-ratio:2/3;display:block;object-fit:cover;background:var(--bg4)}
 .ci{padding:8px}
-.ct{font-size:13px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:204px}
-.cm{font-size:11px;color:#e50914;margin-top:3px}
-.cc{font-size:11px;color:#888;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:204px}
-.pg{text-align:center;padding:10px}
-.pb{display:inline-block;background:#333;border:none;color:#fff;padding:6px 12px;margin:2px;cursor:pointer;font-size:13px;border-radius:3px}
-.pb:hover,.pb.on{background:#e50914}
-.pb[disabled]{opacity:.4;cursor:default}
-.ld{text-align:center;padding:40px;color:#888}
-.mo{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:99;backdrop-filter:blur(3px)}
-.mo.show{display:block}
-.mc{position:relative;width:90%;max-width:1000px;margin:30px auto;background:#000;border-radius:8px}
-.mh{padding:12px 16px;overflow:hidden;background:#111;border-radius:8px 8px 0 0}
-.mh h3{float:left;color:#fff;font-size:18px}
-.mx{float:right;cursor:pointer;font-size:28px;color:#fff;line-height:1}
+.ct{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.cm{font-size:11px;color:var(--red);margin-top:3px;font-weight:600}
+.cc{font-size:10px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.src-tag{position:absolute;top:6px;left:6px;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:900;text-transform:uppercase}
+
+/* ── LOADING / EMPTY ── */
+.ld{text-align:center;padding:60px;color:var(--muted);grid-column:1/-1}
+.ld .spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--red);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── PAGINATION ── */
+.pg{text-align:center;padding:16px;border-top:1px solid var(--border)}
+.pb{display:inline-block;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:6px 14px;margin:2px;cursor:pointer;font-size:13px;font-weight:700;border-radius:5px;transition:all .2s;font-family:'Nunito',sans-serif}
+.pb:hover,.pb.on{background:var(--red);border-color:var(--red);color:#fff}
+.pb[disabled]{opacity:.3;pointer-events:none}
+
+/* ── MODAL PLAYER ── */
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:100;backdrop-filter:blur(6px)}
+.mo.show{display:flex;align-items:flex-start;justify-content:center;padding-top:20px;overflow-y:auto}
+.mc{width:92%;max-width:1000px;background:#000;border-radius:10px;border:1px solid var(--border);overflow:hidden}
+.mh{padding:12px 16px;background:var(--bg2);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.mh h3{font-size:16px;font-weight:700;flex:1;padding-right:12px;color:var(--text)}
+.mx{cursor:pointer;font-size:28px;color:var(--muted);line-height:1;padding:0 4px;transition:color .2s}
+.mx:hover{color:#fff}
 .mv{position:relative;width:100%;padding-bottom:56.25%;background:#000}
-.mv iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none}
-.ft{text-align:center;padding:8px;font-size:11px;color:#555;background:#000;border-top:1px solid #222}
-.aviso{background:#330000;color:#ff9999;padding:8px;text-align:center;font-size:12px;border-bottom:1px solid #e50914}
-.warning18{background:#2a0000;color:#ff8888;font-size:11px;padding:4px 8px;border-radius:12px;margin-left:6px}
-.stb-wrap{display:none;padding:6px;text-align:center;background:#0d0d0d;border-bottom:1px solid #2a0000}
-.stb-wrap.show{display:block}
-.stb{display:inline-block;background:#1a0000;border:1px solid #550000;color:#cc8888;padding:5px 16px;margin:2px;cursor:pointer;font-size:12px;border-radius:3px;font-weight:bold}
-.stb:hover,.stb.on{background:#e50914;border-color:#e50914;color:#fff}
+.mv video{position:absolute;inset:0;width:100%;height:100%;border:none;background:#000}
+.mv-loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;z-index:2;transition:opacity .3s}
+.mv-loading.oculto{opacity:0;pointer-events:none}
+.mv-loading .spinner{width:36px;height:36px;border:3px solid #222;border-top-color:var(--red);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:10px}
+.mv-status{font-size:12px;color:var(--muted);text-align:center;padding:0 16px}
+.mv-err{display:none;position:absolute;inset:0;background:#0d0006;align-items:center;justify-content:center;flex-direction:column;gap:10px;z-index:3}
+.mv-err.show{display:flex}
+.mv-err p{color:#ff6666;font-size:14px;font-weight:700}
+.mv-err button{padding:8px 20px;background:var(--red);border:none;color:#fff;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700;font-family:'Nunito',sans-serif}
+.minfo{padding:14px 16px;background:var(--bg2);border-top:1px solid var(--border);font-size:12px;color:var(--muted);line-height:1.6;max-height:120px;overflow-y:auto}
+.minfo strong{color:var(--teal)}
+
+/* ── GUIDE MODAL ── */
+.gm{display:none;position:fixed;inset:0;background:rgba(0,0,0,.97);z-index:200;overflow-y:auto;padding:24px 16px}
+.gm.show{display:block}
+.gm-inner{max-width:900px;margin:0 auto}
+.gm h2{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--text);margin-bottom:6px}
+.gm h2 span{color:var(--teal)}
+.gm-close{float:right;font-size:28px;cursor:pointer;color:var(--muted);line-height:1}
+.gm-close:hover{color:#fff}
+.gm-subtitle{color:var(--muted);font-size:13px;margin-bottom:24px}
+.api-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:30px}
+.api-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;position:relative;transition:border-color .2s}
+.api-card:hover{border-color:var(--teal)}
+.api-card .ac-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.api-card .ac-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.api-card h3{font-size:14px;font-weight:900}
+.api-card .ac-desc{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:10px}
+.api-card .ac-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.api-card .ac-tag{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:var(--bg4)}
+.api-card .ac-url{font-size:11px;color:var(--blue);text-decoration:none;word-break:break-all}
+.api-card .ac-url:hover{text-decoration:underline}
+.api-card .ac-badge{position:absolute;top:12px;right:12px;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700}
+.badge-free{background:rgba(0,200,83,.15);color:var(--green);border:1px solid rgba(0,200,83,.3)}
+.badge-key{background:rgba(245,197,24,.15);color:var(--gold);border:1px solid rgba(245,197,24,.3)}
+.badge-active{background:rgba(0,212,180,.15);color:var(--teal);border:1px solid rgba(0,212,180,.3)}
+.code-block{background:#0d0d14;border:1px solid var(--border);border-radius:6px;padding:10px 12px;font-size:11px;color:#a8b0c8;font-family:monospace;line-height:1.5;margin-top:8px;overflow-x:auto;white-space:pre}
+.gm-section-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:20px 0 10px;border-top:1px solid var(--border);padding-top:16px}
+.ft{text-align:center;padding:12px;font-size:11px;color:#444;background:var(--bg2);border-top:1px solid var(--border)}
 </style>
 </head>
 <body>
-<div class="hd"><h1>CINE ARQUIVO <span class="warning18">🔞 +18</span></h1></div>
+
+<!-- HEADER -->
+<div class="hd">
+  <div class="logo">CINE<span>STREAM</span></div>
+  <div class="nav-tabs" id="navTabs">
+    <button class="nt on" data-src="archive" onclick="switchSource('archive')"><span class="dot" style="background:#e50914"></span>ARCHIVE</button>
+    <button class="nt" data-src="anime" onclick="switchSource('anime')"><span class="dot" style="background:#7c4dff"></span>ANIME</button>
+    <button class="nt" data-src="ghibli" onclick="switchSource('ghibli')"><span class="dot" style="background:#00d4b4"></span>GHIBLI</button>
+    <button class="nt" data-src="cartoons" onclick="switchSource('cartoons')"><span class="dot" style="background:#ff6d00"></span>CARTOONS</button>
+    <button class="nt" data-src="docs" onclick="switchSource('docs')"><span class="dot" style="background:#f5c518"></span>DOCS</button>
+  </div>
+  <div class="hd-right">
+    <button class="btn-guide" onclick="openGuide()">📡 GUIA DE APIs</button>
+  </div>
+</div>
+
+<!-- SEARCH -->
 <div class="sb">
-<input type="text" id="si" placeholder="Buscar filmes...">
-<button id="bt">BUSCAR</button>
+  <input type="text" id="si" placeholder="Buscar...">
+  <button id="btnBuscar">BUSCAR</button>
+  <span class="src-badge" id="srcBadge" style="background:rgba(229,9,20,.15);color:#e50914;border:1px solid rgba(229,9,20,.3)">ARCHIVE.ORG</span>
 </div>
-<div class="cats" id="cats">
-<span class="cb on" data-c="">TODOS</span>
-<span class="cb" data-c="feature_films">FEATURE FILMS</span>
-<span class="cb" data-c="Comedy_Films">COMEDIA</span>
-<span class="cb" data-c="Film_Noir">FILM NOIR</span>
-<span class="cb" data-c="SciFi_Horror">SCI-FI/HORROR</span>
-<span class="cb" data-c="film_scifi">SCI-FI</span>
-<span class="cb" data-c="silent_films">MUDOS</span>
-<span class="cb" data-c="short_films">CURTAS</span>
-<span class="cb" data-c="movie_trailers">TRAILERS</span>
-<span class="cb" data-c="prelinger">PRELINGER</span>
-<span class="cb" data-c="classic_tv">CLASSIC TV</span>
-<span class="cb" data-c="animationandcartoons">ANIMACAO</span>
-<span class="cb" data-c="moviesandfilms">MOVIES&amp;FILMS</span>
-<span class="cb" data-c="collectie_filmcollectief">FILM COLLECTIEF</span>
-<span class="cb" data-c="german_cinema">ALEMAO</span>
-<span class="cb" data-c="KINOfilm">KINO</span>
-<span class="cb" data-c="adult" style="display:none">🔞 ADULTOS</span>
-<span class="cb" data-c="erotica" style="display:none">🔞 EROTICA</span>
-</div>
+
+<!-- CATEGORIES -->
+<div class="cats" id="cats"></div>
+
+<!-- INFO -->
 <div class="ib" id="ib">Carregando...</div>
-<div id="stb-wrap" class="stb-wrap">
-<span style="color:#e50914;font-size:12px">🔞 MODO ADULTO ATIVO — EPORNER &nbsp;|&nbsp; Digite <b>18</b> para desativar</span>
-</div>
-<div class="gr" id="gr"><div class="ld">Conectando ao Archive...</div></div>
+
+<!-- GRID -->
+<div class="gr" id="gr"><div class="ld"><div class="spinner"></div>Conectando à API...</div></div>
+
+<!-- PAGINATION -->
 <div class="pg" id="pg"></div>
+
+<!-- PLAYER MODAL -->
 <div class="mo" id="mo">
-<div class="mc">
-<div class="mh"><h3 id="mt">Filme</h3><span class="mx" id="mx">&times;</span></div>
-<div class="mv"><iframe id="mf" allowfullscreen></iframe></div>
+  <div class="mc">
+    <div class="mh">
+      <h3 id="mt">Filme</h3>
+      <span class="mx" id="mx">&times;</span>
+    </div>
+    <div class="mv">
+      <video id="mf" controls playsinline preload="auto"></video>
+      <div class="mv-loading" id="mf-loading">
+        <div class="spinner"></div>
+        <div class="mv-status" id="mf-status">Buscando arquivo...</div>
+      </div>
+      <div class="mv-err" id="mf-err">
+        <p>⚠ Não foi possível reproduzir este filme</p>
+        <button id="mf-iframe-btn">Tentar via incorporado</button>
+      </div>
+    </div>
+    <div class="minfo" id="minfo"></div>
+  </div>
+</div>
+
+<!-- API GUIDE MODAL -->
+<div class="gm" id="gm">
+<div class="gm-inner">
+  <span class="gm-close" onclick="closeGuide()">&times;</span>
+  <h2>GUIA DE <span>APIs</span> DE FILMES</h2>
+  <p class="gm-subtitle">Todas as melhores APIs públicas para filmes, documentários, anime, desenhos e séries.</p>
+
+  <div class="gm-section-title">🟢 APIs JÁ INTEGRADAS — SEM CHAVE NECESSÁRIA</div>
+  <div class="api-grid">
+    <div class="api-card">
+      <span class="ac-badge badge-active">ATIVO</span>
+      <div class="ac-top"><div class="ac-icon" style="background:rgba(229,9,20,.15)">🎬</div><h3>Internet Archive</h3></div>
+      <div class="ac-desc">Mais de 1 milhão de filmes públicos gratuitos: documentários, animações clássicas, filmes noir, sci-fi, mudos, curtas e mais. Sem chave, sem limite prático.</div>
+      <div class="ac-tags"><span class="ac-tag" style="color:#e50914">Filmes</span><span class="ac-tag" style="color:#e50914">Docs</span><span class="ac-tag" style="color:#e50914">Animação</span><span class="ac-tag" style="color:#e50914">Clássicos</span></div>
+      <a class="ac-url" href="https://archive.org/advancedsearch.php" target="_blank">archive.org/advancedsearch.php</a>
+      <div class="code-block">GET https://archive.org/advancedsearch.php
+?q=collection:animationandcartoons
+&fl[]=identifier,title,year,downloads
+&output=json&rows=24&page=1</div>
+    </div>
+    <div class="api-card">
+      <span class="ac-badge badge-active">ATIVO</span>
+      <div class="ac-top"><div class="ac-icon" style="background:rgba(124,77,255,.15)">⛩️</div><h3>Jikan API v4</h3></div>
+      <div class="ac-desc">API não-oficial do MyAnimeList. Mais de 22.000 animes com sinopses, notas, trailers e gêneros. REST puro, sem autenticação.</div>
+      <div class="ac-tags"><span class="ac-tag" style="color:#7c4dff">Anime</span><span class="ac-tag" style="color:#7c4dff">Manga</span><span class="ac-tag" style="color:#7c4dff">Personagens</span></div>
+      <a class="ac-url" href="https://docs.api.jikan.moe/" target="_blank">docs.api.jikan.moe</a>
+      <div class="code-block">GET https://api.jikan.moe/v4/anime
+?q=naruto&genres=1&order_by=score
+&sort=desc&page=1
+
+GET https://api.jikan.moe/v4/top/anime</div>
+    </div>
+    <div class="api-card">
+      <span class="ac-badge badge-active">ATIVO</span>
+      <div class="ac-top"><div class="ac-icon" style="background:rgba(0,212,180,.15)">🌊</div><h3>Studio Ghibli API</h3></div>
+      <div class="ac-desc">Todos os filmes do Estúdio Ghibli com sinopse, personagens, locações e score no Rotten Tomatoes. REST simples, sem chave.</div>
+      <div class="ac-tags"><span class="ac-tag" style="color:#00d4b4">Ghibli</span><span class="ac-tag" style="color:#00d4b4">Animação</span><span class="ac-tag" style="color:#00d4b4">Japonês</span></div>
+      <a class="ac-url" href="https://ghibliapi.dev" target="_blank">ghibliapi.dev</a>
+      <div class="code-block">GET https://ghibliapi.vercel.app/films
+
+Retorna: id, title, description, 
+director, producer, release_date,
+rt_score, image, movie_banner</div>
+    </div>
+  </div>
+
+  <div class="gm-section-title">🟡 APIs GRATUITAS — NECESSITAM CHAVE GRÁTIS</div>
+  <div class="api-grid">
+    <div class="api-card">
+      <span class="ac-badge badge-key">CHAVE GRÁTIS</span>
+      <div class="ac-top"><div class="ac-icon" style="background:rgba(0,150,255,.15)">🎥</div><h3>TMDB API</h3></div>
+      <div class="ac-desc">A maior base de dados de filmes e séries do mundo (alternativa ao IMDb). Mais de 700k filmes, arte, trailers, elenco, onde assistir. 100% gratuita para uso não-comercial. Chave em 2 minutos.</div>
+      <div class="ac-tags"><span class="ac-tag" style="color:#2979ff">Filmes</span><span class="ac-tag" style="color:#2979ff">Séries</span><span class="ac-tag" style="color:#2979ff">Trending</span><span class="ac-tag" style="color:#2979ff">Posters</span></div>
+      <a class="ac-url" href="https://developer.themoviedb.org/docs" target="_blank">developer.themoviedb.org</a>
+      <div class="code-block">GET https://api.themoviedb.org/3/discover/movie
+?api_key=SUA_CHAVE
+&with_genres=99   ← Documentários
+&sort_by=popularity.desc
+
+Gêneros: 99=Docs, 16=Animação,
+28=Ação, 878=Sci-Fi, 27=Terror</div>
+    </div>
+    <div class="api-card">
+      <span class="ac-badge badge-key">CHAVE GRÁTIS</span>
+      <div class="ac-top"><div class="ac-icon" style="background:rgba(245,197,24,.15)">⭐</div><h3>OMDb API</h3></div>
+      <div class="ac-desc">REST simples baseado no IMDb. Retorna título, sinopse, ano, gênero, ratings (IMDb, Rotten Tomatoes, Metacritic) e poster. Ideal para enriquecer fichas de filmes.</div>
+      <div class="ac-tags"><span class="ac-tag" style="color:#f5c518">Ratings</span><span class="ac-tag" style="color:#f5c518">Posters</span><span class="ac-tag" style="color:#f5c518">IMDb</span></div>
+      <a class="ac-url" href="https://www.omdbapi.com" target="_blank">omdbapi.com</a>
+      <div class="code-block">GET http://www.omdbapi.com/
+?s=batman&type=movie
+&apikey=SUA_CHAVE
+
+?i=tt0468569  ← Busca por IMDb ID
+?t=Inception  ← Busca por título</div>
+    </div>
+    <div class="api-card">
+      <span class="ac-badge badge-key">CHAVE GRÁTIS</span>
+      <div class="ac-top"><div class="ac-icon" style="background:rgba(255,109,0,.15)">📺</div><h3>Watchmode API</h3></div>
+      <div class="ac-desc">Descobre onde assistir cada filme/série por país. Netflix, Prime, Disney+, HBO e mais. Perfeito para badge "onde assistir".</div>
+      <div class="ac-tags"><span class="ac-tag" style="color:#ff6d00">Streaming</span><span class="ac-tag" style="color:#ff6d00">Disponibilidade</span></div>
+      <a class="ac-url" href="https://api.watchmode.com" target="_blank">api.watchmode.com</a>
+      <div class="code-block">GET https://api.watchmode.com/v1/
+title/{id}/sources/
+?apiKey=SUA_CHAVE&regions=BR
+
+Retorna plataformas disponíveis
+no Brasil com deeplinks</div>
+    </div>
+    <div class="api-card">
+      <span class="ac-badge badge-key">CHAVE GRÁTIS</span>
+      <div class="ac-top"><div class="ac-icon" style="background:rgba(0,200,83,.15)">🎞️</div><h3>TasteDive API</h3></div>
+      <div class="ac-desc">Recomendações cruzadas: dá um filme e recebe sugestões similares de filmes, séries, músicas e livros. Ótimo para "quem gostou de X vai gostar de...".</div>
+      <div class="ac-tags"><span class="ac-tag" style="color:#00c853">Recomendações</span><span class="ac-tag" style="color:#00c853">Discovery</span></div>
+      <a class="ac-url" href="https://tastedive.com/read/api" target="_blank">tastedive.com/read/api</a>
+      <div class="code-block">GET https://tastedive.com/api/similar
+?q=Inception&type=movie
+&k=SUA_CHAVE&limit=10&info=1</div>
+    </div>
+    <div class="api-card">
+      <span class="ac-badge badge-free">SEM CHAVE</span>
+      <div class="ac-top"><div class="ac-icon" style="background:rgba(124,77,255,.15)">🐱</div><h3>Kitsu API</h3></div>
+      <div class="ac-desc">Base de dados de anime e mangá com mais de 14k títulos. JSON:API spec, sem autenticação. Inclui posters, sinopse, status, episódios e nota.</div>
+      <div class="ac-tags"><span class="ac-tag" style="color:#7c4dff">Anime</span><span class="ac-tag" style="color:#7c4dff">Mangá</span><span class="ac-tag" style="color:#7c4dff">PT-BR</span></div>
+      <a class="ac-url" href="https://kitsu.docs.apiary.io" target="_blank">kitsu.docs.apiary.io</a>
+      <div class="code-block">GET https://kitsu.io/api/edge/anime
+?filter[text]=attack+on+titan
+&page[limit]=20&page[offset]=0
+
+GET https://kitsu.io/api/edge/anime
+?sort=-averageRating  ← Top rated</div>
+    </div>
+    <div class="api-card">
+      <span class="ac-badge badge-free">SEM CHAVE</span>
+      <div class="ac-top"><div class="ac-icon" style="background:rgba(0,212,180,.15)">📊</div><h3>AniList GraphQL</h3></div>
+      <div class="ac-desc">Mais de 500k entradas de anime e mangá via GraphQL. Altamente flexível — busca exatamente os campos que precisa. Sem chave, CORS habilitado.</div>
+      <div class="ac-tags"><span class="ac-tag" style="color:#00d4b4">GraphQL</span><span class="ac-tag" style="color:#00d4b4">Anime</span><span class="ac-tag" style="color:#00d4b4">Live Data</span></div>
+      <a class="ac-url" href="https://docs.anilist.co" target="_blank">docs.anilist.co</a>
+      <div class="code-block">POST https://graphql.anilist.co
+Body: { query: `{
+  Page(page:1,perPage:20){
+    media(type:ANIME,genre:"Action"){
+      title{romaji} averageScore
+      coverImage{large}
+    }
+  }
+}` }</div>
+    </div>
+    <div class="api-card">
+      <span class="ac-badge badge-free">SEM CHAVE</span>
+      <div class="ac-top"><div class="ac-icon" style="background:rgba(229,9,20,.15)">🎠</div><h3>Trakt API</h3></div>
+      <div class="ac-desc">Watchlist, histórico, rankings e charts de filmes e séries. Dados de popularidade, trending e recomendações por comunidade. OAuth para recursos pessoais.</div>
+      <div class="ac-tags"><span class="ac-tag" style="color:#e50914">Watchlist</span><span class="ac-tag" style="color:#e50914">Trending</span><span class="ac-tag" style="color:#e50914">Rankings</span></div>
+      <a class="ac-url" href="https://trakt.docs.apiary.io" target="_blank">trakt.docs.apiary.io</a>
+      <div class="code-block">GET https://api.trakt.tv/movies/trending
+?limit=20&extended=full
+
+Headers: 
+  trakt-api-key: CLIENT_ID
+  trakt-api-version: 2</div>
+    </div>
+    <div class="api-card">
+      <span class="ac-badge badge-free">SEM CHAVE</span>
+      <div class="ac-top"><div class="ac-icon" style="background:rgba(0,200,83,.15)">📰</div><h3>Simkl API</h3></div>
+      <div class="ac-desc">Catálogo de filmes, séries e anime com suporte a servidores de mídia como Plex e Emby. Tracking e watchlists com boa cobertura de títulos obscuros.</div>
+      <div class="ac-tags"><span class="ac-tag" style="color:#00c853">Filmes</span><span class="ac-tag" style="color:#00c853">Séries</span><span class="ac-tag" style="color:#00c853">Anime</span></div>
+      <a class="ac-url" href="https://simkl.docs.apiary.io" target="_blank">simkl.docs.apiary.io</a>
+      <div class="code-block">GET https://api.simkl.com/search/movie
+?q=inception&client_id=SUA_CHAVE
+
+GET https://api.simkl.com/movies/
+trending?client_id=CHAVE</div>
+    </div>
+  </div>
+
+  <div class="gm-section-title">💡 DICA DE INTEGRAÇÃO — COMO USAR NO SEU PROJETO</div>
+  <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:30px">
+    <div style="font-size:12px;color:var(--muted);line-height:1.7">
+      <strong style="color:var(--teal)">Estratégia recomendada:</strong> Use o <strong>Internet Archive</strong> para filmes completos gratuitos (já integrado), o <strong>Jikan</strong> para descoberta de anime, e o <strong>TMDB</strong> para enriquecer qualquer filme com poster, sinopse e nota. Para saber onde assistir, combine com <strong>Watchmode</strong>.<br><br>
+      <strong style="color:var(--gold)">TMDB é a melhor API gratuita:</strong> Crie uma conta em themoviedb.org → Configurações → API → "Solicitar chave" (uso pessoal). Em menos de 2 minutos você tem acesso ilimitado a 700k+ filmes, arte em alta resolução e endpoints de documentários (<code style="color:#e50914">genre_id=99</code>), animação (<code style="color:#e50914">genre_id=16</code>), sci-fi (<code style="color:#e50914">genre_id=878</code>) e mais.
+    </div>
+  </div>
+
+  <button onclick="closeGuide()" style="width:100%;padding:12px;background:var(--red);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;border-radius:8px;font-family:'Nunito',sans-serif">FECHAR GUIA</button>
 </div>
 </div>
-<div class="ft">Cine Arquivo | Internet Archive | Inclui conteudo adulto 🔞 | 17 colecoes</div>
+
+<div class="ft">CineStream Multi-API | Archive.org · Jikan (MAL) · Studio Ghibli · TMDB · OMDb · Kitsu · AniList</div>
 
 <script>
 (function(){
-    // ---------- CONFIG ----------
-    var pg = 1;
-    var qr = "";
-    var cc = "";
-    var tot = 0;
-    var pp = 24;
-    var maxRetries = 2;
-    
-    var gr = document.getElementById("gr");
-    var ib = document.getElementById("ib");
-    var si = document.getElementById("si");
-    var pgd = document.getElementById("pg");
-    var mo = document.getElementById("mo");
-    var mf = document.getElementById("mf");
-    var mt = document.getElementById("mt");
-    
-    // Referências das abas +18
-    var adultTab = null;
-    var eroticaTab = null;
-    var catsContainer = document.getElementById("cats");
-    var allCatSpans = catsContainer.getElementsByTagName("span");
-    // Identificar as duas abas específicas (já com style.display:none no HTML)
-    for(var i=0;i<allCatSpans.length;i++){
-        var catVal = allCatSpans[i].getAttribute("data-c");
-        if(catVal === "adult") adultTab = allCatSpans[i];
-        if(catVal === "erotica") eroticaTab = allCatSpans[i];
-    }
-    
-    // Query base incluindo ADULT e EROTICA (mas essas coleções podem não existir; mantido)
-    var allC = "(collection:feature_films OR collection:Comedy_Films OR collection:Film_Noir OR collection:SciFi_Horror OR collection:film_scifi OR collection:silent_films OR collection:short_films OR collection:classic_tv OR collection:prelinger OR collection:collectie_filmcollectief OR collection:german_cinema OR collection:KINOfilm OR collection:animationandcartoons OR collection:moviesandfilms OR collection:movie_trailers) AND mediatype:movies";
-    
-    // Fallback CORS
-    var useProxy = false;
-    var proxyList = [
-        "https://corsproxy.io/?",
-        "https://api.allorigins.win/raw?url=",
-        "https://cors-anywhere.herokuapp.com/"
-    ];
-    var currentProxyIndex = 0;
-    
-    function fetchArchiveAPI(queryURL, callback, retryCount) {
-        retryCount = retryCount || 0;
-        var callbackName = "jsonp_callback_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
-        var script = document.createElement('script');
-        var timeout = setTimeout(function() {
-            if (window[callbackName]) delete window[callbackName];
-            if (script.parentNode) script.parentNode.removeChild(script);
-            if (retryCount < maxRetries) {
-                fetchArchiveWithProxy(queryURL, callback, retryCount + 1);
-            } else {
-                callback({ error: "Falha na conexão com Internet Archive" });
-            }
-        }, 15000);
-        
-        window[callbackName] = function(data) {
-            clearTimeout(timeout);
-            delete window[callbackName];
-            if (script.parentNode) script.parentNode.removeChild(script);
-            callback(data);
-        };
-        
-        var jsonpURL = queryURL + "&callback=" + callbackName;
-        script.src = jsonpURL;
-        script.onerror = function() {
-            clearTimeout(timeout);
-            delete window[callbackName];
-            if (script.parentNode) script.parentNode.removeChild(script);
-            if (retryCount < maxRetries) {
-                fetchArchiveWithProxy(queryURL, callback, retryCount + 1);
-            } else {
-                callback({ error: "Erro JSONP" });
-            }
-        };
-        document.head.appendChild(script);
-    }
-    
-    function fetchArchiveWithProxy(queryURL, callback, retryCount) {
-        retryCount = retryCount || 0;
-        var proxy = proxyList[currentProxyIndex % proxyList.length];
-        var fullURL = proxy + encodeURIComponent(queryURL);
-        if (!useProxy) {
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", queryURL, true);
-            xhr.timeout = 12000;
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200) {
-                        try {
-                            var data = JSON.parse(xhr.responseText);
-                            callback(data);
-                        } catch(e) { callback({ error: "Parse error" }); }
-                    } else {
-                        useProxy = true;
-                        if (retryCount < maxRetries) {
-                            fetchArchiveWithProxy(queryURL, callback, retryCount + 1);
-                        } else {
-                            callback({ error: "HTTP " + xhr.status });
-                        }
-                    }
-                }
-            };
-            xhr.onerror = function() {
-                useProxy = true;
-                if (retryCount < maxRetries) {
-                    fetchArchiveWithProxy(queryURL, callback, retryCount + 1);
-                } else {
-                    callback({ error: "Network error" });
-                }
-            };
-            xhr.ontimeout = function() {
-                useProxy = true;
-                if (retryCount < maxRetries) {
-                    fetchArchiveWithProxy(queryURL, callback, retryCount + 1);
-                } else {
-                    callback({ error: "Timeout" });
-                }
-            };
-            xhr.send();
-        } else {
-            var xhr2 = new XMLHttpRequest();
-            xhr2.open("GET", fullURL, true);
-            xhr2.timeout = 20000;
-            xhr2.onreadystatechange = function() {
-                if (xhr2.readyState === 4) {
-                    if (xhr2.status === 200) {
-                        try {
-                            var data = JSON.parse(xhr2.responseText);
-                            callback(data);
-                        } catch(e) { callback({ error: "Proxy parse error" }); }
-                    } else {
-                        if (retryCount < maxRetries) {
-                            currentProxyIndex++;
-                            fetchArchiveWithProxy(queryURL, callback, retryCount + 1);
-                        } else {
-                            callback({ error: "Proxy falhou" });
-                        }
-                    }
-                }
-            };
-            xhr2.onerror = function() {
-                if (retryCount < maxRetries) {
-                    currentProxyIndex++;
-                    fetchArchiveWithProxy(queryURL, callback, retryCount + 1);
-                } else {
-                    callback({ error: "Proxy error" });
-                }
-            };
-            xhr2.ontimeout = function() {
-                if (retryCount < maxRetries) {
-                    currentProxyIndex++;
-                    fetchArchiveWithProxy(queryURL, callback, retryCount + 1);
-                } else {
-                    callback({ error: "Proxy timeout" });
-                }
-            };
-            xhr2.send();
+"use strict";
+
+// ── STATE ──
+var state = { source:'archive', cat:'', q:'', page:1, tot:0, loading:false };
+var PP = 20;
+var hlsObj = null;
+var failTmr = null;
+var currentFilmId = null;
+
+// ── PROXIES (igual ao tv.html) ──
+var PROXIES = [
+  'https://corsproxy.io/?url=',
+  'https://api.allorigins.win/raw?url=',
+  'https://api.codetabs.com/v1/proxy/?quest='
+];
+
+// ── DOM ──
+var gr      = document.getElementById('gr');
+var ib      = document.getElementById('ib');
+var si      = document.getElementById('si');
+var pgd     = document.getElementById('pg');
+var mo      = document.getElementById('mo');
+var vid     = document.getElementById('mf');
+var mt      = document.getElementById('mt');
+var minfo   = document.getElementById('minfo');
+var mfLoad  = document.getElementById('mf-loading');
+var mfStatus= document.getElementById('mf-status');
+var mfErr   = document.getElementById('mf-err');
+var srcBadge= document.getElementById('srcBadge');
+var catsDiv = document.getElementById('cats');
+
+// ── PLAYER: parar ──────────────────────────────────────────────
+function pararVideo() {
+  clearTimeout(failTmr);
+  if (hlsObj) { try { hlsObj.destroy(); } catch(e){} hlsObj = null; }
+  vid.onerror = null; vid.oncanplay = null; vid.onplaying = null; vid.onloadedmetadata = null;
+  try { vid.pause(); } catch(e){}
+  try { vid.src = ''; } catch(e){}
+  try { vid.removeAttribute('src'); } catch(e){}
+  try { vid.load(); } catch(e){}
+  vid.muted = false;
+}
+
+// ── PLAYER: mostrar loading ────────────────────────────────────
+function setLoading(msg) {
+  mfLoad.classList.remove('oculto');
+  mfErr.classList.remove('show');
+  mfStatus.textContent = msg || 'Carregando...';
+}
+
+function setReady() {
+  mfLoad.classList.add('oculto');
+  mfErr.classList.remove('show');
+}
+
+function setErro(filmId) {
+  mfLoad.classList.add('oculto');
+  mfErr.classList.add('show');
+  // Botão fallback iframe
+  document.getElementById('mf-iframe-btn').onclick = function(){
+    usarIframe(filmId);
+  };
+}
+
+// ── PLAYER: usar iframe como último recurso ────────────────────
+function usarIframe(id) {
+  mfErr.classList.remove('show');
+  mfLoad.classList.remove('oculto');
+  mfStatus.textContent = 'Abrindo player do Archive.org...';
+  // Troca o <video> por <iframe> dinamicamente
+  var mv = vid.parentNode;
+  mv.innerHTML = '<iframe src="https://archive.org/embed/'+encodeURIComponent(id)+'?autoplay=1&playsinline=1" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:none"></iframe>';
+}
+
+// ── PLAYER: tocar URL direta ───────────────────────────────────
+function tocarUrl(url, id) {
+  pararVideo();
+  setLoading('Conectando...');
+  var okJa = false;
+  function onOk() {
+    if (okJa) return; okJa = true;
+    clearTimeout(failTmr);
+    setReady();
+    try { if (vid.muted){ vid.muted=false; vid.volume=1; } } catch(e){}
+  }
+  vid.oncanplay  = onOk;
+  vid.onplaying  = onOk;
+  vid.onloadedmetadata = function(){ try{ vid.play(); }catch(e){} };
+
+  failTmr = setTimeout(function(){
+    if (!okJa) { setErro(id); }
+  }, 18000);
+
+  var ehHls   = /\.m3u8?($|\?)/i.test(url);
+  var nativeHls = !!(vid.canPlayType && (
+    vid.canPlayType('application/vnd.apple.mpegurl') !== '' ||
+    vid.canPlayType('application/x-mpegURL') !== ''
+  ));
+  var temHlsJs = typeof Hls !== 'undefined' && Hls.isSupported();
+
+  function onErroNativo() {
+    vid.onerror = null;
+    if (ehHls && temHlsJs) { tentarHlsJs(); return; }
+    clearTimeout(failTmr);
+    setErro(id);
+  }
+  vid.onerror = onErroNativo;
+
+  function tentarHlsJs() {
+    try {
+      hlsObj = new Hls({ enableWorker:false, maxBufferLength:30 });
+      hlsObj.loadSource(url);
+      hlsObj.attachMedia(vid);
+      hlsObj.on(Hls.Events.MANIFEST_PARSED, function(){ try{ vid.play(); }catch(e){} });
+      hlsObj.on(Hls.Events.ERROR, function(ev, d){
+        if (!d || !d.fatal) return;
+        clearTimeout(failTmr); setErro(id);
+      });
+    } catch(e){ clearTimeout(failTmr); setErro(id); }
+  }
+
+  if (ehHls && temHlsJs && !nativeHls) {
+    tentarHlsJs();
+  } else {
+    try {
+      vid.src = url; vid.load();
+      var p = vid.play();
+      if (p && p.catch) p.catch(function(){
+        try {
+          vid.muted = true;
+          var p2 = vid.play();
+          if (p2 && p2.then) p2.then(function(){
+            setTimeout(function(){ try{ vid.muted=false; vid.volume=1; }catch(e){} }, 800);
+          }).catch(function(){});
+        } catch(e){}
+      });
+    } catch(e){ clearTimeout(failTmr); setErro(id); }
+  }
+}
+
+// ── ARCHIVE: encontrar melhor arquivo de vídeo ─────────────────
+var PRIORIDADE_FMT = [
+  'MPEG4','512Kb MPEG4','H.264','HiRes MPEG4','MPEG4 Web','Ogg Video',
+  'H.264 IA','Matroska','512Kb H.264','HLS'
+];
+
+function encontrarVideoUrl(id, files) {
+  // Prefere formatos menores e compatíveis primeiro
+  for (var fi = 0; fi < PRIORIDADE_FMT.length; fi++) {
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      if (!f.name || !f.format) continue;
+      if (f.format === PRIORIDADE_FMT[fi]) {
+        var ext = f.name.split('.').pop().toLowerCase();
+        if (['mp4','ogv','mkv','m4v','m3u8','mpeg'].indexOf(ext) !== -1) {
+          return 'https://archive.org/download/' + encodeURIComponent(id) + '/' + encodeURIComponent(f.name);
         }
+      }
     }
-    
-    function performSearch(queryURL, callback) {
-        var callbackName = "search_cb_" + Date.now() + "_" + Math.floor(Math.random() * 99999);
-        var script = document.createElement('script');
-        var timeoutId = setTimeout(function() {
-            if (window[callbackName]) delete window[callbackName];
-            if (script.parentNode) script.parentNode.removeChild(script);
-            fetchArchiveWithProxy(queryURL, callback, 0);
-        }, 18000);
-        
-        window[callbackName] = function(resp) {
-            clearTimeout(timeoutId);
-            delete window[callbackName];
-            if (script.parentNode) script.parentNode.removeChild(script);
-            callback(resp);
-        };
-        var finalURL = queryURL + "&callback=" + callbackName;
-        script.src = finalURL;
-        script.onerror = function() {
-            clearTimeout(timeoutId);
-            delete window[callbackName];
-            if (script.parentNode) script.parentNode.removeChild(script);
-            fetchArchiveWithProxy(queryURL, callback, 0);
-        };
-        document.head.appendChild(script);
+  }
+  // Fallback: qualquer .mp4
+  for (var j = 0; j < files.length; j++) {
+    if (files[j].name && files[j].name.toLowerCase().endsWith('.mp4')) {
+      return 'https://archive.org/download/' + encodeURIComponent(id) + '/' + encodeURIComponent(files[j].name);
     }
-    
-    // Função para ocultar/mostrar as abas adultas
-    function setAdultTabsVisible(visible) {
-        if(adultTab) adultTab.style.display = visible ? "inline-block" : "none";
-        if(eroticaTab) eroticaTab.style.display = visible ? "inline-block" : "none";
-    }
-    
-    // Eventos dos botões de categoria (redefinindo o comportamento das abas +18)
-    for(var i=0; i<allCatSpans.length; i++){
-        allCatSpans[i].onclick = (function(el){
-            return function(){
-                var cat = el.getAttribute("data-c");
-                // Se for uma das abas adultas
-                if(cat === "adult" || cat === "erotica"){
-                    // Se o modo adulto estiver ativo, carregar conteúdo adulto (EPORNER) adequado
-                    if(adultMode){
-                        // Remove classe "on" de todos e marca este
-                        for(var j=0;j<allCatSpans.length;j++) allCatSpans[j].className = "cb";
-                        el.className = "cb on";
-                        // Define a busca de acordo com a aba
-                        if(cat === "adult"){
-                            qr = "";   // busca vazia = mais votados
-                        } else if(cat === "erotica"){
-                            qr = "erotica";
-                        }
-                        cc = ""; // limpa coleção
-                        pg = 1;
-                        si.value = "";
-                        carregarAdult();
-                    } else {
-                        // Fora do modo adulto, as abas estão ocultas, mas por segurança recarrega normal
-                        for(var j=0;j<allCatSpans.length;j++) allCatSpans[j].className = "cb";
-                        el.className = "cb on";
-                        cc = cat;
-                        qr = "";
-                        pg = 1;
-                        si.value = "";
-                        adultMode = false;
-                        stbWrap.className = "stb-wrap";
-                        carregar();
-                    }
-                    return;
-                }
-                // Demais categorias (sempre no modo normal)
-                for(var j=0;j<allCatSpans.length;j++) allCatSpans[j].className = "cb";
-                el.className = "cb on";
-                cc = cat;
-                qr = "";
-                pg = 1;
-                si.value = "";
-                // Se eventualmente adultMode estiver ativo, desativa ao clicar em categoria comum
-                if(adultMode){
-                    adultMode = false;
-                    setAdultTabsVisible(false);
-                    stbWrap.className = "stb-wrap";
-                }
-                carregar();
-            };
-        })(allCatSpans[i]);
-    }
-    
-    document.getElementById("bt").onclick = function(){
-        var v = si.value.trim();
-        if(!v) return;
-        if(v === "18"){
-            if(adultMode){
-                // desativar modo adulto
-                adultMode = false;
-                setAdultTabsVisible(false);
-                stbWrap.className = "stb-wrap";
-                si.value = "";
-                qr = "";
-                pg = 1;
-                // Voltar para a categoria TODOS visualmente
-                for(var j=0;j<allCatSpans.length;j++) allCatSpans[j].className = "cb";
-                if(allCatSpans[0]) allCatSpans[0].className = "cb on";
-                carregar();
-            } else {
-                // ativar modo adulto
-                adultMode = true;
-                setAdultTabsVisible(true);
-                si.value = "";
-                qr = "";
-                pg = 1;
-                // Desmarcar qualquer categoria comum
-                for(var j=0;j<allCatSpans.length;j++) allCatSpans[j].className = "cb";
-                carregarAdult();
-            }
-            return;
-        }
-        if(adultMode){
-            qr = v;
-            pg = 1;
-            carregarAdult();
-        } else {
-            qr = v;
-            cc = "";
-            pg = 1;
-            for(var j=0;j<allCatSpans.length;j++) allCatSpans[j].className = "cb";
-            if(allCatSpans[0]) allCatSpans[0].className = "cb on";
-            adultMode = false;
-            setAdultTabsVisible(false);
-            stbWrap.className = "stb-wrap";
-            carregar();
-        }
+  }
+  return null;
+}
+
+// ── ARCHIVE: buscar metadata e tocar ──────────────────────────
+function abrirFilmeArchive(id, titulo) {
+  setLoading('Buscando arquivo de vídeo...');
+  mfInfo('Fonte: Internet Archive · ID: '+id);
+
+  var metaUrl = 'https://archive.org/metadata/' + encodeURIComponent(id);
+  var tentativas = [metaUrl];
+  for (var i = 0; i < PROXIES.length; i++) tentativas.push(PROXIES[i] + encodeURIComponent(metaUrl));
+  var ti = 0;
+
+  function tryNext() {
+    if (ti >= tentativas.length) { setErro(id); return; }
+    var u = tentativas[ti++];
+    var x = new XMLHttpRequest();
+    x.open('GET', u, true);
+    x.timeout = 10000;
+    x.onreadystatechange = function(){
+      if (x.readyState !== 4) return;
+      if (x.status === 200) {
+        try {
+          var data = JSON.parse(x.responseText);
+          var files = data.files || [];
+          var url = encontrarVideoUrl(id, files);
+          if (url) {
+            tocarUrl(url, id);
+          } else {
+            // Nenhum vídeo nos metadados → tenta iframe direto
+            usarIframe(id);
+          }
+        } catch(e) { tryNext(); }
+      } else { tryNext(); }
     };
-    
-    si.onkeydown = function(e){
-        if((e.keyCode||e.which)===13) document.getElementById("bt").onclick();
+    x.onerror = x.ontimeout = tryNext;
+    x.send();
+  }
+  tryNext();
+}
+
+function mfInfo(txt) {
+  minfo.innerHTML = '<strong>ℹ</strong> ' + esc(txt);
+}
+
+// ── CATEGORIES PER SOURCE ──
+var CATS = {
+  archive:[
+    {k:'',l:'TODOS'},
+    {k:'feature_films',l:'LONGAS'},
+    {k:'Comedy_Films',l:'COMÉDIA'},
+    {k:'Film_Noir',l:'NOIR'},
+    {k:'SciFi_Horror',l:'SCI-FI/TERROR'},
+    {k:'film_scifi',l:'SCI-FI'},
+    {k:'silent_films',l:'MUDOS'},
+    {k:'short_films',l:'CURTAS'},
+    {k:'animationandcartoons',l:'ANIMAÇÃO'},
+    {k:'prelinger',l:'PRELINGER'},
+    {k:'classic_tv',l:'TV CLÁSSICA'},
+    {k:'german_cinema',l:'ALEMÃO'},
+    {k:'KINOfilm',l:'KINO'}
+  ],
+  anime:[
+    {k:'',l:'TODOS'},
+    {k:'1',l:'AÇÃO'},
+    {k:'2',l:'AVENTURA'},
+    {k:'4',l:'COMÉDIA'},
+    {k:'8',l:'DRAMA'},
+    {k:'10',l:'FANTASIA'},
+    {k:'14',l:'TERROR'},
+    {k:'22',l:'ROMANCE'},
+    {k:'24',l:'SCI-FI'},
+    {k:'36',l:'SLICE OF LIFE'},
+    {k:'37',l:'SOBRENATURAL'},
+    {k:'top',l:'⭐ TOP RATED'}
+  ],
+  ghibli:[{k:'',l:'TODOS OS FILMES'}],
+  cartoons:[
+    {k:'animationandcartoons',l:'TODOS'},
+    {k:'',l:'CLÁSSICOS'},
+    {k:'short_films',l:'CURTAS'},
+    {k:'silent_films',l:'MUDOS'}
+  ],
+  docs:[
+    {k:'',l:'TODOS'},
+    {k:'feature_films',l:'LONGAS'},
+    {k:'prelinger',l:'HISTÓRIA'},
+    {k:'classic_tv',l:'TV'},
+    {k:'collectie_filmcollectief',l:'COLLECTIEF'},
+    {k:'german_cinema',l:'ALEMÃO'}
+  ]
+};
+
+var BADGES = {
+  archive:{bg:'rgba(229,9,20,.15)',color:'#e50914',border:'rgba(229,9,20,.3)',text:'ARCHIVE.ORG'},
+  anime:{bg:'rgba(124,77,255,.15)',color:'#7c4dff',border:'rgba(124,77,255,.3)',text:'JIKAN / MAL'},
+  ghibli:{bg:'rgba(0,212,180,.15)',color:'#00d4b4',border:'rgba(0,212,180,.3)',text:'GHIBLI API'},
+  cartoons:{bg:'rgba(255,109,0,.15)',color:'#ff6d00',border:'rgba(255,109,0,.3)',text:'ARCHIVE.ORG'},
+  docs:{bg:'rgba(245,197,24,.15)',color:'#f5c518',border:'rgba(245,197,24,.3)',text:'ARCHIVE.ORG'}
+};
+
+// ── SWITCH SOURCE ──
+window.switchSource = function(src){
+  state.source = src;
+  state.cat = '';
+  state.q = '';
+  state.page = 1;
+  si.value = '';
+  var b = BADGES[src];
+  srcBadge.style.background = b.bg;
+  srcBadge.style.color = b.color;
+  srcBadge.style.border = '1px solid '+b.border;
+  srcBadge.textContent = b.text;
+  renderCats();
+  load();
+};
+
+function renderCats(){
+  var list = CATS[state.source] || [];
+  var html = '';
+  list.forEach(function(c){
+    html += '<span class="cb'+(c.k===state.cat?' on':'')+'" data-k="'+esc(c.k)+'">'+esc(c.l)+'</span>';
+  });
+  catsDiv.innerHTML = html;
+  Array.from(catsDiv.querySelectorAll('.cb')).forEach(function(el){
+    el.onclick = function(){
+      state.cat = el.getAttribute('data-k');
+      state.page = 1;
+      Array.from(catsDiv.querySelectorAll('.cb')).forEach(function(x){x.classList.remove('on')});
+      el.classList.add('on');
+      load();
     };
-    
-    document.getElementById("mx").onclick = fecharModal;
-    mo.onclick = function(e){ if(e.target===mo) fecharModal(); };
-    document.onkeydown = function(e){ if((e.keyCode||e.which)===27) fecharModal(); };
-    
-    function fecharModal(){
-        mo.className = "mo";
-        mf.src = "";
+  });
+}
+
+// ── LOAD ROUTER ──
+function load(){
+  if(state.loading) return;
+  state.loading = true;
+  gr.innerHTML = '<div class="ld"><div class="spinner"></div>Buscando...</div>';
+  pgd.innerHTML = '';
+  ib.textContent = 'Carregando...';
+
+  var src = state.source;
+  if(src==='anime') loadJikan();
+  else if(src==='ghibli') loadGhibli();
+  else loadArchive();
+}
+
+// ── ARCHIVE API ──
+function buildArchiveQuery(){
+  var q = state.q;
+  var cat = state.cat;
+  var src = state.source;
+  var colFilter = '';
+
+  if(src==='docs'){
+    colFilter = cat ? 'collection:'+cat : '(collection:feature_films OR collection:prelinger OR collection:collectie_filmcollectief OR collection:german_cinema OR collection:classic_tv)';
+    colFilter += ' AND mediatype:movies';
+  } else if(src==='cartoons'){
+    colFilter = (cat==='animationandcartoons'||cat==='') ?
+      'collection:animationandcartoons AND mediatype:movies' :
+      'collection:'+cat+' AND mediatype:movies AND subject:cartoon';
+  } else {
+    colFilter = cat ?
+      'collection:'+cat+' AND mediatype:movies' :
+      '(collection:feature_films OR collection:Comedy_Films OR collection:Film_Noir OR collection:SciFi_Horror OR collection:film_scifi OR collection:silent_films OR collection:short_films OR collection:classic_tv OR collection:prelinger OR collection:animationandcartoons OR collection:moviesandfilms OR collection:german_cinema OR collection:KINOfilm) AND mediatype:movies';
+  }
+  if(q) colFilter = '('+colFilter+') AND title:('+q+')';
+  return colFilter;
+}
+
+function loadArchive(){
+  var query = buildArchiveQuery();
+  var url = 'https://archive.org/advancedsearch.php?q='+encodeURIComponent(query)+
+    '&fl[]=identifier&fl[]=title&fl[]=year&fl[]=creator&fl[]=downloads'+
+    '&sort[]=downloads+desc&rows='+PP+'&page='+state.page+'&output=json';
+
+  fetchJSONP(url, function(data){
+    state.loading = false;
+    if(!data||data.error||!data.response){
+      gr.innerHTML='<div class="ld">Erro ao conectar. Tente novamente.</div>';
+      ib.textContent='Erro';
+      return;
     }
-    
-    function buildQuery(){
-        var q = "";
-        if(qr){
-            q = "(" + encodeURIComponent(qr) + ") AND mediatype:movies";
-        } else if(cc){
-            q = 'collection:"' + cc + '" AND mediatype:movies';
-        } else {
-            q = allC;
-        }
-        return q;
-    }
-    
-    // ---------- ARCHIVE.ORG ----------
-    function carregar(){
-        gr.innerHTML = '<div class="ld"><span style="display:inline-block;animation:spin 1s linear infinite;">🌀</span> Buscando filmes no Archive.org...</div>';
-        if(!document.querySelector('style[data-spin]')) {
-            var style = document.createElement('style');
-            style.setAttribute('data-spin', 'true');
-            style.textContent = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
-            document.head.appendChild(style);
-        }
-        var query = buildQuery();
-        var url = "https://archive.org/advancedsearch.php?q=" + query + "&fl[]=identifier,title,creator,year,downloads&rows=" + pp + "&page=" + pg + "&output=json&sort[]=downloads desc";
-        ib.textContent = "Carregando...";
-        performSearch(url, function(data) {
-            if(!data || data.error) {
-                gr.innerHTML = '<div class="ld">⚠️ Erro de conexão. Tente novamente. <br><button onclick="location.reload()" style="background:#e50914;border:none;padding:6px 12px;margin-top:10px;color:#fff;border-radius:4px">Recarregar</button></div>';
-                ib.textContent = "Falha na busca";
-                return;
-            }
-            var docs = data.response && data.response.docs ? data.response.docs : [];
-            tot = data.response && data.response.numFound ? data.response.numFound : 0;
-            ib.textContent = tot + " filmes | Página " + pg;
-            if(!docs.length){
-                gr.innerHTML = '<div class="ld">Nenhum filme encontrado.</div>';
-                pgd.innerHTML = "";
-                return;
-            }
-            renderizarFilmes(docs);
-            paginacao();
-        });
-    }
-    
-    // ---------- ADULT APIs ----------
-    var adultMode = false;
-    var stbWrap = document.getElementById("stb-wrap");
-    
-    function carregarAdult(){
-        adultMode = true;
-        stbWrap.className = "stb-wrap show";
-        gr.innerHTML = '<div class="ld"><span style="display:inline-block;animation:spin 1s linear infinite;">🌀</span> Buscando no EPORNER...</div>';
-        ib.textContent = "Carregando...";
-        pgd.innerHTML = "";
-        fetchEporner();
-    }
-    
-    function xhrFetch(url, cb){
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", url, true);
-        xhr.timeout = 15000;
-        xhr.onreadystatechange = function(){
-            if(xhr.readyState === 4){
-                if(xhr.status === 200){
-                    try { cb(null, JSON.parse(xhr.responseText)); }
-                    catch(e){ cb("parse error"); }
-                } else {
-                    cb("HTTP " + xhr.status);
-                }
-            }
-        };
-        xhr.onerror = function(){ cb("network error"); };
-        xhr.ontimeout = function(){ cb("timeout"); };
-        xhr.send();
-    }
-    
-    function xhrFetchProxy(url, cb){
-        xhrFetch("https://corsproxy.io/?" + encodeURIComponent(url), function(err, data){
-            if(err) xhrFetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(url), cb);
-            else cb(null, data);
-        });
-    }
-    
-    function fetchEporner(){
-        var queryTerm = qr ? encodeURIComponent(qr) : "";
-        var url = "https://www.eporner.com/api/v2/video/search/?query=" + queryTerm + "&per_page=" + pp + "&page=" + pg + "&format=json&thumbsize=big&order=top-rated";
-        xhrFetch(url, function(err, data){
-            if(err){
-                xhrFetchProxy(url, function(err2, data2){
-                    if(err2) showAdultError("Eporner");
-                    else renderAdult(normalizeEporner(data2));
-                });
-            } else {
-                renderAdult(normalizeEporner(data));
-            }
-        });
-    }
-    
-    function normalizeEporner(data){
-        if(!data || !data.videos) return {total:0, items:[]};
-        var items = [];
-        for(var i=0;i<data.videos.length;i++){
-            var v = data.videos[i];
-            var thumb = "";
-            if(v.thumbs && v.thumbs.length) thumb = v.thumbs[v.thumbs.length-1].src;
-            items.push({
-                identifier: v.id,
-                title: v.title || "Sem título",
-                creator: v.keywords || "",
-                year: "",
-                downloads: v.views || 0,
-                thumb: thumb,
-                embedUrl: v.embed || ("https://www.eporner.com/embed/" + v.id + "/")
-            });
-        }
-        return {total: data.count || items.length, items: items};
-    }
-    
-    function renderAdult(result){
-        if(!result.items.length){
-            gr.innerHTML = '<div class="ld">Nenhum resultado encontrado.</div>';
-            ib.textContent = "0 filmes";
-            pgd.innerHTML = "";
-            return;
-        }
-        ib.textContent = result.total.toLocaleString() + " filmes | Página " + pg;
-        renderizarAdult(result.items);
-        paginacaoAdult(result.total);
-    }
-    
-    function showAdultError(src){
-        gr.innerHTML = '<div class="ld">⚠️ Erro ao conectar em ' + src + '. Tente outra fonte ou verifique sua conexão.</div>';
-        ib.textContent = "Erro";
-        pgd.innerHTML = "";
-    }
-    
-    function renderizarAdult(items){
-        var html = "";
-        for(var i=0;i<items.length;i++){
-            var d = items[i];
-            var titulo = d.title || "Sem título";
-            var tituloCurto = titulo.length > 42 ? titulo.substring(0,42)+"..." : titulo;
-            var tags = d.creator || "";
-            if(tags.length > 35) tags = tags.substring(0,35)+"...";
-            var views = typeof d.downloads === "number" ? d.downloads.toLocaleString() : String(d.downloads||0);
-            var thumb = d.thumb || "";
-            html += '<div class="cd" data-embed="'+escapeHtml(d.embedUrl)+'" data-titulo="'+escapeHtml(titulo)+'">' +
-                    '<img src="'+escapeHtml(thumb)+'" alt="capa" loading="lazy" onerror="this.src=\'https://archive.org/download/noimage.png\';this.style.objectFit=\'contain\'">' +
-                    '<div class="ci">' +
-                        '<div class="ct">'+escapeHtml(tituloCurto)+'</div>' +
-                        '<div class="cm">'+views+' views</div>' +
-                        '<div class="cc">'+escapeHtml(tags)+'</div>' +
-                    '</div></div>';
-        }
-        gr.innerHTML = html;
-        var cards = gr.getElementsByClassName("cd");
-        for(var i=0;i<cards.length;i++){
-            cards[i].onclick = (function(el){
-                return function(){
-                    var embedUrl = el.getAttribute("data-embed");
-                    var filmTitle = el.getAttribute("data-titulo") || "Filme";
-                    if(!embedUrl){ return; }
-                    mt.textContent = filmTitle;
-                    mf.src = embedUrl + (embedUrl.indexOf("?")>=0?"&":"?") + "autoplay=1";
-                    mo.className = "mo show";
-                };
-            })(cards[i]);
-        }
-    }
-    
-    function paginacaoAdult(total){
-        var totalPaginas = Math.ceil(total / pp);
-        if(totalPaginas <= 1){ pgd.innerHTML = ""; return; }
-        var html = "";
-        var inicio = Math.max(1, pg - 3);
-        var fim = Math.min(totalPaginas, inicio + 6);
-        if(fim - inicio < 6) inicio = Math.max(1, fim - 6);
-        html += '<span class="pb" data-page="'+(pg-1)+'" '+(pg===1?'disabled style="opacity:0.4;pointer-events:none"':'')+'>◀ Anterior</span>';
-        for(var i=inicio; i<=fim; i++){
-            html += '<span class="pb'+(i===pg?" on":"")+'" data-page="'+i+'">'+i+'</span>';
-        }
-        html += '<span class="pb" data-page="'+(pg+1)+'" '+(pg===totalPaginas?'disabled style="opacity:0.4;pointer-events:none"':'')+'>Próxima ▶</span>';
-        pgd.innerHTML = html;
-        var botoes = pgd.getElementsByClassName("pb");
-        for(var j=0;j<botoes.length;j++){
-            botoes[j].onclick = (function(el){
-                return function(){
-                    var novaPag = parseInt(el.getAttribute("data-page"), 10);
-                    if(isNaN(novaPag)) return;
-                    pg = novaPag;
-                    carregarAdult();
-                    window.scrollTo({top:0, behavior:"smooth"});
-                };
-            })(botoes[j]);
-        }
-    }
-    
-    function escapeHtml(str){
-        if(!str) return "";
-        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-    }
-    
-    function renderizarFilmes(docs){
-        var html = "";
-        for(var i=0; i<docs.length; i++){
-            var d = docs[i];
-            var id = d.identifier;
-            var titulo = d.title || "Sem título";
-            var tituloCurto = titulo.length > 42 ? titulo.substring(0,42)+"..." : titulo;
-            var diretor = d.creator || "Desconhecido";
-            if(diretor.length > 35) diretor = diretor.substring(0,35)+"...";
-            var ano = d.year || "?";
-            var downloads = d.downloads ? d.downloads.toLocaleString() : "0";
-            var imgURL = "https://archive.org/services/img/" + encodeURIComponent(id);
-            html += '<div class="cd" data-id="'+escapeHtml(id)+'" data-titulo="'+escapeHtml(titulo)+'">' +
-                    '<img src="'+imgURL+'" alt="capa" loading="lazy" onerror="this.src=\'https://archive.org/download/noimage.png\'; this.style.objectFit=\'contain\'">' +
-                    '<div class="ci">' +
-                        '<div class="ct">'+escapeHtml(tituloCurto)+'</div>' +
-                        '<div class="cm">'+escapeHtml(ano)+' | '+downloads+' views</div>' +
-                        '<div class="cc">'+escapeHtml(diretor)+'</div>' +
-                    '</div></div>';
-        }
-        gr.innerHTML = html;
-        var cards = gr.getElementsByClassName("cd");
-        for(var i=0; i<cards.length; i++){
-            cards[i].onclick = (function(el){
-                return function(){
-                    var filmId = el.getAttribute("data-id");
-                    var filmTitle = el.getAttribute("data-titulo") || "Filme";
-                    mt.textContent = filmTitle;
-                    mf.src = "https://archive.org/embed/" + encodeURIComponent(filmId) + "?autoplay=1&playsinline=1";
-                    mo.className = "mo show";
-                };
-            })(cards[i]);
-        }
-    }
-    
-    function paginacao(){
-        var totalPaginas = Math.ceil(tot / pp);
-        if(totalPaginas <= 1){
-            pgd.innerHTML = "";
-            return;
-        }
-        var html = "";
-        var inicio = Math.max(1, pg - 3);
-        var fim = Math.min(totalPaginas, inicio + 6);
-        if(fim - inicio < 6) inicio = Math.max(1, fim - 6);
-        
-        html += '<span class="pb" data-page="'+(pg-1)+'" '+(pg===1?'disabled style="opacity:0.4;pointer-events:none"':'')+'>◀ Anterior</span>';
-        for(var i=inicio; i<=fim; i++){
-            html += '<span class="pb'+(i===pg ? " on" : "")+'" data-page="'+i+'">'+i+'</span>';
-        }
-        html += '<span class="pb" data-page="'+(pg+1)+'" '+(pg===totalPaginas?'disabled style="opacity:0.4;pointer-events:none"':'')+'>Próxima ▶</span>';
-        pgd.innerHTML = html;
-        
-        var botoes = pgd.getElementsByClassName("pb");
-        for(var j=0; j<botoes.length; j++){
-            botoes[j].onclick = (function(el){
-                return function(){
-                    var novaPag = parseInt(el.getAttribute("data-page"), 10);
-                    if(isNaN(novaPag)) return;
-                    var maxPage = Math.ceil(tot / pp);
-                    if(novaPag < 1 || novaPag > maxPage) return;
-                    pg = novaPag;
-                    carregar();
-                    window.scrollTo({top:0, behavior:"smooth"});
-                };
-            })(botoes[j]);
-        }
-    }
-    
-    function testCORSAndNotify() {
-        var xhrTest = new XMLHttpRequest();
-        xhrTest.open("GET", "https://archive.org/advancedsearch.php?q=identifier:test&output=json", true);
-        xhrTest.timeout = 5000;
-        xhrTest.onload = function() { if(xhrTest.status !== 200) showSmallWarning(); };
-        xhrTest.onerror = function() { showSmallWarning(); };
-        xhrTest.ontimeout = function() { showSmallWarning(); };
-        xhrTest.send();
-    }
-    
-    function showSmallWarning() {
-        var warnDiv = document.createElement("div");
-        warnDiv.className = "aviso";
-        warnDiv.innerHTML = "⚠️ Conexão com proxy ativada (CORS). A busca pode ser um pouco mais lenta, mas funciona normalmente. | Conteúdo adulto presente 🔞";
-        var ref = document.querySelector(".ib");
-        if(ref && !document.querySelector(".aviso")) {
-            ref.parentNode.insertBefore(warnDiv, ref);
-            setTimeout(function(){ if(warnDiv) warnDiv.style.opacity = "0.6"; }, 8000);
-        }
-    }
-    
-    // Inicialização: ocultar abas +18 e carregar modo normal
-    setAdultTabsVisible(false);
-    carregar();
-    setTimeout(testCORSAndNotify, 1500);
+    var docs = data.response.docs||[];
+    state.tot = data.response.numFound||0;
+    ib.textContent = state.tot.toLocaleString()+' filmes encontrados | p.'+state.page;
+    renderArchiveCards(docs);
+    renderPag();
+  });
+}
+
+function renderArchiveCards(docs){
+  if(!docs.length){
+    gr.innerHTML='<div class="ld">Nenhum resultado encontrado.</div>';
+    return;
+  }
+  var html='';
+  docs.forEach(function(d){
+    var id=d.identifier;
+    var titulo=d.title||'Sem título';
+    var tCurto=titulo.length>44?titulo.substring(0,44)+'...':titulo;
+    var ano=d.year||'?';
+    var views=d.downloads?Number(d.downloads).toLocaleString():'0';
+    var img='https://archive.org/services/img/'+encodeURIComponent(id);
+    html+='<div class="cd" data-id="'+esc(id)+'" data-titulo="'+esc(titulo)+'" data-ano="'+esc(ano)+'">';
+    html+='<span class="src-tag" style="background:rgba(229,9,20,.85);color:#fff">ARCHIVE</span>';
+    html+='<img src="'+img+'" loading="lazy" onerror="this.src=\'https://archive.org/download/noimage.png\';this.style.objectFit=\'contain\'">';
+    html+='<div class="ci"><div class="ct">'+esc(tCurto)+'</div><div class="cm">'+esc(ano)+' · '+views+' views</div><div class="cc">'+(d.creator?esc(String(d.creator).substring(0,40)):'')+'</div></div></div>';
+  });
+  gr.innerHTML=html;
+  Array.from(gr.querySelectorAll('.cd')).forEach(function(el){
+    el.onclick=function(){
+      var id=el.getAttribute('data-id');
+      var titulo=el.getAttribute('data-titulo')||'Filme';
+      var ano=el.getAttribute('data-ano')||'?';
+      currentFilmId = id;
+      mt.textContent = titulo;
+      mo.className='mo show';
+      abrirFilmeArchive(id, titulo);
+      minfo.innerHTML='<strong>'+esc(titulo)+'</strong> ('+esc(ano)+') · Internet Archive';
+    };
+  });
+}
+
+// ── JIKAN API ──
+function loadJikan(){
+  var cat=state.cat;
+  var q=state.q;
+  var url;
+  if(cat==='top'){
+    url='https://api.jikan.moe/v4/top/anime?page='+state.page+'&limit='+PP;
+  } else if(q){
+    url='https://api.jikan.moe/v4/anime?q='+encodeURIComponent(q)+'&page='+state.page+'&limit='+PP+'&order_by=score&sort=desc';
+  } else if(cat){
+    url='https://api.jikan.moe/v4/anime?genres='+cat+'&page='+state.page+'&limit='+PP+'&order_by=score&sort=desc';
+  } else {
+    url='https://api.jikan.moe/v4/top/anime?page='+state.page+'&limit='+PP;
+  }
+
+  fetch(url).then(function(r){return r.json();}).then(function(data){
+    state.loading=false;
+    var list=data.data||[];
+    var pag=data.pagination||{};
+    state.tot=(pag.items&&pag.items.total)||list.length*10;
+    ib.textContent=(state.tot>0?state.tot.toLocaleString()+' animes':'?')+' | p.'+state.page+' | Jikan v4 (MyAnimeList)';
+    renderJikanCards(list);
+    renderPag();
+  }).catch(function(){
+    state.loading=false;
+    gr.innerHTML='<div class="ld">Erro ao conectar com Jikan API.</div>';
+    ib.textContent='Erro — Jikan API';
+  });
+}
+
+function renderJikanCards(list){
+  if(!list.length){gr.innerHTML='<div class="ld">Nenhum anime encontrado.</div>';return;}
+  var html='';
+  list.forEach(function(a){
+    var titulo=a.title||'?';
+    var tCurto=titulo.length>44?titulo.substring(0,44)+'...':titulo;
+    var score=a.score?'⭐ '+a.score:'Sem nota';
+    var eps=a.episodes?a.episodes+'ep':'?ep';
+    var img=(a.images&&a.images.jpg)?a.images.jpg.large_image_url||a.images.jpg.image_url:'';
+    var trailer=(a.trailer&&a.trailer.youtube_id)?a.trailer.youtube_id:'';
+    var sinopse=a.synopsis?a.synopsis.substring(0,200)+'...':'Sem sinopse disponível.';
+    html+='<div class="cd" data-trailer="'+esc(trailer)+'" data-titulo="'+esc(titulo)+'" data-score="'+esc(score)+'" data-eps="'+esc(eps)+'" data-sinopse="'+esc(sinopse)+'">';
+    html+='<span class="src-tag" style="background:rgba(124,77,255,.85);color:#fff">ANIME</span>';
+    html+='<img src="'+esc(img)+'" loading="lazy" onerror="this.style.background=\'#1a1a2e\'">';
+    html+='<div class="ci"><div class="ct">'+esc(tCurto)+'</div><div class="cm">'+score+'</div><div class="cc">'+esc(eps+(a.status?' · '+a.status:''))+'</div></div></div>';
+  });
+  gr.innerHTML=html;
+  Array.from(gr.querySelectorAll('.cd')).forEach(function(el){
+    el.onclick=function(){
+      var trailerId=el.getAttribute('data-trailer');
+      var titulo=el.getAttribute('data-titulo');
+      var sinopse=el.getAttribute('data-sinopse');
+      var score=el.getAttribute('data-score');
+      var eps=el.getAttribute('data-eps');
+      mt.textContent=titulo;
+      mo.className='mo show';
+      pararVideo();
+      if(trailerId){
+        // Anime: trailer do YouTube via <video> não funciona, usamos iframe do YouTube
+        var mv = vid.parentNode;
+        mv.innerHTML='<iframe src="https://www.youtube.com/embed/'+esc(trailerId)+'?autoplay=1&rel=0" allowfullscreen allow="autoplay" style="position:absolute;inset:0;width:100%;height:100%;border:none"></iframe>';
+        minfo.innerHTML='<strong>'+esc(titulo)+'</strong> | '+esc(score)+' | '+esc(eps)+'<br><span style="color:#888">'+esc(sinopse)+'</span>';
+      } else {
+        // Sem trailer — exibir info
+        mfLoad.classList.add('oculto');
+        mfErr.classList.remove('show');
+        minfo.innerHTML='<strong>'+esc(titulo)+'</strong> | '+esc(score)+' | '+esc(eps)+'<br><span style="color:#888">'+esc(sinopse)+'</span><br><em style="color:#7c4dff">Trailer não disponível para este anime.</em>';
+      }
+    };
+  });
+}
+
+// ── GHIBLI API ──
+function loadGhibli(){
+  var q=state.q.toLowerCase();
+  fetch('https://ghibliapi.vercel.app/films').then(function(r){return r.json();}).then(function(data){
+    state.loading=false;
+    var list=Array.isArray(data)?data:[];
+    if(q) list=list.filter(function(f){return (f.title||'').toLowerCase().includes(q)||(f.description||'').toLowerCase().includes(q);});
+    state.tot=list.length;
+    ib.textContent=state.tot+' filmes | Studio Ghibli API';
+    renderGhibliCards(list);
+    pgd.innerHTML='';
+  }).catch(function(){
+    state.loading=false;
+    gr.innerHTML='<div class="ld">Erro ao conectar com Ghibli API.</div>';
+    ib.textContent='Erro — Ghibli API';
+  });
+}
+
+function renderGhibliCards(list){
+  if(!list.length){gr.innerHTML='<div class="ld">Nenhum filme encontrado.</div>';return;}
+  var html='';
+  list.forEach(function(f){
+    var titulo=f.title||'?';
+    var tCurto=titulo.length>44?titulo.substring(0,44)+'...':titulo;
+    var score=f.rt_score?'🍅 '+f.rt_score+'%':'';
+    var ano=f.release_date||'?';
+    var img=f.image||f.movie_banner||'';
+    var desc=(f.description||'').substring(0,200);
+    html+='<div class="cd" data-titulo="'+esc(titulo)+'" data-ano="'+esc(ano)+'" data-score="'+esc(score)+'" data-dir="'+esc(f.director||'')+'" data-desc="'+esc(desc)+'">';
+    html+='<span class="src-tag" style="background:rgba(0,212,180,.85);color:#000">GHIBLI</span>';
+    html+='<img src="'+esc(img)+'" loading="lazy" onerror="this.style.display=\'none\'" style="object-fit:contain;background:#0d1a18">';
+    html+='<div class="ci"><div class="ct">'+esc(tCurto)+'</div><div class="cm">'+esc(ano)+(score?' · '+score:'')+'</div><div class="cc">'+(f.director?esc('Dir: '+f.director):'')+'</div></div></div>';
+  });
+  gr.innerHTML=html;
+  Array.from(gr.querySelectorAll('.cd')).forEach(function(el){
+    el.onclick=function(){
+      var titulo=el.getAttribute('data-titulo');
+      var ano=el.getAttribute('data-ano');
+      var score=el.getAttribute('data-score');
+      var dir=el.getAttribute('data-dir');
+      var desc=el.getAttribute('data-desc');
+      mt.textContent=titulo;
+      mo.className='mo show';
+      pararVideo();
+      // Ghibli: buscar trailer no YouTube
+      var mv=vid.parentNode;
+      var query=encodeURIComponent(titulo+' '+ano+' official trailer');
+      mv.innerHTML='<iframe src="https://www.youtube.com/embed?listType=search&list='+query+'&autoplay=1" allowfullscreen allow="autoplay" style="position:absolute;inset:0;width:100%;height:100%;border:none"></iframe>';
+      minfo.innerHTML='<strong>'+esc(titulo)+'</strong> ('+esc(ano)+') | '+esc(score)+(dir?' | Dir: '+esc(dir):'')+'<br><span style="color:#888">'+esc(desc)+'</span>';
+    };
+  });
+}
+
+// ── JSONP para Archive.org ──
+function fetchJSONP(url, cb){
+  var name='_cb_'+Date.now()+'_'+Math.floor(Math.random()*99999);
+  var s=document.createElement('script');
+  var t=setTimeout(function(){
+    cleanup(); cb({error:'timeout'});
+  },15000);
+  window[name]=function(data){clearTimeout(t);cleanup();cb(data);};
+  function cleanup(){delete window[name];if(s.parentNode)s.parentNode.removeChild(s);}
+  s.onerror=function(){clearTimeout(t);cleanup();cb({error:'network'});};
+  s.src=url+'&callback='+name;
+  document.head.appendChild(s);
+}
+
+// ── PAGINATION ──
+function renderPag(){
+  var total=Math.ceil(state.tot/PP);
+  if(total<=1){pgd.innerHTML='';return;}
+  var html='';
+  var ini=Math.max(1,state.page-3);
+  var fim=Math.min(total,ini+6);
+  if(fim-ini<6)ini=Math.max(1,fim-6);
+  html+='<span class="pb'+(state.page===1?' disabled':'')+'" data-p="'+(state.page-1)+'"'+(state.page===1?' disabled':'')+'>◀</span>';
+  for(var i=ini;i<=fim;i++) html+='<span class="pb'+(i===state.page?' on':'')+'" data-p="'+i+'">'+i+'</span>';
+  html+='<span class="pb'+(state.page>=total?' disabled':'')+'" data-p="'+(state.page+1)+'"'+(state.page>=total?' disabled':'')+'>▶</span>';
+  pgd.innerHTML=html;
+  Array.from(pgd.querySelectorAll('.pb:not([disabled])')).forEach(function(el){
+    el.onclick=function(){
+      var p=parseInt(el.getAttribute('data-p'));
+      if(isNaN(p)||p<1||p>total)return;
+      state.page=p;
+      load();
+      window.scrollTo({top:0,behavior:'smooth'});
+    };
+  });
+}
+
+// ── FECHAR MODAL ──
+function fecharModal(){
+  pararVideo();
+  mo.className='mo';
+  minfo.innerHTML='';
+  mfErr.classList.remove('show');
+  mfLoad.classList.remove('oculto');
+  mfStatus.textContent='Buscando arquivo...';
+  // Restaura <video> caso tenha sido trocado por <iframe>
+  var mv=vid.parentNode;
+  if(!mv) {
+    var mcEl=document.querySelector('.mv');
+    mcEl.innerHTML=
+      '<video id="mf" controls playsinline preload="auto"></video>'+
+      '<div class="mv-loading" id="mf-loading"><div class="spinner"></div><div class="mv-status" id="mf-status">Buscando arquivo...</div></div>'+
+      '<div class="mv-err" id="mf-err"><p>⚠ Não foi possível reproduzir este filme</p><button id="mf-iframe-btn">Tentar via incorporado</button></div>';
+    // Re-bind referências
+    vid     = document.getElementById('mf');
+    mfLoad  = document.getElementById('mf-loading');
+    mfStatus= document.getElementById('mf-status');
+    mfErr   = document.getElementById('mf-err');
+  }
+}
+
+document.getElementById('mx').onclick = fecharModal;
+mo.onclick = function(e){ if(e.target===mo) fecharModal(); };
+
+// ── SEARCH ──
+document.getElementById('btnBuscar').onclick=function(){
+  state.q=si.value.trim(); state.page=1; load();
+};
+si.onkeydown=function(e){
+  if(e.key==='Enter'){ state.q=si.value.trim(); state.page=1; load(); }
+};
+
+// ── GUIDE ──
+window.openGuide  = function(){ document.getElementById('gm').className='gm show'; };
+window.closeGuide = function(){ document.getElementById('gm').className='gm'; };
+
+// ── UTILS ──
+function esc(s){
+  if(!s)return'';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── INIT ──
+renderCats();
+load();
+
 })();
 </script>
 </body>

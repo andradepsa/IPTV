@@ -40,6 +40,10 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
 .ft{text-align:center;padding:8px;font-size:11px;color:#555;background:#000;border-top:1px solid #222}
 .aviso{background:#330000;color:#ff9999;padding:8px;text-align:center;font-size:12px;border-bottom:1px solid #e50914}
 .warning18{background:#2a0000;color:#ff8888;font-size:11px;padding:4px 8px;border-radius:12px;margin-left:6px}
+.stb-wrap{display:none;padding:6px;text-align:center;background:#0d0d0d;border-bottom:1px solid #2a0000}
+.stb-wrap.show{display:block}
+.stb{display:inline-block;background:#1a0000;border:1px solid #550000;color:#cc8888;padding:5px 16px;margin:2px;cursor:pointer;font-size:12px;border-radius:3px;font-weight:bold}
+.stb:hover,.stb.on{background:#e50914;border-color:#e50914;color:#fff}
 </style>
 </head>
 <body>
@@ -69,6 +73,9 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
 <span class="cb" data-c="erotica">🔞 EROTICA</span>
 </div>
 <div class="ib" id="ib">Carregando...</div>
+<div id="stb-wrap" class="stb-wrap">
+<span style="color:#e50914;font-size:12px">🔞 MODO ADULTO ATIVO — EPORNER &nbsp;|&nbsp; Digite <b>18</b> para desativar</span>
+</div>
 <div class="gr" id="gr"><div class="ld">Conectando ao Archive...</div></div>
 <div class="pg" id="pg"></div>
 <div class="mo" id="mo">
@@ -263,13 +270,13 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
                 if(cat === "adult" || cat === "erotica"){
                     for(var j=0;j<catsSpans.length;j++) catsSpans[j].className = "cb";
                     el.className = "cb on";
-                    gr.innerHTML = '<div class="ld">🔞 Conteúdo adulto requer login no Archive.org.'
-                        + '<br><br><a href="https://archive.org/account/login" target="_blank"'
-                        + ' style="color:#e50914;font-size:15px">➜ Fazer login no Archive.org</a>'
-                        + '<br><small style="color:#555;margin-top:8px;display:block">'
-                        + 'Após login, recarregue esta página e tente novamente.</small></div>';
-                    pgd.innerHTML = "";
-                    ib.textContent = "Login necessário";
+                    cc = cat;
+                    qr = "";
+                    pg = 1;
+                    si.value = "";
+                    adultMode = false;
+                    stbWrap.className = "stb-wrap";
+                    carregar();
                     return;
                 }
                 for(var j=0;j<catsSpans.length;j++) catsSpans[j].className = "cb";
@@ -278,6 +285,8 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
                 qr = "";
                 pg = 1;
                 si.value = "";
+                adultMode = false;
+                stbWrap.className = "stb-wrap";
                 carregar();
             };
         })(catsSpans[i]);
@@ -286,12 +295,42 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
     document.getElementById("bt").onclick = function(){
         var v = si.value.trim();
         if(!v) return;
-        qr = v;
-        cc = "";
-        pg = 1;
-        for(var j=0;j<catsSpans.length;j++) catsSpans[j].className = "cb";
-        catsSpans[0].className = "cb on";
-        carregar();
+        if(v === "18"){
+            if(adultMode){
+                // desativar
+                adultMode = false;
+                stbWrap.className = "stb-wrap";
+                si.value = "";
+                qr = "";
+                pg = 1;
+                for(var j=0;j<catsSpans.length;j++) catsSpans[j].className = "cb";
+                catsSpans[0].className = "cb on";
+                carregar();
+            } else {
+                // ativar
+                adultMode = true;
+                si.value = "";
+                qr = "";
+                pg = 1;
+                for(var j=0;j<catsSpans.length;j++) catsSpans[j].className = "cb";
+                carregarAdult();
+            }
+            return;
+        }
+        if(adultMode){
+            qr = v;
+            pg = 1;
+            carregarAdult();
+        } else {
+            qr = v;
+            cc = "";
+            pg = 1;
+            for(var j=0;j<catsSpans.length;j++) catsSpans[j].className = "cb";
+            catsSpans[0].className = "cb on";
+            adultMode = false;
+            stbWrap.className = "stb-wrap";
+            carregar();
+        }
     };
     
     si.onkeydown = function(e){
@@ -319,6 +358,9 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
         return q;
     }
     
+
+    
+    // ---------- ARCHIVE.ORG ----------
     function carregar(){
         gr.innerHTML = '<div class="ld"><span style="display:inline-block;animation:spin 1s linear infinite;">🌀</span> Buscando filmes no Archive.org...</div>';
         if(!document.querySelector('style[data-spin]')) {
@@ -330,10 +372,9 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
         var query = buildQuery();
         var url = "https://archive.org/advancedsearch.php?q=" + query + "&fl[]=identifier,title,creator,year,downloads&rows=" + pp + "&page=" + pg + "&output=json&sort[]=downloads desc";
         ib.textContent = "Carregando...";
-        
         performSearch(url, function(data) {
             if(!data || data.error) {
-                gr.innerHTML = '<div class="ld">⚠️ Erro de conexão. Tente novamente ou use VPN/proxy. <br><button onclick="location.reload()" style="background:#e50914;border:none;padding:6px 12px;margin-top:10px;color:#fff;border-radius:4px">Recarregar página</button></div>';
+                gr.innerHTML = '<div class="ld">⚠️ Erro de conexão. Tente novamente. <br><button onclick="location.reload()" style="background:#e50914;border:none;padding:6px 12px;margin-top:10px;color:#fff;border-radius:4px">Recarregar</button></div>';
                 ib.textContent = "Falha na busca";
                 return;
             }
@@ -341,7 +382,7 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
             tot = data.response && data.response.numFound ? data.response.numFound : 0;
             ib.textContent = tot + " filmes | Página " + pg;
             if(!docs.length){
-                gr.innerHTML = '<div class="ld">Nenhum filme encontrado. Tente outra categoria ou busca.</div>';
+                gr.innerHTML = '<div class="ld">Nenhum filme encontrado.</div>';
                 pgd.innerHTML = "";
                 return;
             }
@@ -349,7 +390,160 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
             paginacao();
         });
     }
-    
+
+    // ---------- ADULT APIs ----------
+    var adultMode = false;
+    var stbWrap = document.getElementById("stb-wrap");
+
+    function carregarAdult(){
+        adultMode = true;
+        stbWrap.className = "stb-wrap show";
+        gr.innerHTML = '<div class="ld"><span style="display:inline-block;animation:spin 1s linear infinite;">🌀</span> Buscando no EPORNER...</div>';
+        ib.textContent = "Carregando...";
+        pgd.innerHTML = "";
+        fetchEporner();
+    }
+
+    function xhrFetch(url, cb){
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", url, true);
+        xhr.timeout = 15000;
+        xhr.onreadystatechange = function(){
+            if(xhr.readyState === 4){
+                if(xhr.status === 200){
+                    try { cb(null, JSON.parse(xhr.responseText)); }
+                    catch(e){ cb("parse error"); }
+                } else {
+                    cb("HTTP " + xhr.status);
+                }
+            }
+        };
+        xhr.onerror = function(){ cb("network error"); };
+        xhr.ontimeout = function(){ cb("timeout"); };
+        xhr.send();
+    }
+
+    function xhrFetchProxy(url, cb){
+        xhrFetch("https://corsproxy.io/?" + encodeURIComponent(url), function(err, data){
+            if(err) xhrFetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(url), cb);
+            else cb(null, data);
+        });
+    }
+
+    function fetchEporner(){
+        var q = qr ? encodeURIComponent(qr) : "";
+        var url = "https://www.eporner.com/api/v2/video/search/?query=" + q + "&per_page=" + pp + "&page=" + pg + "&format=json&thumbsize=big&order=top-rated";
+        xhrFetch(url, function(err, data){
+            if(err){
+                xhrFetchProxy(url, function(err2, data2){
+                    if(err2) showAdultError("Eporner");
+                    else renderAdult(normalizeEporner(data2));
+                });
+            } else {
+                renderAdult(normalizeEporner(data));
+            }
+        });
+    }
+
+    function normalizeEporner(data){
+        if(!data || !data.videos) return {total:0, items:[]};
+        var items = [];
+        for(var i=0;i<data.videos.length;i++){
+            var v = data.videos[i];
+            var thumb = "";
+            if(v.thumbs && v.thumbs.length) thumb = v.thumbs[v.thumbs.length-1].src;
+            items.push({
+                identifier: v.id,
+                title: v.title || "Sem título",
+                creator: v.keywords || "",
+                year: "",
+                downloads: v.views || 0,
+                thumb: thumb,
+                embedUrl: v.embed || ("https://www.eporner.com/embed/" + v.id + "/")
+            });
+        }
+        return {total: data.count || items.length, items: items};
+    }
+
+    function renderAdult(result){
+        if(!result.items.length){
+            gr.innerHTML = '<div class="ld">Nenhum resultado encontrado.</div>';
+            ib.textContent = "0 filmes";
+            pgd.innerHTML = "";
+            return;
+        }
+        ib.textContent = result.total.toLocaleString() + " filmes | Página " + pg;
+        renderizarAdult(result.items);
+        paginacaoAdult(result.total);
+    }
+
+    function showAdultError(src){
+        gr.innerHTML = '<div class="ld">⚠️ Erro ao conectar em ' + src + '. Tente outra fonte ou verifique sua conexão.</div>';
+        ib.textContent = "Erro";
+        pgd.innerHTML = "";
+    }
+
+    function renderizarAdult(items){
+        var html = "";
+        for(var i=0;i<items.length;i++){
+            var d = items[i];
+            var titulo = d.title || "Sem título";
+            var tituloCurto = titulo.length > 42 ? titulo.substring(0,42)+"..." : titulo;
+            var tags = d.creator || "";
+            if(tags.length > 35) tags = tags.substring(0,35)+"...";
+            var views = typeof d.downloads === "number" ? d.downloads.toLocaleString() : String(d.downloads||0);
+            var thumb = d.thumb || "";
+            html += '<div class="cd" data-embed="'+escapeHtml(d.embedUrl)+'" data-titulo="'+escapeHtml(titulo)+'">' +
+                    '<img src="'+escapeHtml(thumb)+'" alt="capa" loading="lazy" onerror="this.src=\'https://archive.org/download/noimage.png\';this.style.objectFit=\'contain\'">' +
+                    '<div class="ci">' +
+                        '<div class="ct">'+escapeHtml(tituloCurto)+'</div>' +
+                        '<div class="cm">'+views+' views</div>' +
+                        '<div class="cc">'+escapeHtml(tags)+'</div>' +
+                    '</div></div>';
+        }
+        gr.innerHTML = html;
+        var cards = gr.getElementsByClassName("cd");
+        for(var i=0;i<cards.length;i++){
+            cards[i].onclick = (function(el){
+                return function(){
+                    var embedUrl = el.getAttribute("data-embed");
+                    var filmTitle = el.getAttribute("data-titulo") || "Filme";
+                    if(!embedUrl){ return; }
+                    mt.textContent = filmTitle;
+                    mf.src = embedUrl + (embedUrl.indexOf("?")>=0?"&":"?") + "autoplay=1";
+                    mo.className = "mo show";
+                };
+            })(cards[i]);
+        }
+    }
+
+    function paginacaoAdult(total){
+        var totalPaginas = Math.ceil(total / pp);
+        if(totalPaginas <= 1){ pgd.innerHTML = ""; return; }
+        var html = "";
+        var inicio = Math.max(1, pg - 3);
+        var fim = Math.min(totalPaginas, inicio + 6);
+        if(fim - inicio < 6) inicio = Math.max(1, fim - 6);
+        html += '<span class="pb" data-page="'+(pg-1)+'" '+(pg===1?'disabled style="opacity:0.4;pointer-events:none"':'')+'>◀ Anterior</span>';
+        for(var i=inicio; i<=fim; i++){
+            html += '<span class="pb'+(i===pg?" on":"")+'" data-page="'+i+'">'+i+'</span>';
+        }
+        html += '<span class="pb" data-page="'+(pg+1)+'" '+(pg===totalPaginas?'disabled style="opacity:0.4;pointer-events:none"':'')+'>Próxima ▶</span>';
+        pgd.innerHTML = html;
+        var botoes = pgd.getElementsByClassName("pb");
+        for(var j=0;j<botoes.length;j++){
+            botoes[j].onclick = (function(el){
+                return function(){
+                    var novaPag = parseInt(el.getAttribute("data-page"), 10);
+                    if(isNaN(novaPag)) return;
+                    pg = novaPag;
+                    carregarAdult();
+                    window.scrollTo({top:0, behavior:"smooth"});
+                };
+            })(botoes[j]);
+        }
+    }
+
     function escapeHtml(str){
         if(!str) return "";
         return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");

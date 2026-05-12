@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>K60 — TV & Rádio (Navegação por Controle)</title>
+<title>K60 — TV & Rádio (Cursor com Passo Ajustado)</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
 
@@ -11,7 +11,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  user-select: none; /* evita seleção acidental na TV */
+  user-select: none; /* evita seleção na TV */
 }
 
 :root {
@@ -20,7 +20,6 @@
   --red:   #ff3355;
   --bg:    #050505;
   --card:  #0a0a0a;
-  --line:  #1a1a1a;
 }
 
 html, body {
@@ -29,16 +28,10 @@ html, body {
   color: #fff;
   font-family: 'Share Tech Mono', monospace;
   overflow: hidden;
+  cursor: none; /* esconde o cursor padrão da TV */
 }
 
-/* Remove o cursor padrão em TVs (opcional, mas evita o "mouse travado") */
-body {
-  cursor: none;
-}
-
-/* Para debug em PC, pode remover a linha acima. Em TV, fica melhor sem cursor. */
-
-/* Scanlines e ruído (mantido, sem interferência) */
+/* Scanlines e ruído (mantido) */
 body::before {
   content: '';
   position: fixed; inset: 0;
@@ -55,6 +48,7 @@ body::after {
   opacity: .35;
 }
 
+/* Layout principal */
 .stage {
   position: relative;
   height: 100vh;
@@ -76,8 +70,7 @@ body::after {
   font-weight: 900;
   color: var(--green);
   letter-spacing: 8px;
-  line-height: 1;
-  text-shadow: 0 0 30px rgba(0,255,136,.5), 0 0 80px rgba(0,255,136,.2);
+  text-shadow: 0 0 30px rgba(0,255,136,.5);
   position: relative;
 }
 .brand-k60::after {
@@ -89,21 +82,20 @@ body::after {
   font-size: 11px;
   letter-spacing: 10px;
   color: #333;
-  font-weight: 400;
-  white-space: nowrap;
 }
 .brand-tagline {
   margin-top: 28px;
   font-size: 12px;
   letter-spacing: 4px;
   color: #444;
-  text-transform: uppercase;
 }
 
 .cards {
   display: flex;
   gap: 28px;
   align-items: stretch;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .card {
@@ -111,118 +103,36 @@ body::after {
   width: clamp(200px, 38vw, 300px);
   padding: 36px 28px 32px;
   background: var(--card);
-  border: 2px solid #1e1e1e; /* borda mais grossa para foco */
+  border: 2px solid #1e1e1e;
   border-radius: 4px;
   text-decoration: none;
   color: #fff;
-  overflow: hidden;
-  transition: transform 0.15s ease, border-color 0.1s ease;
+  transition: transform 0.1s ease, border-color 0.1s;
   cursor: pointer;
-  
-  /* Fundamental para navegação por controle */
-  outline: none !important;
-  box-shadow: 0 0 0 0 rgba(0, 255, 136, 0);
+  text-align: center;
 }
-
-/* ESTILO DE FOCO VISÍVEL NA TV - o que resolve o problema */
-.card:focus-visible {
-  border-color: var(--accent);
+.card:hover, .card.hover-cursor {
   transform: scale(1.02);
-  box-shadow: 0 0 0 3px rgba(0,0,0,0.7), 0 0 0 6px var(--accent);
-  transition: all 0.08s linear;
+  border-color: var(--accent);
+  box-shadow: 0 0 15px rgba(0,0,0,0.5);
 }
 
-/* Opcional: efeito de pressionar (ao clicar/OK) */
-.card:active {
-  transform: scale(0.98);
-}
+/* Cores individuais */
+.card-tv    { --accent: #ffaa00; }
+.card-radio { --accent: #00ff88; }
+.card-filmes{ --accent: #ff44cc; }
 
-/* Cantos decorativos */
-.card::before, .card::after {
-  content: '';
-  position: absolute;
-  width: 12px; height: 12px;
-}
-.card::before { top: 8px; left: 8px; border-top: 2px solid var(--accent); border-left: 2px solid var(--accent); }
-.card::after { bottom: 8px; right: 8px; border-bottom: 2px solid var(--accent); border-right: 2px solid var(--accent); }
-
-.card-glow {
-  position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 50% 0%, var(--accent-dim) 0%, transparent 70%);
-  opacity: 0;
-  transition: opacity .4s;
-  pointer-events: none;
-}
-.card:focus-visible .card-glow, .card:hover .card-glow { opacity: 1; }
-
-.card-line {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  opacity: 0;
-  transition: opacity .3s;
-}
-.card:focus-visible .card-line, .card:hover .card-line { opacity: 1; }
-
-/* Cores dos cards */
-.card-tv {
-  --accent: var(--amber);
-  --accent-dim: rgba(255,170,0,.12);
-}
-.card-radio {
-  --accent: var(--green);
-  --accent-dim: rgba(0,255,136,.12);
-}
-/* Filmes usa mesma cor do rádio, mas pode trocar depois */
-.card-filmes {
-  --accent: #ff44cc;
-  --accent-dim: rgba(255,68,204,.12);
-}
-
-.card-icon {
-  font-size: 52px;
-  margin-bottom: 20px;
-  display: block;
-  filter: drop-shadow(0 0 10px var(--accent));
-}
-.card-title {
-  font-family: 'Orbitron', monospace;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: 3px;
-  color: var(--accent);
-  margin-bottom: 10px;
-}
-.card-desc {
-  font-size: 11px;
-  color: #aaa;
-  line-height: 1.8;
-  letter-spacing: 1px;
-}
-.card-cta {
-  margin-top: 24px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  letter-spacing: 3px;
-  color: var(--accent);
-  opacity: .7;
-  transition: opacity .2s, gap .2s;
-}
-.card:focus-visible .card-cta, .card:hover .card-cta {
-  opacity: 1;
-  gap: 12px;
-}
+.card-icon { font-size: 52px; margin-bottom: 20px; filter: drop-shadow(0 0 8px var(--accent)); }
+.card-title { font-family: 'Orbitron'; font-size: 22px; font-weight: 700; letter-spacing: 3px; color: var(--accent); margin-bottom: 10px; }
+.card-desc { font-size: 11px; color: #aaa; line-height: 1.6; }
+.card-cta { margin-top: 24px; font-size: 11px; letter-spacing: 3px; color: var(--accent); opacity: .7; }
+.card:hover .card-cta, .card.hover-cursor .card-cta { opacity: 1; }
 
 .card-badge {
   position: absolute;
   top: 14px; right: 14px;
   font-size: 9px;
-  letter-spacing: 2px;
   color: var(--accent);
-  opacity: .5;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -231,7 +141,7 @@ body::after {
   width: 5px; height: 5px;
   border-radius: 50%;
   background: var(--accent);
-  animation: blink 1.6s ease-in-out infinite;
+  animation: blink 1.6s infinite;
 }
 
 .hbar {
@@ -240,14 +150,12 @@ body::after {
   background: linear-gradient(90deg, transparent, #1e1e1e, transparent);
   margin: 24px 0;
 }
-
 .footer {
   position: absolute;
   bottom: 20px;
   font-size: 9px;
   letter-spacing: 3px;
   color: #222;
-  text-transform: uppercase;
 }
 
 @keyframes blink {
@@ -255,53 +163,68 @@ body::after {
   50% { opacity: 1; }
 }
 
+/* CUSTOM CURSOR (círculo neon) */
+#custom-cursor {
+  position: fixed;
+  width: 32px;
+  height: 32px;
+  border: 2px solid #00ffcc;
+  border-radius: 50%;
+  background: rgba(0, 255, 204, 0.2);
+  pointer-events: none;
+  z-index: 10000;
+  transform: translate(-50%, -50%);
+  transition: all 0.05s linear;
+  box-shadow: 0 0 10px #00ffcc, inset 0 0 5px #00ffcc;
+}
+
+/* Indicador de passo e instrução */
+.info-bar {
+  position: fixed;
+  bottom: 60px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 11px;
+  color: #00ffcc;
+  background: rgba(0,0,0,0.7);
+  padding: 4px;
+  font-family: monospace;
+  z-index: 10001;
+}
+
 @media (max-width: 540px) {
-  html, body { overflow-y: auto; }
-  .cards { flex-direction: column; gap: 16px; align-items: center; }
-  .card { width: 100%; max-width: 340px; }
-  .brand-k60::after { font-size: 9px; letter-spacing: 7px; }
-  .brand { margin-bottom: 32px; }
-  body { cursor: auto; } /* Em mobile comum, cursor normal */
+  .cards { flex-direction: column; align-items: center; }
+  .card { width: 90%; }
+  #custom-cursor { width: 26px; height: 26px; }
 }
 </style>
 </head>
 <body>
-<div class="stage">
 
+<div class="stage">
   <header class="brand">
     <div class="brand-k60">K60</div>
     <div class="brand-tagline">Selecione um serviço para continuar</div>
   </header>
-
   <div class="hbar"></div>
 
   <div class="cards">
-    <!-- TV -->
-    <a href="tv.html" class="card card-tv" data-nav="tv">
-      <div class="card-glow"></div>
-      <div class="card-line"></div>
+    <a href="tv.html" class="card card-tv" data-url="tv.html">
       <div class="card-badge"><div class="badge-dot"></div>AO VIVO</div>
       <span class="card-icon">📺</span>
       <div class="card-title">TV</div>
       <div class="card-desc">Canais ao vivo<br>do mundo todo</div>
       <div class="card-cta">ACESSAR →</div>
     </a>
-
-    <!-- RÁDIO -->
-    <a href="radio.html" class="card card-radio" data-nav="radio">
-      <div class="card-glow"></div>
-      <div class="card-line"></div>
+    <a href="radio.html" class="card card-radio" data-url="radio.html">
       <div class="card-badge"><div class="badge-dot"></div>AO VIVO</div>
       <span class="card-icon">📻</span>
       <div class="card-title">RÁDIO</div>
       <div class="card-desc">Estações de rádio<br>em todos os idiomas</div>
       <div class="card-cta">ACESSAR →</div>
     </a>
-
-    <!-- FILMES (adicionei estilo próprio) -->
-    <a href="filmes.html" class="card card-filmes" data-nav="filmes">
-      <div class="card-glow"></div>
-      <div class="card-line"></div>
+    <a href="filmes.html" class="card card-filmes" data-url="filmes.html">
       <div class="card-badge"><div class="badge-dot"></div>LANÇAMENTOS</div>
       <span class="card-icon">🎬</span>
       <div class="card-title">FILMES</div>
@@ -309,86 +232,107 @@ body::after {
       <div class="card-cta">ACESSAR →</div>
     </a>
   </div>
-
   <div class="hbar"></div>
-  <footer class="footer">K60 Broadcast &nbsp;·&nbsp; Controle remoto ativo &nbsp;·&nbsp; Navegue com as setas</footer>
+  <footer class="footer">K60 Broadcast · Controle remoto: SETAS movem o cursor · OK/Enter clica</footer>
 </div>
 
+<div id="custom-cursor"></div>
+<div class="info-bar" id="info-bar">⬅️  ➡️  ⬆️  ⬇️  |  OK = Selecionar</div>
+
 <script>
-  // Script que melhora ainda mais a navegação por controle remoto
-  // Garante que os cards sejam focáveis imediatamente e que as setas não rolem a página
   (function() {
-    const cards = document.querySelectorAll('.card');
-    if (cards.length === 0) return;
-
-    // Adiciona tabindex para garantir foco programático
-    cards.forEach(card => {
-      if (!card.hasAttribute('tabindex')) {
-        card.setAttribute('tabindex', '0');
+    // ---------- CONFIGURAÇÃO DO PASSO DINÂMICO (CÁLCULO PARA TV) ----------
+    const LARGURA_TELA = window.innerWidth;
+    const PASSOS_PARA_ATRAVESSAR = 18;   // número ideal de cliques para ir de um lado ao outro
+    const PASSO_X = Math.floor(LARGURA_TELA / PASSOS_PARA_ATRAVESSAR);
+    const PASSO_Y = Math.floor(window.innerHeight / PASSOS_PARA_ATRAVESSAR);
+    
+    // Limites mínimos e máximos para não ficar muito lento nem rápido demais
+    const PASSO_FINAL_X = Math.min(150, Math.max(40, PASSO_X));
+    const PASSO_FINAL_Y = Math.min(120, Math.max(30, PASSO_Y));
+    
+    // Exibe na tela a informação do passo (para debug)
+    const infoBar = document.getElementById('info-bar');
+    infoBar.innerHTML = `📺 Passo do cursor: ${PASSO_FINAL_X}px horizontal / ${PASSO_FINAL_Y}px vertical  |  SETAS movem · OK clica`;
+    
+    // Posição inicial do cursor (centro da tela)
+    let cursorX = window.innerWidth / 2;
+    let cursorY = window.innerHeight / 2;
+    const cursorDiv = document.getElementById('custom-cursor');
+    
+    function atualizarCursor() {
+      cursorDiv.style.left = cursorX + 'px';
+      cursorDiv.style.top = cursorY + 'px';
+      
+      // Detectar qual elemento está sob o cursor (usando elementFromPoint)
+      const elemSobCursor = document.elementFromPoint(cursorX, cursorY);
+      // Remove a classe 'hover-cursor' de todos os cards
+      document.querySelectorAll('.card').forEach(card => card.classList.remove('hover-cursor'));
+      
+      // Se o elemento sob o cursor for um card ou estiver dentro de um card, aplica destaque
+      let targetCard = elemSobCursor?.closest('.card');
+      if (targetCard) {
+        targetCard.classList.add('hover-cursor');
       }
-    });
-
-    // Remove scroll das setas (evita que a página role ao navegar)
+    }
+    
+    // Movimento com as setas do controle remoto
     window.addEventListener('keydown', function(e) {
       const key = e.key;
-      if (key === 'ArrowUp' || key === 'ArrowDown' || key === 'ArrowLeft' || key === 'ArrowRight') {
-        e.preventDefault();
-        
-        const current = document.activeElement;
-        if (!current || !current.classList || !current.classList.contains('card')) {
-          // se nada estiver focado, foca no primeiro card
-          cards[0]?.focus();
+      let moved = false;
+      
+      switch(key) {
+        case 'ArrowRight':
+          cursorX = Math.min(window.innerWidth - 20, cursorX + PASSO_FINAL_X);
+          moved = true;
+          break;
+        case 'ArrowLeft':
+          cursorX = Math.max(20, cursorX - PASSO_FINAL_X);
+          moved = true;
+          break;
+        case 'ArrowDown':
+          cursorY = Math.min(window.innerHeight - 20, cursorY + PASSO_FINAL_Y);
+          moved = true;
+          break;
+        case 'ArrowUp':
+          cursorY = Math.max(20, cursorY - PASSO_FINAL_Y);
+          moved = true;
+          break;
+        case 'Enter':
+        case ' ':
+          e.preventDefault();
+          // Simula clique no elemento sob o cursor
+          const elem = document.elementFromPoint(cursorX, cursorY);
+          const card = elem?.closest('.card');
+          if (card && card.href) {
+            window.location.href = card.href;
+          }
           return;
-        }
-        
-        // Lógica simples de grid horizontal (para 3 cards lado a lado)
-        const index = Array.from(cards).indexOf(current);
-        if (index === -1) return;
-        
-        let nextIndex = index;
-        if (key === 'ArrowRight') {
-          nextIndex = (index + 1) % cards.length;
-        } else if (key === 'ArrowLeft') {
-          nextIndex = (index - 1 + cards.length) % cards.length;
-        } else if (key === 'ArrowUp' || key === 'ArrowDown') {
-          // Em layout horizontal, cima/baixo não muda de card (mas evita rolagem)
-          // Se quiser navegação vertical, descomente abaixo:
-          // if (key === 'ArrowDown') nextIndex = (index + 1) % cards.length;
-          // if (key === 'ArrowUp') nextIndex = (index - 1 + cards.length) % cards.length;
+        default:
           return;
-        }
-        
-        cards[nextIndex]?.focus();
       }
       
-      // Tecla Enter ou Espaço ativa o link (já funciona por padrão em <a>, mas garantimos)
-      if (e.key === 'Enter' || e.key === ' ') {
-        const focused = document.activeElement;
-        if (focused && focused.classList && focused.classList.contains('card')) {
-          e.preventDefault();
-          focused.click();  // dispara o clique no link
-        }
+      if (moved) {
+        e.preventDefault();
+        atualizarCursor();
       }
     });
     
-    // Opcional: focar o primeiro card automaticamente ao carregar a página
-    // Isso elimina a necessidade de clicar antes de usar as setas
-    setTimeout(() => {
-      cards[0]?.focus();
-    }, 100);
-    
-    // Melhora visual: ao focar, garante que o elemento esteja visível (scroll se necessário)
-    cards.forEach(card => {
-      card.addEventListener('focus', function(e) {
-        this.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      });
+    // Garantir que o cursor não saia da tela ao redimensionar
+    window.addEventListener('resize', function() {
+      cursorX = Math.min(window.innerWidth - 20, Math.max(20, cursorX));
+      cursorY = Math.min(window.innerHeight - 20, Math.max(20, cursorY));
+      atualizarCursor();
     });
     
-    // Previne o comportamento de arrastar cursor em TVs touchpad
-    document.body.addEventListener('touchmove', function(e) {
-      // se quiser desabilitar o scroll por toque (melhora navegação), descomente:
-      // e.preventDefault();
-    }, { passive: false });
+    // Inicializar cursor
+    atualizarCursor();
+    
+    // Pequeno efeito de pulsação ao mover (opcional)
+    setInterval(() => {
+      cursorDiv.style.transform = 'translate(-50%, -50%) scale(1)';
+      setTimeout(() => { cursorDiv.style.transform = 'translate(-50%, -50%) scale(1.02)'; }, 80);
+    }, 500);
   })();
 </script>
 </body>

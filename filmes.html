@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CineStream — Multi API (Animes + Séries Corrigido)</title>
+<title>CineStream — Archive.org · Filmes, Cartoons & Docs</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
 <style>
@@ -15,7 +15,6 @@
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;font-size:14px;min-height:100vh}
-
 .hd{background:linear-gradient(180deg,#000 0%,rgba(0,0,0,.7)100%);padding:0 16px;border-bottom:2px solid var(--red);position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:12px;height:52px}
 .logo{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--red);letter-spacing:1px;white-space:nowrap;flex-shrink:0}
 .logo span{color:var(--teal);font-size:14px;vertical-align:super;font-family:'Nunito',sans-serif;font-weight:700}
@@ -28,19 +27,16 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;font
 .hd-right{display:flex;gap:8px;flex-shrink:0}
 .btn-guide{padding:5px 12px;border:1px solid var(--teal);background:transparent;color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;border-radius:4px;font-family:'Nunito',sans-serif;white-space:nowrap}
 .btn-guide:hover{background:var(--teal);color:#000}
-
 .sb{padding:10px 16px;background:var(--bg2);display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)}
-.sb input{flex:1;max-width:520px;padding:8px 12px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;border-radius:6px;font-family:'Nunito',sans-serif;outline:none;transition:border-color .2s}
+.sb input{flex:1;max-width:520px;padding:8px 12px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;border-radius:6px;font-family:'Nunito',sans-serif;outline:none}
 .sb input:focus{border-color:var(--red)}
-.sb button{padding:8px 18px;border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px;font-family:'Nunito',sans-serif;transition:background .2s}
+.sb button{padding:8px 18px;border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px;font-family:'Nunito',sans-serif}
 .sb button:hover{background:var(--red2)}
 .src-badge{padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700;flex-shrink:0}
-
 .cats{padding:8px 12px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;gap:4px;flex-wrap:wrap}
-.cb{display:inline-block;background:var(--bg4);border:1px solid var(--border);color:var(--muted);padding:4px 12px;cursor:pointer;font-size:12px;font-weight:700;border-radius:20px;transition:all .2s;white-space:nowrap;font-family:'Nunito',sans-serif}
+.cb{display:inline-block;background:var(--bg4);border:1px solid var(--border);color:var(--muted);padding:4px 12px;cursor:pointer;font-size:12px;font-weight:700;border-radius:20px;transition:all .2s}
 .cb:hover{border-color:var(--red);color:var(--text)}
 .cb.on{background:var(--red);border-color:var(--red);color:#fff}
-
 .ib{text-align:center;padding:6px;font-size:12px;color:var(--muted);background:var(--bg);border-bottom:1px solid var(--border)}
 .gr{padding:14px 12px;max-width:1400px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
 .cd{background:var(--bg3);border:1px solid var(--border);cursor:pointer;border-radius:8px;overflow:hidden;transition:transform .18s,border-color .18s,box-shadow .18s;position:relative}
@@ -55,50 +51,39 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;font
 .ld .spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--red);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .pg{text-align:center;padding:16px;border-top:1px solid var(--border)}
-.pb{display:inline-block;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:6px 14px;margin:2px;cursor:pointer;font-size:13px;font-weight:700;border-radius:5px;transition:all .2s}
+.pb{display:inline-block;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:6px 14px;margin:2px;cursor:pointer;font-size:13px;font-weight:700;border-radius:5px}
 .pb:hover,.pb.on{background:var(--red);border-color:var(--red);color:#fff}
 .pb[disabled]{opacity:.3;pointer-events:none}
-
 .mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.97);z-index:100;backdrop-filter:blur(8px)}
 .mo.show{display:flex;align-items:flex-start;justify-content:center;padding:20px 12px;overflow-y:auto}
 .mc{width:100%;max-width:1060px;background:#000;border-radius:10px;border:1px solid var(--border);overflow:hidden;margin-bottom:20px}
 .mh{padding:12px 16px;background:var(--bg2);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
 .mh h3{font-size:15px;font-weight:700;flex:1;padding-right:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mx{cursor:pointer;font-size:30px;color:var(--muted);line-height:1;padding:0 6px;transition:color .2s;flex-shrink:0}
+.mx{cursor:pointer;font-size:30px;color:var(--muted);line-height:1;padding:0 6px}
 .mx:hover{color:#fff}
-
 .mv{position:relative;width:100%;padding-bottom:56.25%;background:#000}
 .mv video{position:absolute;inset:0;width:100%;height:100%;background:#000}
 .mv-ov{position:absolute;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:5;transition:opacity .4s}
 .mv-ov.gone{opacity:0;pointer-events:none}
 .mv-ov .sp{width:42px;height:42px;border:3px solid #222;border-top-color:var(--red);border-radius:50%;animation:spin .8s linear infinite}
-.mv-ov .mv-msg{font-size:13px;color:var(--muted);text-align:center;padding:0 20px;max-width:340px;line-height:1.5}
+.mv-ov .mv-msg{font-size:13px;color:var(--muted);text-align:center;padding:0 20px;max-width:340px}
 .mv-err{position:absolute;inset:0;background:#0a0006;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:6}
 .mv-err.show{display:flex}
 .mv-err p{color:#ff6666;font-size:15px;font-weight:700;text-align:center}
 .mv-err small{color:var(--muted);font-size:12px;text-align:center;padding:0 20px}
 .mv-err .retry-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
-.mv-err button{padding:9px 22px;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif}
+.mv-err button{padding:9px 22px;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer}
 .btn-embed{background:var(--red);color:#fff}
 .btn-direct{background:var(--bg4);color:var(--teal);border:1px solid var(--teal) !important}
 .mv-vol{position:absolute;bottom:10px;right:12px;display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.7);border:1px solid #333;border-radius:20px;padding:5px 12px;z-index:7;opacity:0;transition:opacity .3s}
 .mv-vol.vis{opacity:1}
-.mv-vol button{background:none;border:none;color:#00aaff;font-size:18px;cursor:pointer;width:24px;height:24px;display:flex;align-items:center;justify-content:center;padding:0}
-.mv-vol input[type=range]{width:90px;height:4px;-webkit-appearance:none;appearance:none;background:#333;border-radius:2px;outline:none;cursor:pointer}
+.mv-vol button{background:none;border:none;color:#00aaff;font-size:18px;cursor:pointer;width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.mv-vol input[type=range]{width:90px;height:4px;-webkit-appearance:none;background:#333;border-radius:2px;outline:none}
 .mv-vol input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#00aaff;cursor:pointer}
 .mv-vol .vl{font-size:11px;color:#00aaff;font-family:monospace;min-width:32px;text-align:right}
 .minfo{padding:14px 16px;background:var(--bg2);border-top:1px solid var(--border);font-size:12px;color:var(--muted);line-height:1.7;max-height:130px;overflow-y:auto}
 .minfo strong{color:var(--teal)}
 .minfo a{color:var(--blue);text-decoration:none}
-.minfo a:hover{text-decoration:underline}
-.acard{display:flex;gap:18px;padding:20px;background:var(--bg3);align-items:flex-start;flex-wrap:wrap}
-.acard img{width:110px;border-radius:6px;object-fit:cover;flex-shrink:0}
-.acard-body h2{font-size:16px;font-weight:900;color:var(--text);margin-bottom:6px}
-.acard-body .meta{font-size:12px;color:var(--red);font-weight:700;margin-bottom:8px}
-.acard-body .syn{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:14px;max-height:100px;overflow-y:auto}
-.acard-body .links{display:flex;gap:8px;flex-wrap:wrap}
-.lbtn{padding:7px 16px;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;display:inline-block;transition:opacity .2s;color:#fff}
-.lbtn:hover{opacity:.8}
 .gm{display:none;position:fixed;inset:0;background:rgba(0,0,0,.97);z-index:200;overflow-y:auto;padding:24px 16px}
 .gm.show{display:block}
 .gm-inner{max-width:860px;margin:0 auto}
@@ -107,18 +92,15 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;font
 .gm-close{float:right;font-size:28px;cursor:pointer;color:var(--muted);line-height:1}
 .gm-close:hover{color:#fff}
 .gm-sub{color:var(--muted);font-size:13px;margin-bottom:20px}
-.api-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin-bottom:24px}
+.api-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:24px}
 .api-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;position:relative}
 .api-card .ac-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.api-card .ac-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.api-card .ac-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px}
 .api-card h3{font-size:13px;font-weight:900}
 .api-card .ac-desc{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:8px}
 .api-card .ac-url{font-size:11px;color:var(--blue);text-decoration:none}
-.api-card .ac-url:hover{text-decoration:underline}
 .api-card .ac-badge{position:absolute;top:10px;right:10px;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700}
 .badge-active{background:rgba(0,212,180,.15);color:var(--teal);border:1px solid rgba(0,212,180,.3)}
-.badge-key{background:rgba(245,197,24,.15);color:var(--gold);border:1px solid rgba(245,197,24,.3)}
-.gm-sec{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:18px 0 8px;border-top:1px solid var(--border);padding-top:14px}
 .ft{text-align:center;padding:12px;font-size:11px;color:#444;background:var(--bg2);border-top:1px solid var(--border)}
 </style>
 </head>
@@ -128,11 +110,8 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;font
   <div class="logo">CINE<span>STREAM</span></div>
   <div class="nav-tabs">
     <button class="nt on" onclick="switchSource('archive')"><span class="dot" style="background:#e50914"></span>FILMES</button>
-    <button class="nt" onclick="switchSource('anime')"><span class="dot" style="background:#7c4dff"></span>ANIME</button>
-    <button class="nt" onclick="switchSource('ghibli')"><span class="dot" style="background:#00d4b4"></span>GHIBLI</button>
     <button class="nt" onclick="switchSource('cartoons')"><span class="dot" style="background:#ff6d00"></span>CARTOONS</button>
     <button class="nt" onclick="switchSource('docs')"><span class="dot" style="background:#f5c518"></span>DOCS</button>
-    <button class="nt" onclick="switchSource('series')"><span class="dot" style="background:#00aaff"></span>SÉRIES</button>
   </div>
   <div class="hd-right">
     <button class="btn-guide" onclick="openGuide()">📡 APIs</button>
@@ -150,6 +129,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;font
 <div class="gr" id="gr"><div class="ld"><div class="spinner"></div>Conectando...</div></div>
 <div class="pg" id="pg"></div>
 
+<!-- PLAYER MODAL -->
 <div class="mo" id="mo">
   <div class="mc">
     <div class="mh"><h3 id="mt">Filme</h3><span class="mx" id="mx">&times;</span></div>
@@ -158,22 +138,33 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;font
   </div>
 </div>
 
+<!-- GUIDE MODAL -->
 <div class="gm" id="gm">
 <div class="gm-inner">
   <span class="gm-close" onclick="closeGuide()">&times;</span>
   <h2>GUIA DE <span>APIs</span></h2>
-  <p class="gm-sub">Fontes integradas — tudo funcionando localmente com proxies CORS.</p>
-  <div class="gm-sec">🟢 ATIVAS</div>
+  <p class="gm-sub">Fonte única, estável e sem necessidade de chaves.</p>
   <div class="api-grid">
-    <div class="api-card"><span class="ac-badge badge-active">ATIVO</span><div class="ac-top"><div class="ac-icon" style="background:rgba(229,9,20,.15)">🎬</div><h3>Internet Archive</h3></div><div class="ac-desc">Domínio público + JSONP.</div></div>
-    <div class="api-card"><span class="ac-badge badge-active">ATIVO</span><div class="ac-top"><div class="ac-icon" style="background:rgba(124,77,255,.15)">⛩️</div><h3>Jikan API</h3></div><div class="ac-desc">Animes com proxy CORS.</div></div>
-    <div class="api-card"><span class="ac-badge badge-active">ATIVO</span><div class="ac-top"><div class="ac-icon" style="background:rgba(0,212,180,.15)">🌊</div><h3>Studio Ghibli</h3></div><div class="ac-desc">Filmes Ghibli + Archive.</div></div>
-    <div class="api-card"><span class="ac-badge badge-active">ATIVO</span><div class="ac-top"><div class="ac-icon" style="background:rgba(0,170,255,.15)">📺</div><h3>TVmaze</h3></div><div class="ac-desc">Séries com redirecionamento gratuito.</div></div>
+    <div class="api-card">
+      <span class="ac-badge badge-active">ATIVO</span>
+      <div class="ac-top"><div class="ac-icon" style="background:rgba(229,9,20,.15)">🎬</div><h3>Internet Archive</h3></div>
+      <div class="ac-desc">+1 milhão de filmes, cartoons e documentários de domínio público. Player HLS nativo com fallback iframe.</div>
+      <a class="ac-url" href="https://archive.org" target="_blank">archive.org</a>
+    </div>
+  </div>
+  <div class="gm-sec" style="margin-top:20px">🔧 Como funciona</div>
+  <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:12px;color:var(--muted);line-height:1.8;margin-bottom:20px">
+    <strong style="color:var(--teal)">Busca e reprodução:</strong><br>
+    1. Consulta ao Archive.org via JSONP (sem CORS)<br>
+    2. Para cada item, extraímos a URL real do vídeo (prioridade MPEG4 → H.264 → HLS)<br>
+    3. Player HTML5 com suporte a HLS.js para formatos .m3u8<br>
+    4. Fallback automático: embed iframe do Archive.org caso falhe
   </div>
   <button onclick="closeGuide()" style="width:100%;padding:12px;background:var(--red);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;border-radius:8px;">FECHAR</button>
 </div>
 </div>
-<div class="ft">CineStream · Archive.org · Jikan · Ghibli · TVmaze · Player HLS</div>
+
+<div class="ft">CineStream · Archive.org · Player HLS nativo · Conteúdo de domínio público</div>
 
 <script>
 (function(){
@@ -181,11 +172,6 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;font
 
 var state = { source:'archive', cat:'', q:'', page:1, tot:0, loading:false };
 var PP = 20;
-var PROXIES = [
-  'https://corsproxy.io/?url=',
-  'https://api.allorigins.win/raw?url=',
-  'https://api.codetabs.com/v1/proxy/?quest='
-];
 
 var FMT_PRIORIDADE = ['MPEG4','512Kb MPEG4','H.264 IA','H.264','HiRes MPEG4','MPEG4 Web','512Kb H.264','Ogg Video','HLS','Matroska'];
 var EXT_VALIDAS = ['mp4','m4v','ogv','ogg','mkv','m3u8','mpeg','mpg'];
@@ -203,6 +189,7 @@ var catsDiv = document.getElementById('cats');
 
 var hlsObj = null, failTmr = null, volTmr = null, curArchId = null;
 
+// ---------- PLAYER FUNCTIONS ----------
 function pararPlayer(){
   clearTimeout(failTmr);
   if(hlsObj){ try{ hlsObj.destroy(); }catch(e){} hlsObj=null; }
@@ -211,17 +198,19 @@ function pararPlayer(){
   vid.onerror=null; vid.oncanplay=null; vid.onplaying=null; vid.onloadedmetadata=null;
   try{ vid.pause(); vid.src=''; vid.load(); }catch(e){}
 }
+
 function montarPlayerHTML(){
   return '<div class="mv" id="mv" onmousemove="mostrarVol()">'
     +'<video id="cv" controls playsinline preload="auto"></video>'
     +'<div class="mv-ov" id="cv-ov"><div class="sp"></div><div class="mv-msg" id="cv-msg">Buscando arquivo...</div></div>'
     +'<div class="mv-err" id="cv-err">'
       +'<p>⚠ Não foi possível carregar este filme</p><small id="cv-err-msg"></small>'
-      +'<div class="retry-btns"><button class="btn-embed" id="btn-embed">📺 Alternativo</button><button class="btn-direct" id="btn-direct">🔗 Archive.org</button></div>'
+      +'<div class="retry-btns"><button class="btn-embed" id="btn-embed">📺 Player Alternativo</button><button class="btn-direct" id="btn-direct">🔗 Abrir no Archive.org</button></div>'
     +'</div>'
     +'<div class="mv-vol" id="mv-vol"><button id="btn-mute" onclick="toggleMute()">🔊</button><input type="range" id="vol-sl" min="0" max="100" value="100" oninput="setVol(this.value)"><span class="vl" id="vol-lbl">100%</span></div>'
   +'</div>';
 }
+
 function abrirPlayer(archiveId, titulo, infoHtml){
   curArchId = archiveId;
   mt.textContent = titulo;
@@ -232,83 +221,98 @@ function abrirPlayer(archiveId, titulo, infoHtml){
   document.getElementById('btn-direct').onclick = function(){ window.open('https://archive.org/details/'+encodeURIComponent(archiveId), '_blank'); };
   buscarETocar(archiveId);
 }
+
 function buscarETocar(id){
-  setMsg('Buscando arquivo...');
+  setMsg('Buscando arquivo de vídeo...');
   var metaBase = 'https://archive.org/metadata/'+encodeURIComponent(id);
-  var tentativas = [metaBase];
-  for(var i=0;i<PROXIES.length;i++) tentativas.push(PROXIES[i]+encodeURIComponent(metaBase));
-  var ti=0;
-  function tryMeta(){
-    if(ti>=tentativas.length){ setMsg('Metadados indisponíveis'); setTimeout(function(){ usarEmbed(id); },1200); return; }
-    var u = tentativas[ti++];
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET',u,true);
-    xhr.timeout=12000;
-    xhr.onreadystatechange=function(){
-      if(xhr.readyState!==4) return;
-      if(xhr.status===200){
-        try{
-          var data=JSON.parse(xhr.responseText);
-          var files=data.files||[];
-          var url=encontrarMelhorUrl(id,files);
-          if(url){ tocarUrl(url,id); }
-          else { setMsg('Arquivo não encontrado'); setTimeout(function(){ usarEmbed(id); },1000); }
-        }catch(e){ tryMeta(); }
-      }else{ tryMeta(); }
-    };
-    xhr.onerror=tryMeta; xhr.ontimeout=tryMeta;
-    xhr.send();
-  }
-  tryMeta();
+  // Tentativa direta (sem proxy, funciona porque Archive retorna JSON com header correto)
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', metaBase, true);
+  xhr.timeout = 15000;
+  xhr.onreadystatechange = function(){
+    if(xhr.readyState !== 4) return;
+    if(xhr.status === 200){
+      try{
+        var data = JSON.parse(xhr.responseText);
+        var files = data.files || [];
+        var url = encontrarMelhorUrl(id, files);
+        if(url){ setMsg('Conectando ao vídeo...'); tocarUrl(url, id); }
+        else { setMsg('Arquivo de vídeo não encontrado.'); setTimeout(function(){ usarEmbed(id); }, 1000); }
+      }catch(e){ setMsg('Erro nos metadados.'); setTimeout(function(){ usarEmbed(id); }, 1000); }
+    } else {
+      setMsg('Metadados indisponíveis.'); setTimeout(function(){ usarEmbed(id); }, 1000);
+    }
+  };
+  xhr.onerror = function(){ setMsg('Falha na conexão.'); setTimeout(function(){ usarEmbed(id); }, 1000); };
+  xhr.ontimeout = function(){ setMsg('Timeout.'); setTimeout(function(){ usarEmbed(id); }, 1000); };
+  xhr.send();
 }
-function encontrarMelhorUrl(id,files){
-  var base='https://archive.org/download/'+encodeURIComponent(id)+'/';
-  for(var fi=0;fi<FMT_PRIORIDADE.length;fi++){
-    for(var i=0;i<files.length;i++){
-      var f=files[i];
+
+function encontrarMelhorUrl(id, files){
+  var base = 'https://archive.org/download/'+encodeURIComponent(id)+'/';
+  for(var fi=0; fi<FMT_PRIORIDADE.length; fi++){
+    for(var i=0; i<files.length; i++){
+      var f = files[i];
       if(!f.name || !f.format) continue;
-      if(f.format===FMT_PRIORIDADE[fi]){
-        var ext=f.name.split('.').pop().toLowerCase();
-        if(EXT_VALIDAS.indexOf(ext)!==-1) return base+encodeURIComponent(f.name);
+      if(f.format === FMT_PRIORIDADE[fi]){
+        var ext = f.name.split('.').pop().toLowerCase();
+        if(EXT_VALIDAS.indexOf(ext) !== -1) return base + encodeURIComponent(f.name);
       }
     }
   }
-  for(var j=0;j<files.length;j++){
-    if(files[j].name && files[j].name.toLowerCase().indexOf('.mp4')!==-1)
-      return base+encodeURIComponent(files[j].name);
+  for(var j=0; j<files.length; j++){
+    if(files[j].name && files[j].name.toLowerCase().indexOf('.mp4') !== -1)
+      return base + encodeURIComponent(files[j].name);
   }
   return null;
 }
-function tocarUrl(url,id){
+
+function tocarUrl(url, id){
   pararPlayer();
-  var vid=document.getElementById('cv');
+  var vid = document.getElementById('cv');
   if(!vid) return;
-  var okJa=false;
+  var okJa = false;
   function onOk(){ if(okJa) return; okJa=true; clearTimeout(failTmr); esconderOv(); try{ if(vid.muted){ vid.muted=false; vid.volume=1; } }catch(e){} }
-  vid.oncanplay=onOk; vid.onplaying=onOk;
-  vid.onloadedmetadata=function(){ try{ vid.play(); }catch(e){} };
-  failTmr=setTimeout(function(){ if(!okJa) mostrarErro('Timeout',id); },20000);
-  var ehHls=/\.m3u8?($|\?)/i.test(url);
-  var nativeHls=!!(vid.canPlayType && (vid.canPlayType('application/vnd.apple.mpegurl')!=='' || vid.canPlayType('application/x-mpegURL')!==''));
-  var temHlsJs=typeof Hls!=='undefined' && Hls.isSupported();
-  function onErro(){ vid.onerror=null; if(ehHls && temHlsJs){ tentarHlsJs(); return; } clearTimeout(failTmr); mostrarErro('Formato não suportado',id); }
-  vid.onerror=onErro;
+  vid.oncanplay = onOk;
+  vid.onplaying = onOk;
+  vid.onloadedmetadata = function(){ try{ vid.play(); }catch(e){} };
+  failTmr = setTimeout(function(){ if(!okJa) mostrarErro('Tempo esgotado', id); }, 25000);
+  var ehHls = /\.m3u8?($|\?)/i.test(url);
+  var nativeHls = !!(vid.canPlayType && (vid.canPlayType('application/vnd.apple.mpegurl')!=='' || vid.canPlayType('application/x-mpegURL')!==''));
+  var temHlsJs = typeof Hls !== 'undefined' && Hls.isSupported();
+  function onErro(){ vid.onerror=null; if(ehHls && temHlsJs){ tentarHlsJs(); return; } clearTimeout(failTmr); mostrarErro('Formato não suportado', id); }
+  vid.onerror = onErro;
   function tentarHlsJs(){
     try{
-      hlsObj=new Hls({ enableWorker:false });
+      hlsObj = new Hls({ enableWorker:false });
       hlsObj.loadSource(url);
       hlsObj.attachMedia(vid);
-      hlsObj.on(Hls.Events.MANIFEST_PARSED,function(){ try{ vid.play(); }catch(e){} });
-      hlsObj.on(Hls.Events.ERROR,function(ev,d){ if(d&&d.fatal){ clearTimeout(failTmr); mostrarErro('HLS error',id); } });
-    }catch(e){ clearTimeout(failTmr); mostrarErro('HLS.js falhou',id); }
+      hlsObj.on(Hls.Events.MANIFEST_PARSED, function(){ try{ vid.play(); }catch(e){} });
+      hlsObj.on(Hls.Events.ERROR, function(ev,d){ if(d && d.fatal){ clearTimeout(failTmr); mostrarErro('HLS error', id); } });
+    }catch(e){ clearTimeout(failTmr); mostrarErro('HLS.js falhou', id); }
   }
   if(ehHls && temHlsJs && !nativeHls) tentarHlsJs();
-  else{ try{ vid.src=url; vid.load(); vid.play().catch(function(){ vid.muted=true; vid.play().catch(function(){}); }); }catch(e){ clearTimeout(failTmr); mostrarErro('Erro vídeo',id); } }
+  else{
+    try{
+      vid.src = url; vid.load();
+      var p = vid.play();
+      if(p && p.catch) p.catch(function(){ vid.muted=true; vid.play().catch(function(){}); });
+    }catch(e){ clearTimeout(failTmr); mostrarErro('Erro ao iniciar', id); }
+  }
 }
-function usarEmbed(id){ var mv=document.getElementById('mv'); if(mv) mv.innerHTML='<iframe src="https://archive.org/embed/'+encodeURIComponent(id)+'?autoplay=1" allowfullscreen allow="autoplay" style="position:absolute;inset:0;width:100%;height:100%;border:none"></iframe>'; }
+
+function usarEmbed(id){
+  pararPlayer();
+  var mv = document.getElementById('mv');
+  if(mv) mv.innerHTML = '<iframe src="https://archive.org/embed/'+encodeURIComponent(id)+'?autoplay=1" allowfullscreen allow="autoplay" style="position:absolute;inset:0;width:100%;height:100%;border:none"></iframe>';
+}
 function setMsg(txt){ var el=document.getElementById('cv-msg'); if(el) el.textContent=txt; }
 function esconderOv(){ var el=document.getElementById('cv-ov'); if(el) el.classList.add('gone'); }
-function mostrarErro(msg,id){ var ov=document.getElementById('cv-ov'); var err=document.getElementById('cv-err'); var em=document.getElementById('cv-err-msg'); if(ov) ov.classList.add('gone'); if(err) err.classList.add('show'); if(em) em.textContent=msg; var be=document.getElementById('btn-embed'); if(be) be.onclick=function(){ usarEmbed(id||curArchId); }; }
+function mostrarErro(msg, id){
+  var ov=document.getElementById('cv-ov'); var err=document.getElementById('cv-err'); var em=document.getElementById('cv-err-msg');
+  if(ov) ov.classList.add('gone'); if(err) err.classList.add('show'); if(em) em.textContent=msg;
+  var be=document.getElementById('btn-embed'); if(be) be.onclick=function(){ usarEmbed(id||curArchId); };
+}
 window.mostrarVol=function(){ var v=document.getElementById('mv-vol'); if(v){ v.classList.add('vis'); clearTimeout(volTmr); volTmr=setTimeout(function(){ if(v) v.classList.remove('vis'); },2500); } };
 window.toggleMute=function(){ var vid=document.getElementById('cv'); if(vid){ vid.muted=!vid.muted; document.getElementById('btn-mute').textContent=vid.muted?'🔇':'🔊'; } };
 window.setVol=function(v){ var vid=document.getElementById('cv'); if(vid){ vid.volume=v/100; document.getElementById('vol-lbl').textContent=v+'%'; document.getElementById('btn-mute').textContent=v==0?'🔇':'🔊'; } };
@@ -316,229 +320,156 @@ function fecharModal(){ pararPlayer(); mo.className='mo'; mbody.innerHTML=''; mi
 document.getElementById('mx').onclick=fecharModal;
 mo.addEventListener('click',function(e){ if(e.target===mo) fecharModal(); });
 
-function abrirAnimeInfo(d){
-  mt.textContent=d.titulo;
-  mbody.innerHTML='<div class="acard">'+(d.img?'<img src="'+esc(d.img)+'" onerror="this.style.display=\'none\'">':'')+'<div class="acard-body"><h2>'+esc(d.titulo)+'</h2><div class="meta">'+esc(d.score)+' · '+esc(d.eps)+(d.status?' · '+esc(d.status):'')+'</div><div class="syn">'+esc(d.sinopse)+'</div><div class="links">'+(d.mal_url?'<a class="lbtn" href="'+esc(d.mal_url)+'" target="_blank" style="background:#7c4dff">MyAnimeList</a>':'')+'<a class="lbtn" href="https://gogoanime.pe/search.html?keyword='+encodeURIComponent(d.titulo)+'" target="_blank" style="background:#e50914">Gogoanime</a><a class="lbtn" href="https://www.crunchyroll.com/search?q='+encodeURIComponent(d.titulo)+'" target="_blank" style="background:#f47521">Crunchyroll</a><a class="lbtn" href="https://animefire.plus/pesquisar/'+encodeURIComponent(d.titulo)+'" target="_blank" style="background:#00c853">AnimeFire</a></div></div></div>';
-  minfo.innerHTML='<strong>Fonte:</strong> Jikan API (MyAnimeList)';
-  mo.className='mo show';
-}
-
+// ---------- CATEGORIAS E BADGES ----------
 var CATS = {
-  archive:[{k:'',l:'TODOS'},{k:'feature_films',l:'LONGAS'},{k:'Comedy_Films',l:'COMÉDIA'},{k:'Film_Noir',l:'NOIR'},{k:'SciFi_Horror',l:'SCI-FI/TERROR'},{k:'film_scifi',l:'SCI-FI'},{k:'silent_films',l:'MUDOS'},{k:'short_films',l:'CURTAS'},{k:'animationandcartoons',l:'ANIMAÇÃO'},{k:'prelinger',l:'PRELINGER'},{k:'classic_tv',l:'TV CLÁSSICA'},{k:'german_cinema',l:'ALEMÃO'},{k:'KINOfilm',l:'KINO'}],
-  anime:[{k:'',l:'TOP GERAL'},{k:'1',l:'AÇÃO'},{k:'2',l:'AVENTURA'},{k:'4',l:'COMÉDIA'},{k:'8',l:'DRAMA'},{k:'10',l:'FANTASIA'},{k:'14',l:'TERROR'},{k:'22',l:'ROMANCE'},{k:'24',l:'SCI-FI'},{k:'36',l:'SLICE OF LIFE'},{k:'37',l:'SOBRENATURAL'}],
-  ghibli:[{k:'',l:'TODOS OS FILMES'}],
-  cartoons:[{k:'animationandcartoons',l:'TODOS'},{k:'short_films',l:'CURTAS'},{k:'silent_films',l:'MUDOS'}],
-  docs:[{k:'',l:'TODOS'},{k:'feature_films',l:'LONGAS'},{k:'prelinger',l:'HISTÓRIA'},{k:'classic_tv',l:'TV CLÁSSICA'},{k:'german_cinema',l:'ALEMÃO'}],
-  series:[{k:'',l:'POPULARES'},{k:'Drama',l:'DRAMA'},{k:'Comedy',l:'COMÉDIA'},{k:'Action',l:'AÇÃO'},{k:'Sci-Fi',l:'FICÇÃO'},{k:'Crime',l:'CRIME'},{k:'Horror',l:'TERROR'}]
+  archive:[
+    {k:'',l:'TODOS'},{k:'feature_films',l:'LONGAS'},{k:'Comedy_Films',l:'COMÉDIA'},
+    {k:'Film_Noir',l:'NOIR'},{k:'SciFi_Horror',l:'SCI-FI/TERROR'},{k:'film_scifi',l:'SCI-FI'},
+    {k:'silent_films',l:'MUDOS'},{k:'short_films',l:'CURTAS'},{k:'animationandcartoons',l:'ANIMAÇÃO'},
+    {k:'prelinger',l:'PRELINGER'},{k:'classic_tv',l:'TV CLÁSSICA'},{k:'german_cinema',l:'ALEMÃO'},{k:'KINOfilm',l:'KINO'}
+  ],
+  cartoons:[
+    {k:'animationandcartoons',l:'TODOS'},{k:'short_films',l:'CURTAS'},{k:'silent_films',l:'MUDOS'}
+  ],
+  docs:[
+    {k:'',l:'TODOS'},{k:'feature_films',l:'LONGAS'},{k:'prelinger',l:'HISTÓRIA'},
+    {k:'classic_tv',l:'TV CLÁSSICA'},{k:'german_cinema',l:'ALEMÃO'}
+  ]
 };
 var BADGES = {
-  archive:{bg:'rgba(229,9,20,.15)',color:'#e50914',border:'rgba(229,9,20,.3)',text:'ARCHIVE.ORG'},
-  anime:{bg:'rgba(124,77,255,.15)',color:'#7c4dff',border:'rgba(124,77,255,.3)',text:'JIKAN / MAL'},
-  ghibli:{bg:'rgba(0,212,180,.15)',color:'#00d4b4',border:'rgba(0,212,180,.3)',text:'GHIBLI API'},
+  archive: {bg:'rgba(229,9,20,.15)',color:'#e50914',border:'rgba(229,9,20,.3)',text:'ARCHIVE.ORG'},
   cartoons:{bg:'rgba(255,109,0,.15)',color:'#ff6d00',border:'rgba(255,109,0,.3)',text:'ARCHIVE.ORG'},
-  docs:{bg:'rgba(245,197,24,.15)',color:'#f5c518',border:'rgba(245,197,24,.3)',text:'ARCHIVE.ORG'},
-  series:{bg:'rgba(0,170,255,.15)',color:'#00aaff',border:'rgba(0,170,255,.3)',text:'TVMAZE · GRÁTIS'}
+  docs:    {bg:'rgba(245,197,24,.15)',color:'#f5c518',border:'rgba(245,197,24,.3)',text:'ARCHIVE.ORG'}
 };
+
 function renderCats(){
-  var list=CATS[state.source]||[];
-  catsDiv.innerHTML=list.map(function(c){ return '<span class="cb'+(c.k===state.cat?' on':'')+'" data-k="'+esc(c.k)+'">'+esc(c.l)+'</span>'; }).join('');
-  Array.from(catsDiv.querySelectorAll('.cb')).forEach(function(el){ el.onclick=function(){ state.cat=el.getAttribute('data-k'); state.page=1; Array.from(catsDiv.querySelectorAll('.cb')).forEach(function(x){ x.classList.remove('on'); }); el.classList.add('on'); load(); }; });
+  var list = CATS[state.source] || [];
+  catsDiv.innerHTML = list.map(function(c){ return '<span class="cb'+(c.k===state.cat?' on':'')+'" data-k="'+esc(c.k)+'">'+esc(c.l)+'</span>'; }).join('');
+  Array.from(catsDiv.querySelectorAll('.cb')).forEach(function(el){
+    el.onclick = function(){
+      state.cat = el.getAttribute('data-k');
+      state.page = 1;
+      Array.from(catsDiv.querySelectorAll('.cb')).forEach(function(x){ x.classList.remove('on'); });
+      el.classList.add('on');
+      load();
+    };
+  });
 }
-window.switchSource=function(src){
+
+window.switchSource = function(src){
   Array.from(document.querySelectorAll('.nt')).forEach(function(b){ b.classList.remove('on'); });
-  var idx=['archive','anime','ghibli','cartoons','docs','series'].indexOf(src);
-  if(idx>=0) document.querySelectorAll('.nt')[idx].classList.add('on');
-  state.source=src;
-  state.cat=(src==='cartoons')?'animationandcartoons':'';
-  state.q=''; state.page=1; si.value='';
-  var b=BADGES[src];
-  srcBadge.style.background=b.bg; srcBadge.style.color=b.color; srcBadge.style.border='1px solid '+b.border; srcBadge.textContent=b.text;
-  renderCats(); load();
+  if(src==='archive') document.querySelectorAll('.nt')[0].classList.add('on');
+  else if(src==='cartoons') document.querySelectorAll('.nt')[1].classList.add('on');
+  else if(src==='docs') document.querySelectorAll('.nt')[2].classList.add('on');
+  state.source = src;
+  state.cat = (src==='cartoons') ? 'animationandcartoons' : '';
+  state.q = ''; state.page = 1; si.value = '';
+  var b = BADGES[src];
+  srcBadge.style.background = b.bg; srcBadge.style.color = b.color; srcBadge.style.border = '1px solid '+b.border; srcBadge.textContent = b.text;
+  renderCats();
+  load();
 };
-function load(){
-  if(state.loading) return;
-  state.loading=true;
-  gr.innerHTML='<div class="ld"><div class="spinner"></div>Buscando...</div>';
-  pgd.innerHTML=''; ib.textContent='Carregando...';
-  if(state.source==='anime') loadJikan();
-  else if(state.source==='ghibli') loadGhibli();
-  else if(state.source==='series') loadSeries();
-  else loadArchive();
-}
+
+// ---------- LOAD E BUSCA NO ARCHIVE (JSONP) ----------
 function buildQuery(){
-  var q=state.q, cat=state.cat, src=state.source, col='';
+  var q = state.q, cat = state.cat, src = state.source, col = '';
   if(src==='docs'){
-    col=cat?'collection:'+cat:'(collection:feature_films OR collection:prelinger OR collection:german_cinema OR collection:classic_tv OR collection:collectie_filmcollectief)';
-    col+=' AND mediatype:movies';
-  }else if(src==='cartoons'){
-    col=(cat===''||cat==='animationandcartoons')?'collection:animationandcartoons AND mediatype:movies':'collection:'+cat+' AND mediatype:movies';
-  }else{
-    col=cat?'collection:'+cat+' AND mediatype:movies':'(collection:feature_films OR collection:Comedy_Films OR collection:Film_Noir OR collection:SciFi_Horror OR collection:film_scifi OR collection:silent_films OR collection:short_films OR collection:classic_tv OR collection:prelinger OR collection:animationandcartoons OR collection:moviesandfilms OR collection:german_cinema OR collection:KINOfilm) AND mediatype:movies';
+    col = cat ? 'collection:'+cat : '(collection:feature_films OR collection:prelinger OR collection:german_cinema OR collection:classic_tv OR collection:collectie_filmcollectief)';
+    col += ' AND mediatype:movies';
+  } else if(src==='cartoons'){
+    col = (cat===''||cat==='animationandcartoons') ? 'collection:animationandcartoons AND mediatype:movies' : 'collection:'+cat+' AND mediatype:movies';
+  } else {
+    col = cat ? 'collection:'+cat+' AND mediatype:movies' : '(collection:feature_films OR collection:Comedy_Films OR collection:Film_Noir OR collection:SciFi_Horror OR collection:film_scifi OR collection:silent_films OR collection:short_films OR collection:classic_tv OR collection:prelinger OR collection:animationandcartoons OR collection:moviesandfilms OR collection:german_cinema OR collection:KINOfilm) AND mediatype:movies';
   }
-  if(q) col='('+col+') AND title:('+q+')';
+  if(q) col = '('+col+') AND title:('+q+')';
   return col;
 }
-function loadArchive(){
-  var q=buildQuery();
-  var url='https://archive.org/advancedsearch.php?q='+encodeURIComponent(q)+'&fl[]=identifier&fl[]=title&fl[]=year&fl[]=creator&fl[]=downloads&sort[]=downloads+desc&rows='+PP+'&page='+state.page+'&output=json';
-  fetchJSONP(url,function(data){
-    state.loading=false;
-    if(!data||data.error||!data.response){ gr.innerHTML='<div class="ld">Erro Archive.org</div>'; ib.textContent='Erro'; return; }
-    var docs=data.response.docs||[];
-    state.tot=data.response.numFound||0;
-    ib.textContent=state.tot.toLocaleString()+' itens · p.'+state.page;
-    renderArchiveCards(docs);
+
+function load(){
+  if(state.loading) return;
+  state.loading = true;
+  gr.innerHTML = '<div class="ld"><div class="spinner"></div>Buscando...</div>';
+  pgd.innerHTML = '';
+  ib.textContent = 'Carregando...';
+  var q = buildQuery();
+  var url = 'https://archive.org/advancedsearch.php?q='+encodeURIComponent(q)+'&fl[]=identifier&fl[]=title&fl[]=year&fl[]=creator&fl[]=downloads&sort[]=downloads+desc&rows='+PP+'&page='+state.page+'&output=json';
+  fetchJSONP(url, function(data){
+    state.loading = false;
+    if(!data || data.error || !data.response){
+      gr.innerHTML = '<div class="ld">Erro ao conectar com Archive.org.</div>';
+      ib.textContent = 'Erro';
+      return;
+    }
+    var docs = data.response.docs || [];
+    state.tot = data.response.numFound || 0;
+    ib.textContent = state.tot.toLocaleString()+' itens · p.'+state.page+' · Archive.org';
+    renderCards(docs);
     renderPag();
   });
 }
-function renderArchiveCards(docs){
-  if(!docs.length){ gr.innerHTML='<div class="ld">Nenhum resultado.</div>'; return; }
-  gr.innerHTML=docs.map(function(d){ var id=d.identifier, titulo=d.title||'Sem título', curto=titulo.length>44?titulo.substring(0,44)+'…':titulo, ano=d.year||'?', views=d.downloads?Number(d.downloads).toLocaleString():'—', criador=d.creator?String(d.creator).substring(0,40):'', img='https://archive.org/services/img/'+encodeURIComponent(id); return '<div class="cd" data-id="'+esc(id)+'" data-titulo="'+esc(titulo)+'" data-ano="'+esc(ano)+'" data-creator="'+esc(criador)+'" data-views="'+esc(views)+'"><span class="src-tag" style="background:rgba(229,9,20,.85);color:#fff">ARCHIVE</span><img src="'+img+'" loading="lazy" onerror="this.src=\'https://archive.org/images/notfound.png\'"><div class="ci"><div class="ct">'+esc(curto)+'</div><div class="cm">'+esc(ano)+'</div><div class="cc">'+esc(criador)+'</div></div></div>'; }).join('');
-  Array.from(gr.querySelectorAll('.cd')).forEach(function(el){ el.onclick=function(){ var id=el.getAttribute('data-id'), titulo=el.getAttribute('data-titulo'), ano=el.getAttribute('data-ano'), creator=el.getAttribute('data-creator'), views=el.getAttribute('data-views'); abrirPlayer(id, titulo,'<strong>'+esc(titulo)+'</strong>'+(ano&&ano!='?'?' ('+esc(ano)+')':'')+(creator?' · '+esc(creator):'')+' · '+views+' views &nbsp;<a href="https://archive.org/details/'+encodeURIComponent(id)+'" target="_blank">Ver no Archive ↗</a>'); }; });
-}
-function loadJikan(){
-  var cat=state.cat, q=state.q, url;
-  if(q) url='https://api.jikan.moe/v4/anime?q='+encodeURIComponent(q)+'&page='+state.page+'&limit='+PP+'&order_by=score&sort=desc';
-  else if(cat) url='https://api.jikan.moe/v4/anime?genres='+cat+'&page='+state.page+'&limit='+PP+'&order_by=score&sort=desc';
-  else url='https://api.jikan.moe/v4/top/anime?page='+state.page+'&limit='+PP;
-  // Usar proxy CORS para evitar bloqueios
-  var proxyUrl = PROXIES[0] + encodeURIComponent(url);
-  fetch(proxyUrl).then(function(r){ return r.json(); }).then(function(data){
-    state.loading=false;
-    var list=data.data||[];
-    var pag=data.pagination||{};
-    state.tot=(pag.items&&pag.items.total)||list.length*10;
-    ib.textContent=state.tot.toLocaleString()+' animes · p.'+state.page;
-    renderJikanCards(list);
-    renderPag();
-  }).catch(function(){ state.loading=false; gr.innerHTML='<div class="ld">Erro Jikan via proxy</div>'; ib.textContent='Erro'; });
-}
-function renderJikanCards(list){
-  if(!list.length){ gr.innerHTML='<div class="ld">Nenhum anime encontrado.</div>'; return; }
-  gr.innerHTML=list.map(function(a){ var titulo=a.title||'?', curto=titulo.length>44?titulo.substring(0,44)+'…':titulo, score=a.score?'⭐ '+a.score:'Sem nota', eps=a.episodes?a.episodes+'ep':'?ep', img=(a.images&&a.images.jpg)?(a.images.jpg.large_image_url||a.images.jpg.image_url):'', malUrl=a.url||'', sinopse=a.synopsis?a.synopsis.substring(0,300):'Sem sinopse.', status=a.status||''; return '<div class="cd" data-titulo="'+esc(titulo)+'" data-score="'+esc(score)+'" data-eps="'+esc(eps)+'" data-status="'+esc(status)+'" data-img="'+esc(img)+'" data-mal="'+esc(malUrl)+'" data-syn="'+esc(sinopse)+'"><span class="src-tag" style="background:rgba(124,77,255,.85);color:#fff">ANIME</span><img src="'+esc(img)+'" loading="lazy" onerror="this.style.background=\'#1a1a2e\'"><div class="ci"><div class="ct">'+esc(curto)+'</div><div class="cm">'+score+'</div><div class="cc">'+esc(eps+(status?' · '+status:''))+'</div></div></div>'; }).join('');
-  Array.from(gr.querySelectorAll('.cd')).forEach(function(el){ el.onclick=function(){ abrirAnimeInfo({ titulo:el.getAttribute('data-titulo'), score:el.getAttribute('data-score'), eps:el.getAttribute('data-eps'), status:el.getAttribute('data-status'), img:el.getAttribute('data-img'), mal_url:el.getAttribute('data-mal'), sinopse:el.getAttribute('data-syn') }); }; });
-}
-function loadGhibli(){
-  fetch('https://ghibliapi.vercel.app/films').then(function(r){ return r.json(); }).then(function(data){
-    state.loading=false;
-    var list=Array.isArray(data)?data:[];
-    var q=state.q.toLowerCase();
-    if(q) list=list.filter(function(f){ return (f.title||'').toLowerCase().indexOf(q)!==-1||(f.description||'').toLowerCase().indexOf(q)!==-1; });
-    state.tot=list.length;
-    ib.textContent=list.length+' filmes · Ghibli';
-    renderGhibliCards(list);
-    pgd.innerHTML='';
-  }).catch(function(){ state.loading=false; gr.innerHTML='<div class="ld">Erro Ghibli</div>'; ib.textContent='Erro'; });
-}
-function renderGhibliCards(list){
-  if(!list.length){ gr.innerHTML='<div class="ld">Nenhum filme encontrado.</div>'; return; }
-  gr.innerHTML=list.map(function(f){ var titulo=f.title||'?', curto=titulo.length>44?titulo.substring(0,44)+'…':titulo, score=f.rt_score?'🍅 '+f.rt_score+'%':'', ano=f.release_date||'?', img=f.image||f.movie_banner||'', desc=(f.description||'').substring(0,300); return '<div class="cd" data-titulo="'+esc(titulo)+'" data-ano="'+esc(ano)+'" data-score="'+esc(score)+'" data-dir="'+esc(f.director||'')+'" data-desc="'+esc(desc)+'" data-img="'+esc(img)+'"><span class="src-tag" style="background:rgba(0,212,180,.85);color:#000">GHIBLI</span><img src="'+esc(img)+'" loading="lazy" style="object-fit:contain" onerror="this.style.display=\'none\'"><div class="ci"><div class="ct">'+esc(curto)+'</div><div class="cm">'+esc(ano)+(score?' · '+score:'')+'</div><div class="cc">'+(f.director?esc('Dir: '+f.director):'')+'</div></div></div>'; }).join('');
-  Array.from(gr.querySelectorAll('.cd')).forEach(function(el){ el.onclick=function(){ var titulo=el.getAttribute('data-titulo'), ano=el.getAttribute('data-ano'), score=el.getAttribute('data-score'), dir=el.getAttribute('data-dir'), desc=el.getAttribute('data-desc'); mt.textContent=titulo; mbody.innerHTML=montarPlayerHTML(); mo.className='mo show'; minfo.innerHTML='<strong>'+esc(titulo)+'</strong>'+(ano&&ano!='?'?' ('+esc(ano)+')':'')+(score?' · '+score:'')+(dir?' · Dir: '+esc(dir):'')+'<br><span style="color:#666">'+esc(desc)+'</span>'; document.getElementById('btn-embed').onclick=function(){ buscarGhibliEmbed(titulo); }; document.getElementById('btn-direct').onclick=function(){ window.open('https://archive.org/search?query='+encodeURIComponent(titulo)+'&mediatype=movies','_blank'); }; buscarGhibliPorTitulo(titulo); }; });
-}
-function buscarGhibliPorTitulo(titulo){
-  setMsg('Buscando "'+titulo+'" no Archive...');
-  var q=encodeURIComponent('title:('+titulo+') AND mediatype:movies');
-  var url='https://archive.org/advancedsearch.php?q='+q+'&fl[]=identifier&rows=3&output=json';
-  fetchJSONP(url,function(data){ var docs=data&&data.response&&data.response.docs; if(docs&&docs.length){ buscarETocar(docs[0].identifier); }else{ setMsg('Não encontrado'); setTimeout(function(){ buscarGhibliEmbed(titulo); },1000); } });
-}
-function buscarGhibliEmbed(titulo){ var mv=document.getElementById('mv'); if(mv){ var id=titulo.toLowerCase().replace(/[^a-z0-9]+/g,'-'); mv.innerHTML='<iframe src="https://archive.org/embed/'+encodeURIComponent(id)+'?autoplay=1" allowfullscreen allow="autoplay" style="position:absolute;inset:0;width:100%;height:100%;border:none"></iframe>'; } }
 
-// SÉRIES com proxy CORS
-function loadSeries(){
-  var q=state.q, cat=state.cat, url;
-  if(!q){
-    var pageNum=state.page-1;
-    if(pageNum<0) pageNum=0;
-    url='https://api.tvmaze.com/shows?page='+pageNum;
-  } else {
-    url='https://api.tvmaze.com/search/shows?q='+encodeURIComponent(q);
-  }
-  var proxyUrl = PROXIES[0] + encodeURIComponent(url);
-  fetch(proxyUrl).then(function(res){ return res.json(); }).then(function(data){
-    state.loading=false;
-    var items=[];
-    if(q) items=data.map(function(item){ return item.show; });
-    else items=data;
-    if(cat && cat!=='') items=items.filter(function(show){ return show.genres && show.genres.includes(cat); });
-    var start=0, end=PP;
-    if(!q){ start=(state.page-1)*PP; end=state.page*PP; }
-    var pageItems=items.slice(start,end);
-    state.tot=items.length;
-    ib.textContent=state.tot.toLocaleString()+' séries · TVmaze';
-    renderSeriesCards(pageItems);
-    renderPag();
-  }).catch(function(){ state.loading=false; gr.innerHTML='<div class="ld">Erro TVmaze (CORS)</div>'; ib.textContent='Erro'; });
+function renderCards(docs){
+  if(!docs.length){ gr.innerHTML = '<div class="ld">Nenhum resultado.</div>'; return; }
+  gr.innerHTML = docs.map(function(d){
+    var id = d.identifier;
+    var titulo = d.title || 'Sem título';
+    var curto = titulo.length>44 ? titulo.substring(0,44)+'…' : titulo;
+    var ano = d.year || '?';
+    var views = d.downloads ? Number(d.downloads).toLocaleString() : '—';
+    var criador = d.creator ? String(d.creator).substring(0,40) : '';
+    var img = 'https://archive.org/services/img/'+encodeURIComponent(id);
+    return '<div class="cd" data-id="'+esc(id)+'" data-titulo="'+esc(titulo)+'" data-ano="'+esc(ano)+'" data-creator="'+esc(criador)+'" data-views="'+esc(views)+'"><span class="src-tag" style="background:rgba(229,9,20,.85);color:#fff">ARCHIVE</span><img src="'+img+'" loading="lazy" onerror="this.src=\'https://archive.org/images/notfound.png\';this.style.objectFit=\'contain\'"><div class="ci"><div class="ct">'+esc(curto)+'</div><div class="cm">'+esc(ano)+'</div><div class="cc">'+esc(criador)+'</div></div></div>';
+  }).join('');
+  Array.from(gr.querySelectorAll('.cd')).forEach(function(el){
+    el.onclick = function(){
+      var id = el.getAttribute('data-id');
+      var titulo = el.getAttribute('data-titulo');
+      var ano = el.getAttribute('data-ano');
+      var creator = el.getAttribute('data-creator');
+      var views = el.getAttribute('data-views');
+      abrirPlayer(id, titulo, '<strong>'+esc(titulo)+'</strong>'+(ano&&ano!='?'?' ('+esc(ano)+')':'')+(creator?' · '+esc(creator):'')+' · '+views+' views &nbsp;<a href="https://archive.org/details/'+encodeURIComponent(id)+'" target="_blank">Ver no Archive.org ↗</a>');
+    };
+  });
 }
-function renderSeriesCards(shows){
-  if(!shows.length){ gr.innerHTML='<div class="ld">Nenhuma série encontrada.</div>'; return; }
-  gr.innerHTML=shows.map(function(show){ var titulo=show.name||'Sem título', curto=titulo.length>44?titulo.substring(0,44)+'…':titulo, ano=show.premiered?show.premiered.substring(0,4):'?', genero=(show.genres&&show.genres[0])?show.genres[0]:'', img=show.image?(show.image.medium||show.image.original):'', id=show.id; return '<div class="cd" data-id="'+id+'" data-titulo="'+esc(titulo)+'" data-ano="'+ano+'" data-genero="'+esc(genero)+'" data-img="'+esc(img)+'"><span class="src-tag" style="background:#00aaff;color:#fff">TVMAZE</span><img src="'+esc(img)+'" loading="lazy" onerror="this.src=\'https://via.placeholder.com/210x295?text=No+Image\'"><div class="ci"><div class="ct">'+esc(curto)+'</div><div class="cm">'+ano+' · '+genero+'</div></div></div>'; }).join('');
-  document.querySelectorAll('.cd').forEach(function(el){ el.onclick=function(){ var id=el.getAttribute('data-id'), titulo=el.getAttribute('data-titulo'); carregarDetalhesSerie(id,titulo); }; });
-}
-function carregarDetalhesSerie(showId, titulo){
-  mt.textContent=titulo;
-  mbody.innerHTML='<div class="ld" style="min-height:200px"><div class="spinner"></div>Carregando...</div>';
-  minfo.innerHTML='';
-  mo.className='mo show';
-  var proxyUrl=PROXIES[0]+encodeURIComponent('https://api.tvmaze.com/shows/'+showId+'?embed[]=cast&embed[]=episodes');
-  fetch(proxyUrl).then(function(res){ return res.json(); }).then(function(serie){
-    var sinopse=serie.summary?serie.summary.replace(/<[^>]*>/g,''):'Sem sinopse.';
-    sinopse=sinopse.substring(0,400);
-    var ano=serie.premiered?serie.premiered.substring(0,4):'?';
-    var generos=serie.genres?serie.genres.join(', '):'';
-    var rede=serie.network?serie.network.name:(serie.webChannel?serie.webChannel.name:'');
-    var status=serie.status||'?';
-    var imagem=serie.image?serie.image.original:'';
-    var elenco='';
-    if(serie._embedded && serie._embedded.cast){
-      var atores=serie._embedded.cast.slice(0,5).map(function(c){ return c.person.name; }).join(', ');
-      if(atores) elenco='<div style="margin-top:8px"><strong>Elenco:</strong> '+esc(atores)+'</div>';
-    }
-    var htmlModal='<div style="padding:20px; background:var(--bg3); display:flex; gap:20px; flex-wrap:wrap">'+(imagem?'<img src="'+esc(imagem)+'" style="width:140px; border-radius:8px; object-fit:cover" onerror="this.style.display=\'none\'">':'')+'<div style="flex:1"><h2 style="font-size:18px; margin-bottom:6px">'+esc(titulo)+'</h2><div style="color:var(--red); font-weight:700; margin-bottom:8px">'+ano+' · '+esc(generos)+' · '+status+'</div><div style="color:var(--muted); font-size:13px; line-height:1.5">'+esc(sinopse)+'</div>'+elenco+(rede?'<div style="margin-top:6px"><strong>Emissora:</strong> '+esc(rede)+'</div>':'')+'</div></div><hr style="border-color:#333; margin:0 20px"><div style="padding:20px; text-align:center"><p style="margin-bottom:12px">📺 Assistir <strong>'+esc(titulo)+'</strong> legalmente e grátis (com anúncios):</p><div style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center"><a href="https://pluto.tv/pt-br/search?q='+encodeURIComponent(titulo)+'" target="_blank" class="lbtn" style="background:#6b46c0">Pluto TV</a><a href="https://tubitv.com/search?q='+encodeURIComponent(titulo)+'" target="_blank" class="lbtn" style="background:#e50914">Tubi</a><a href="https://watch.plex.tv/search?q='+encodeURIComponent(titulo)+'" target="_blank" class="lbtn" style="background:#e5a00d">Plex</a><a href="https://www.viki.com/search?q='+encodeURIComponent(titulo)+'" target="_blank" class="lbtn" style="background:#00b4d8">Viki</a><a href="https://www.mercadolivre.com.br/mercadoplay/search?q='+encodeURIComponent(titulo)+'" target="_blank" class="lbtn" style="background:#ffe600; color:#000">Mercado Play</a></div><details style="margin-top:20px; font-size:12px; color:#aaa"><summary>🔎 Buscar no Archive.org (domínio público)</summary><button id="buscarArchiveSerieBtn" style="margin-top:10px; background:#e50914; border:none; padding:6px 12px; border-radius:6px; color:#fff; cursor:pointer">Procurar</button></details></div>';
-    mbody.innerHTML=htmlModal;
-    minfo.innerHTML='<strong>Fonte:</strong> TVmaze · Redirecionamento oficial.';
-    document.getElementById('buscarArchiveSerieBtn')?.addEventListener('click',function(){ fecharModal(); state.source='archive'; state.q=titulo; state.page=1; switchSource('archive'); });
-  }).catch(function(){ mbody.innerHTML='<div class="ld" style="padding:40px">Falha ao carregar detalhes.</div>'; });
-}
-function fetchJSONP(url,cb){
-  var name='_cb_'+Date.now()+'_'+Math.floor(Math.random()*99999);
-  var s=document.createElement('script');
-  var t=setTimeout(function(){ cleanup(); cb({error:'timeout'}); },15000);
-  window[name]=function(data){ clearTimeout(t); cleanup(); cb(data); };
+
+// JSONP helper
+function fetchJSONP(url, cb){
+  var name = '_cb_'+Date.now()+'_'+Math.floor(Math.random()*99999);
+  var s = document.createElement('script');
+  var t = setTimeout(function(){ cleanup(); cb({error:'timeout'}); }, 15000);
+  window[name] = function(data){ clearTimeout(t); cleanup(); cb(data); };
   function cleanup(){ delete window[name]; if(s.parentNode) s.parentNode.removeChild(s); }
-  s.onerror=function(){ clearTimeout(t); cleanup(); cb({error:'network'}); };
-  s.src=url+'&callback='+name;
+  s.onerror = function(){ clearTimeout(t); cleanup(); cb({error:'network'}); };
+  s.src = url + '&callback='+name;
   document.head.appendChild(s);
 }
+
+// Paginação
 function renderPag(){
-  if(state.source==='series'){
-    var maxPages=Math.ceil(state.tot/PP);
-    if(maxPages<=1){ pgd.innerHTML=''; return; }
-    var inicio=Math.max(1, state.page-3);
-    var fim=Math.min(maxPages, inicio+6);
-    if(fim-inicio<6) inicio=Math.max(1, fim-6);
-    var html='<span class="pb'+(state.page===1?' disabled':'')+'" data-p="'+(state.page-1)+'">◀</span>';
-    for(var i=inicio;i<=fim;i++) html+='<span class="pb'+(i===state.page?' on':'')+'" data-p="'+i+'">'+i+'</span>';
-    html+='<span class="pb'+(state.page>=maxPages?' disabled':'')+'" data-p="'+(state.page+1)+'">▶</span>';
-    pgd.innerHTML=html;
-    Array.from(pgd.querySelectorAll('.pb:not([disabled])')).forEach(function(el){ el.onclick=function(){ var p=parseInt(el.getAttribute('data-p')); if(!isNaN(p)&&p>=1&&p<=maxPages){ state.page=p; load(); window.scrollTo({top:0,behavior:'smooth'}); } }; });
-    return;
-  }
-  var total=Math.ceil(state.tot/PP);
-  if(total<=1){ pgd.innerHTML=''; return; }
-  var ini=Math.max(1, state.page-3);
-  var fim=Math.min(total, ini+6);
-  if(fim-ini<6) ini=Math.max(1, fim-6);
-  var html='<span class="pb'+(state.page===1?' disabled':'')+'" data-p="'+(state.page-1)+'">◀</span>';
-  for(var j=ini;j<=fim;j++) html+='<span class="pb'+(j===state.page?' on':'')+'" data-p="'+j+'">'+j+'</span>';
-  html+='<span class="pb'+(state.page>=total?' disabled':'')+'" data-p="'+(state.page+1)+'">▶</span>';
-  pgd.innerHTML=html;
-  Array.from(pgd.querySelectorAll('.pb:not([disabled])')).forEach(function(el){ el.onclick=function(){ var p=parseInt(el.getAttribute('data-p')); if(!isNaN(p)&&p>=1&&p<=total){ state.page=p; load(); window.scrollTo({top:0,behavior:'smooth'}); } }; });
+  var total = Math.ceil(state.tot/PP);
+  if(total<=1){ pgd.innerHTML = ''; return; }
+  var ini = Math.max(1, state.page-3);
+  var fim = Math.min(total, ini+6);
+  if(fim-ini<6) ini = Math.max(1, fim-6);
+  var html = '<span class="pb'+(state.page===1?' disabled':'')+'" data-p="'+(state.page-1)+'">◀</span>';
+  for(var i=ini; i<=fim; i++) html += '<span class="pb'+(i===state.page?' on':'')+'" data-p="'+i+'">'+i+'</span>';
+  html += '<span class="pb'+(state.page>=total?' disabled':'')+'" data-p="'+(state.page+1)+'">▶</span>';
+  pgd.innerHTML = html;
+  Array.from(pgd.querySelectorAll('.pb:not([disabled])')).forEach(function(el){
+    el.onclick = function(){
+      var p = parseInt(el.getAttribute('data-p'));
+      if(!isNaN(p) && p>=1 && p<=total){ state.page = p; load(); window.scrollTo({top:0,behavior:'smooth'}); }
+    };
+  });
 }
+
 function esc(s){ if(s===null||s===undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-document.getElementById('btnBuscar').onclick=function(){ state.q=si.value.trim(); state.page=1; load(); };
-si.onkeydown=function(e){ if(e.key==='Enter'){ state.q=si.value.trim(); state.page=1; load(); } };
-window.openGuide=function(){ document.getElementById('gm').className='gm show'; };
-window.closeGuide=function(){ document.getElementById('gm').className='gm'; };
+
+document.getElementById('btnBuscar').onclick = function(){ state.q = si.value.trim(); state.page = 1; load(); };
+si.onkeydown = function(e){ if(e.key==='Enter'){ state.q = si.value.trim(); state.page = 1; load(); } };
+window.openGuide = function(){ document.getElementById('gm').className = 'gm show'; };
+window.closeGuide = function(){ document.getElementById('gm').className = 'gm'; };
+
 renderCats();
 load();
 })();

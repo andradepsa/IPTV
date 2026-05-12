@@ -98,7 +98,7 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
     var mt = document.getElementById("mt");
     
     // Query base incluindo ADULT e EROTICA
-    var allC = "(collection:feature_films OR collection:Comedy_Films OR collection:Film_Noir OR collection:SciFi_Horror OR collection:film_scifi OR collection:silent_films OR collection:short_films OR collection:classic_tv OR collection:prelinger OR collection:collectie_filmcollectief OR collection:german_cinema OR collection:KINOfilm OR collection:adult OR collection:erotica) AND mediatype:movies";
+    var allC = "(collection:feature_films OR collection:Comedy_Films OR collection:Film_Noir OR collection:SciFi_Horror OR collection:film_scifi OR collection:silent_films OR collection:short_films OR collection:classic_tv OR collection:prelinger OR collection:collectie_filmcollectief OR collection:german_cinema OR collection:KINOfilm OR collection:animationandcartoons OR collection:moviesandfilms OR collection:movie_trailers) AND mediatype:movies";
     
     // Fallback CORS
     var useProxy = false;
@@ -259,9 +259,22 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
     for(var i=0; i<catsSpans.length; i++){
         catsSpans[i].onclick = (function(el){
             return function(){
+                var cat = el.getAttribute("data-c");
+                if(cat === "adult" || cat === "erotica"){
+                    for(var j=0;j<catsSpans.length;j++) catsSpans[j].className = "cb";
+                    el.className = "cb on";
+                    gr.innerHTML = '<div class="ld">🔞 Conteúdo adulto requer login no Archive.org.'
+                        + '<br><br><a href="https://archive.org/account/login" target="_blank"'
+                        + ' style="color:#e50914;font-size:15px">➜ Fazer login no Archive.org</a>'
+                        + '<br><small style="color:#555;margin-top:8px;display:block">'
+                        + 'Após login, recarregue esta página e tente novamente.</small></div>';
+                    pgd.innerHTML = "";
+                    ib.textContent = "Login necessário";
+                    return;
+                }
                 for(var j=0;j<catsSpans.length;j++) catsSpans[j].className = "cb";
                 el.className = "cb on";
-                cc = el.getAttribute("data-c");
+                cc = cat;
                 qr = "";
                 pg = 1;
                 si.value = "";

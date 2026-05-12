@@ -3,276 +3,316 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>K60 — Controle TV AOC</title>
+<title>K60 — TV & Rádio (Controle Direcional: 3 opções)</title>
 <style>
-    /* --- ESTILOS (mantidos para dar o visual e destacar o foco) --- */
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        user-select: none;
-    }
-    :root {
-        --green: #00ff88;
-        --amber: #ffaa00;
-        --red: #ff3355;
-        --bg: #050505;
-        --card: #0a0a0a;
-    }
-    html, body {
-        height: 100%;
-        background: var(--bg);
-        color: #fff;
-        font-family: 'Share Tech Mono', monospace;
-        overflow: hidden;
-        /* Esconde o cursor do mouse na TV */
-        cursor: none;
-    }
-    /* Scanlines e ruído (efeito visual) */
-    body::before {
-        content: '';
-        position: fixed; inset: 0;
-        background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.18) 2px, rgba(0,0,0,.18) 4px);
-        pointer-events: none;
-        z-index: 999;
-    }
-    .stage {
-        position: relative;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 0;
-        padding: 20px;
-    }
-    .brand {
-        text-align: center;
-        margin-bottom: 48px;
-    }
-    .brand-k60 {
-        font-family: 'Orbitron', monospace;
-        font-size: clamp(48px, 10vw, 96px);
-        font-weight: 900;
-        color: var(--green);
-        letter-spacing: 8px;
-        text-shadow: 0 0 30px rgba(0,255,136,.5);
-        position: relative;
-    }
-    .brand-k60::after {
-        content: 'BROADCAST';
-        position: absolute;
-        bottom: -16px;
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: 11px;
-        letter-spacing: 10px;
-        color: #333;
-    }
-    .cards {
-        display: flex;
-        gap: 28px;
-        align-items: stretch;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-    .card {
-        position: relative;
-        width: clamp(200px, 38vw, 300px);
-        padding: 36px 28px 32px;
-        background: var(--card);
-        border: 2px solid #1e1e1e;
-        border-radius: 4px;
-        text-decoration: none;
-        color: #fff;
-        transition: all 0.1s ease;
-        text-align: center;
-        cursor: pointer;
-        outline: none;
-    }
-    /* ESTILO DE FOCO FORTE PARA A TV */
-    .card:focus-visible, .card:focus {
-        border-color: var(--accent);
-        box-shadow: 0 0 0 3px rgba(0,0,0,0.5), 0 0 0 6px var(--accent), 0 0 20px var(--accent);
-        transform: scale(1.02);
-        background: #111;
-        outline: none;
-    }
-    /* Cores individuais */
-    .card-tv    { --accent: #ffaa00; }
-    .card-radio { --accent: #00ff88; }
-    .card-filmes{ --accent: #ff44cc; }
-    .card-icon { font-size: 52px; margin-bottom: 20px; filter: drop-shadow(0 0 8px var(--accent)); }
-    .card-title { font-family: 'Orbitron'; font-size: 22px; font-weight: 700; letter-spacing: 3px; color: var(--accent); margin-bottom: 10px; }
-    .card-desc { font-size: 11px; color: #aaa; line-height: 1.6; }
-    .card-cta { margin-top: 24px; font-size: 11px; letter-spacing: 3px; color: var(--accent); opacity: .7; }
-    .card:focus .card-cta { opacity: 1; }
-    .card-badge {
-        position: absolute;
-        top: 14px; right: 14px;
-        font-size: 9px;
-        color: var(--accent);
-        display: flex;
-        align-items: center;
-        gap: 4px;
-    }
-    .badge-dot {
-        width: 5px; height: 5px;
-        border-radius: 50%;
-        background: var(--accent);
-        animation: blink 1.6s infinite;
-    }
-    .hbar {
-        width: clamp(300px, 70vw, 700px);
-        height: 1px;
-        background: linear-gradient(90deg, transparent, #1e1e1e, transparent);
-        margin: 24px 0;
-    }
-    .footer {
-        position: absolute;
-        bottom: 20px;
-        font-size: 9px;
-        letter-spacing: 3px;
-        color: #222;
-    }
-    @keyframes blink {
-        0%,100% { opacity: .3; }
-        50% { opacity: 1; }
-    }
-    .help-text {
-        position: fixed;
-        bottom: 55px;
-        left: 0;
-        right: 0;
-        text-align: center;
-        font-size: 12px;
-        color: #88ffcc;
-        background: rgba(0,0,0,0.7);
-        padding: 8px;
-        font-family: monospace;
-        z-index: 10000;
-    }
-    @media (max-width: 540px) {
-        .cards { flex-direction: column; align-items: center; }
-        .card { width: 90%; }
-    }
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  user-select: none; /* evita seleção de texto na TV */
+}
+
+:root {
+  --green: #00ff88;
+  --amber: #ffaa00;
+  --red:   #ff3355;
+  --bg:    #050505;
+  --card:  #0a0a0a;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: #fff;
+  font-family: 'Share Tech Mono', monospace;
+  overflow: hidden;
+  /* Opcional: esconde o cursor do mouse para não distrair */
+  cursor: none;
+}
+
+/* Scanlines e ruído (estilo) */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.18) 2px, rgba(0,0,0,.18) 4px);
+  pointer-events: none;
+  z-index: 999;
+}
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 998;
+  opacity: .35;
+}
+
+.stage {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 20px;
+}
+
+.brand {
+  text-align: center;
+  margin-bottom: 48px;
+}
+.brand-k60 {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(48px, 10vw, 96px);
+  font-weight: 900;
+  color: var(--green);
+  letter-spacing: 8px;
+  text-shadow: 0 0 30px rgba(0,255,136,.5);
+  position: relative;
+}
+.brand-k60::after {
+  content: 'BROADCAST';
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  letter-spacing: 10px;
+  color: #333;
+}
+.brand-tagline {
+  margin-top: 28px;
+  font-size: 12px;
+  letter-spacing: 4px;
+  color: #444;
+}
+
+.cards {
+  display: flex;
+  gap: 28px;
+  align-items: stretch;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.card {
+  position: relative;
+  width: clamp(200px, 38vw, 300px);
+  padding: 36px 28px 32px;
+  background: var(--card);
+  border: 2px solid #1e1e1e;
+  border-radius: 4px;
+  text-decoration: none;
+  color: #fff;
+  transition: all 0.1s ease;
+  text-align: center;
+  cursor: pointer;
+  outline: none;
+}
+
+/* ESTILO DE FOCO PARA TV (bem chamativo) */
+.card:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.5), 0 0 0 6px var(--accent), 0 0 20px var(--accent);
+  transform: scale(1.02);
+  background: #111;
+  outline: none;
+}
+
+/* Fallback para navegadores antigos */
+.card:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.5), 0 0 0 6px var(--accent);
+  transform: scale(1.02);
+  outline: none;
+}
+
+/* Cores individuais */
+.card-tv    { --accent: #ffaa00; }
+.card-radio { --accent: #00ff88; }
+.card-filmes{ --accent: #ff44cc; }
+
+.card-icon { font-size: 52px; margin-bottom: 20px; filter: drop-shadow(0 0 8px var(--accent)); }
+.card-title { font-family: 'Orbitron'; font-size: 22px; font-weight: 700; letter-spacing: 3px; color: var(--accent); margin-bottom: 10px; }
+.card-desc { font-size: 11px; color: #aaa; line-height: 1.6; }
+.card-cta { margin-top: 24px; font-size: 11px; letter-spacing: 3px; color: var(--accent); opacity: .7; }
+.card:focus .card-cta, .card:hover .card-cta { opacity: 1; }
+
+.card-badge {
+  position: absolute;
+  top: 14px; right: 14px;
+  font-size: 9px;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.badge-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: blink 1.6s infinite;
+}
+
+.hbar {
+  width: clamp(300px, 70vw, 700px);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #1e1e1e, transparent);
+  margin: 24px 0;
+}
+.footer {
+  position: absolute;
+  bottom: 20px;
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: #222;
+}
+
+@keyframes blink {
+  0%,100% { opacity: .3; }
+  50% { opacity: 1; }
+}
+
+.help-text {
+  position: fixed;
+  bottom: 55px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 12px;
+  color: #88ffcc;
+  background: rgba(0,0,0,0.7);
+  padding: 8px;
+  font-family: monospace;
+  z-index: 10000;
+  letter-spacing: 2px;
+  backdrop-filter: blur(4px);
+}
+
+@media (max-width: 540px) {
+  .cards { flex-direction: column; align-items: center; }
+  .card { width: 90%; }
+}
 </style>
 </head>
 <body>
 
 <div class="stage">
-    <header class="brand">
-        <div class="brand-k60">K60</div>
-        <div class="brand-tagline">Selecione um serviço</div>
-    </header>
-    <div class="hbar"></div>
-    <div class="cards">
-        <a href="#" class="card card-tv" data-url="tv.html">
-            <div class="card-badge"><div class="badge-dot"></div>AO VIVO</div>
-            <span class="card-icon">📺</span>
-            <div class="card-title">TV</div>
-            <div class="card-desc">Canais ao vivo</div>
-            <div class="card-cta">SELECIONAR →</div>
-        </a>
-        <a href="#" class="card card-radio" data-url="radio.html">
-            <div class="card-badge"><div class="badge-dot"></div>AO VIVO</div>
-            <span class="card-icon">📻</span>
-            <div class="card-title">RÁDIO</div>
-            <div class="card-desc">Estações de rádio</div>
-            <div class="card-cta">SELECIONAR →</div>
-        </a>
-        <a href="#" class="card card-filmes" data-url="filmes.html">
-            <div class="card-badge"><div class="badge-dot"></div>LANÇAMENTOS</div>
-            <span class="card-icon">🎬</span>
-            <div class="card-title">FILMES</div>
-            <div class="card-desc">Cinema em casa</div>
-            <div class="card-cta">SELECIONAR →</div>
-        </a>
-    </div>
-    <div class="hbar"></div>
-    <footer class="footer">K60 Broadcast · Use as SETAS do controle para mudar · OK para selecionar</footer>
+  <header class="brand">
+    <div class="brand-k60">K60</div>
+    <div class="brand-tagline">Selecione um serviço para continuar</div>
+  </header>
+  <div class="hbar"></div>
+
+  <div class="cards">
+    <a href="tv.html" class="card card-tv" data-url="tv.html" tabindex="0" id="card-tv">
+      <div class="card-badge"><div class="badge-dot"></div>AO VIVO</div>
+      <span class="card-icon">📺</span>
+      <div class="card-title">TV</div>
+      <div class="card-desc">Canais ao vivo<br>do mundo todo</div>
+      <div class="card-cta">SELECIONAR →</div>
+    </a>
+    <a href="radio.html" class="card card-radio" data-url="radio.html" tabindex="0" id="card-radio">
+      <div class="card-badge"><div class="badge-dot"></div>AO VIVO</div>
+      <span class="card-icon">📻</span>
+      <div class="card-title">RÁDIO</div>
+      <div class="card-desc">Estações de rádio<br>em todos os idiomas</div>
+      <div class="card-cta">SELECIONAR →</div>
+    </a>
+    <a href="filmes.html" class="card card-filmes" data-url="filmes.html" tabindex="0" id="card-filmes">
+      <div class="card-badge"><div class="badge-dot"></div>LANÇAMENTOS</div>
+      <span class="card-icon">🎬</span>
+      <div class="card-title">FILMES</div>
+      <div class="card-desc">Cinema em casa<br>sessão contínua</div>
+      <div class="card-cta">SELECIONAR →</div>
+    </a>
+  </div>
+  <div class="hbar"></div>
+  <footer class="footer">K60 Broadcast · Controle remoto: SETAS (← →) alternam · OK/Enter seleciona</footer>
 </div>
-<div class="help-text" id="help-text">
-    🎮 SETAS: ESQUERDA / DIREITA → Navegar │ OK → Selecionar
+
+<div class="help-text">
+  🎮 USE AS SETAS ESQUERDA / DIREITA → MUDAR A SELEÇÃO │ OK → ENTRAR
 </div>
 
 <script>
-    // --- CÓDIGO DE NAVEGAÇÃO OTIMIZADO PARA TV AOC ---
-    (function() {
-        // 1. Lista dos cards
-        const cards = Array.from(document.querySelectorAll('.card'));
-        let currentIndex = 0;
+  (function() {
+    // Lista dos três cards
+    const cards = Array.from(document.querySelectorAll('.card'));
+    let currentIndex = 0;   // 0 = TV, 1 = Rádio, 2 = Filmes
 
-        // 2. Função para atualizar o foco
-        function setFocus(index) {
-            if (index < 0) index = cards.length - 1;
-            if (index >= cards.length) index = 0;
-            currentIndex = index;
-            cards[currentIndex].focus();
+    // Função que atualiza o foco visual e real para o índice indicado
+    function setFocus(index) {
+      if (index < 0) index = cards.length - 1;
+      if (index >= cards.length) index = 0;
+      currentIndex = index;
+      cards[currentIndex].focus();
+    }
+
+    // Inicia com o foco no primeiro card (TV)
+    setFocus(0);
+
+    // Captura os eventos do teclado / controle remoto
+    window.addEventListener('keydown', function(e) {
+      const key = e.key;
+      // Teclas direcionais: Esquerda, Direita (também aceita Cima/Baixo por segurança)
+      if (key === 'ArrowLeft') {
+        e.preventDefault();
+        setFocus(currentIndex - 1);
+      }
+      else if (key === 'ArrowRight') {
+        e.preventDefault();
+        setFocus(currentIndex + 1);
+      }
+      // Se o controle da TV enviar ArrowUp/ArrowDown (alguns modelos), também alterna
+      else if (key === 'ArrowUp') {
+        e.preventDefault();
+        setFocus(currentIndex - 1);
+      }
+      else if (key === 'ArrowDown') {
+        e.preventDefault();
+        setFocus(currentIndex + 1);
+      }
+      // Tecla OK/Enter (funciona em TVs e PC)
+      else if (key === 'Enter' || key === ' ' || key === 'Space') {
+        e.preventDefault();
+        const selectedCard = cards[currentIndex];
+        if (selectedCard && selectedCard.href) {
+          window.location.href = selectedCard.href;
         }
+      }
+    });
 
-        // 3. Inicia com o foco no primeiro card (TV)
-        setFocus(0);
+    // Previne a rolagem da página com a barra de espaço (em navegadores)
+    window.addEventListener('keyup', function(e) {
+      if (e.key === ' ' || e.key === 'Space' || e.key === 'Enter') {
+        e.preventDefault();
+      }
+    });
 
-        // 4. Lida com o clique (OK no controle ou Enter no teclado)
-        function confirmSelection() {
-            const selectedCard = cards[currentIndex];
-            if (selectedCard && selectedCard.getAttribute('data-url')) {
-                window.location.href = selectedCard.getAttribute('data-url');
-            } else {
-                alert("Ação ainda não configurada!");
-            }
-        }
+    // Opcional: se o usuário clicar em um card com o mouse, ainda funciona,
+    // mas o próximo movimento de seta vai retomar a navegação a partir do índice daquele card.
+    cards.forEach((card, idx) => {
+      card.addEventListener('click', (e) => {
+        // Não faz nada além do clique normal (redireciona)
+        // Mas atualiza o índice atual para manter consistência
+        currentIndex = idx;
+      });
+      card.addEventListener('focus', () => {
+        // Quando o foco chegar em um card via seta (ou qualquer outro meio), atualiza o índice
+        currentIndex = cards.indexOf(card);
+      });
+    });
 
-        // 5. A MAGIA ESTÁ AQUI: escutamos os códigos que a TV AOC pode enviar.
-        window.addEventListener('keydown', function(event) {
-            // Obtém o código da tecla pressionada. Este é o método mais abrangente.
-            const keyPressed = event.keyCode || event.which || event.key;
-            
-            // Mapeamos os códigos mais comuns para as teclas de seta e OK.
-            // keyCode 37 = Esquerda | 39 = Direita | 13 = Enter / OK
-            if (keyPressed === 37) { // Seta Esquerda
-                event.preventDefault();
-                setFocus(currentIndex - 1);
-            } 
-            else if (keyPressed === 39) { // Seta Direita
-                event.preventDefault();
-                setFocus(currentIndex + 1);
-            }
-            else if (keyPressed === 13) { // OK / Enter
-                event.preventDefault();
-                confirmSelection();
-            }
-            
-            // Fallback para navegadores modernos (caso seja uma TV mais nova)
-            else if (event.key === 'ArrowLeft') {
-                event.preventDefault();
-                setFocus(currentIndex - 1);
-            }
-            else if (event.key === 'ArrowRight') {
-                event.preventDefault();
-                setFocus(currentIndex + 1);
-            }
-            else if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                confirmSelection();
-            }
-        });
-        
-        // Previne o scroll da página com a barra de espaços
-        window.addEventListener('keyup', function(e) {
-            if (e.key === ' ' || e.key === 'Space' || e.key === 'Enter') {
-                e.preventDefault();
-            }
-        });
-
-        // Atualiza o índice se o foco mudar (ex: por clique do mouse)
-        cards.forEach((card, idx) => {
-            card.addEventListener('focus', () => {
-                currentIndex = idx;
-            });
-        });
-    })();
+    // Pequeno ajuste para garantir que o cursor do mouse não apareça (se quiser que apareça, remova o CSS "cursor: none")
+    // E garante que nenhum elemento externo roube o foco.
+    document.body.addEventListener('click', () => {
+      // sem ação extra – só para manter o foco nos cards se necessário
+    });
+  })();
 </script>
 </body>
 </html>

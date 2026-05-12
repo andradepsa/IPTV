@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 <title>CineStream — Archive.org para TV</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
 <style>
 :root {
   --red: #e50914;
@@ -19,18 +18,17 @@
   --muted: #aaa;
   --border: #2a2a3a;
 }
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* { margin:0; padding:0; box-sizing:border-box; }
 body {
   background: var(--bg);
   color: var(--text);
   font-family: 'Nunito', sans-serif;
-  font-size: 18px;  /* um pouco maior para TV */
+  font-size: 18px;
   min-height: 100vh;
 }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
 /* CABEÇALHO */
 .hd {
   background: linear-gradient(180deg, #000 0%, rgba(0,0,0,.8) 100%);
@@ -52,12 +50,7 @@ body {
   white-space: nowrap;
 }
 .logo span { color: var(--teal); font-size: 16px; }
-.nav-tabs {
-  display: flex;
-  gap: 8px;
-  flex: 1;
-  overflow-x: auto;
-}
+.nav-tabs { display: flex; gap: 8px; flex: 1; overflow-x: auto; }
 .nt {
   padding: 8px 20px;
   background: transparent;
@@ -82,6 +75,7 @@ body {
   cursor: pointer;
   border-radius: 40px;
 }
+
 /* BARRA DE BUSCA */
 .sb {
   padding: 14px 20px;
@@ -120,6 +114,7 @@ body {
   font-weight: bold;
   white-space: nowrap;
 }
+
 /* CATEGORIAS */
 .cats {
   padding: 12px 20px;
@@ -145,6 +140,7 @@ body {
   border-color: var(--red);
   color: white;
 }
+
 /* INFOS */
 .ib {
   text-align: center;
@@ -153,16 +149,60 @@ body {
   color: var(--muted);
   background: var(--bg);
 }
-/* GRADE DE MINIATURAS - CORREÇÃO PARA TV */
+
+/* BARRA DE PROGRESSO DE CARREGAMENTO */
+.progress-bar-wrap {
+  height: 3px;
+  background: var(--bg3);
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  background: var(--red);
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+/* GRADE */
 .gr {
   padding: 20px 16px;
   max-width: 1600px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 140px)); /* fixo máximo 140px */
+  grid-template-columns: repeat(auto-fill, minmax(130px, 140px));
   gap: 20px;
   justify-content: center;
 }
+
+/* SKELETON CARD */
+.cd-skeleton {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  width: 100%;
+}
+.cd-skeleton-img {
+  width: 100%;
+  aspect-ratio: 2/3;
+  background: linear-gradient(90deg, var(--bg3) 25%, var(--bg4) 50%, var(--bg3) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+.cd-skeleton-line {
+  height: 12px;
+  margin: 8px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--bg3) 25%, var(--bg4) 50%, var(--bg3) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+.cd-skeleton-line.short { width: 60%; }
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 /* CARD INDIVIDUAL */
 .cd {
   background: var(--bg3);
@@ -172,23 +212,21 @@ body {
   transition: transform 0.2s, border-color 0.2s;
   overflow: hidden;
   width: 100%;
+  animation: fadeIn 0.3s ease both;
 }
 .cd:hover {
   transform: scale(1.02);
   border-color: var(--red);
   box-shadow: 0 8px 20px rgba(229,9,20,0.3);
 }
-/* IMAGEM MINIATURA FIXA */
 .cd img {
   width: 100%;
-  aspect-ratio: 2 / 3;
+  aspect-ratio: 2/3;
   display: block;
   object-fit: cover;
   background: #111;
 }
-.ci {
-  padding: 8px;
-}
+.ci { padding: 8px; }
 .ct {
   font-size: 13px;
   font-weight: bold;
@@ -197,11 +235,7 @@ body {
   text-overflow: ellipsis;
   color: var(--text);
 }
-.cm {
-  font-size: 12px;
-  color: var(--red);
-  margin-top: 4px;
-}
+.cm { font-size: 12px; color: var(--red); margin-top: 4px; }
 .cc {
   font-size: 10px;
   color: var(--muted);
@@ -209,23 +243,7 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.src-tag {
-  position: absolute;
-  top: 6px;
-  left: 6px;
-  background: rgba(229,9,20,0.9);
-  padding: 3px 8px;
-  border-radius: 20px;
-  font-size: 10px;
-  font-weight: bold;
-}
-/* demais modais (player, guia) permanecem similares mas com ajustes de fonte */
-.mo, .gm {
-  font-size: 18px;
-}
-.mv-vol button, .mv-vol input {
-  font-size: 20px;
-}
+
 /* PAGINAÇÃO */
 .pb {
   display: inline-block;
@@ -238,6 +256,11 @@ body {
   cursor: pointer;
 }
 .pb.on, .pb:hover { background: var(--red); color: white; }
+
+/* MODAL PLAYER */
+.mo {
+  font-size: 18px;
+}
 </style>
 </head>
 <body>
@@ -259,11 +282,12 @@ body {
 </div>
 
 <div class="cats" id="cats"></div>
+<div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
 <div class="ib" id="ib">Carregando...</div>
-<div class="gr" id="gr"><div class="ld" style="text-align:center;padding:60px">⏳ Carregando filmes...</div></div>
-<div class="pg" id="pg"></div>
+<div class="gr" id="gr"></div>
+<div class="pg" id="pg" style="text-align:center;padding:16px;"></div>
 
-<!-- MODAL PLAYER (mesmo do original, mas com ajuste de tamanho) -->
+<!-- MODAL PLAYER -->
 <div class="mo" id="mo" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.98); z-index:100; align-items:center; justify-content:center;">
   <div style="width:95%; max-width:1200px; background:#000; border-radius:16px; overflow:hidden;">
     <div style="padding:12px 20px; background:#111; display:flex; justify-content:space-between; border-bottom:1px solid #333;">
@@ -275,214 +299,410 @@ body {
   </div>
 </div>
 
-<!-- GUIA (igual) -->
-<div class="gm" id="gm" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.97); z-index:200; overflow:auto; padding:40px 20px;">
+<!-- GUIA -->
+<div id="gm" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.97); z-index:200; overflow:auto; padding:40px 20px;">
   <div style="max-width:900px; margin:0 auto; background:#0f0f15; border-radius:20px; padding:20px;">
     <span onclick="closeGuide()" style="float:right; font-size:36px; cursor:pointer;">&times;</span>
     <h2 style="font-size:32px;">GUIA DE <span style="color:var(--teal)">APIs</span></h2>
-    <p style="margin:10px 0 30px;">Conteúdo público do Internet Archive. Miniaturas otimizadas para TV.</p>
-    <button onclick="closeGuide()" style="background:var(--red); width:100%; padding:14px; border:none; color:white; font-size:18px; border-radius:40px;">FECHAR</button>
+    <p style="margin:10px 0 20px; color:var(--muted);">Conteúdo público do Internet Archive. Carregamento progressivo otimizado para TV.</p>
+    <div style="background:var(--bg3);border-radius:12px;padding:16px;margin-bottom:16px;font-size:15px;color:var(--muted);line-height:1.8;">
+      <b style="color:var(--teal)">🖥️ Modo TV detectado</b><br>
+      Cards carregados em lotes pequenos com pausa entre cada lote.<br>
+      Evita travamentos em Smart TVs e dispositivos com pouca memória.
+    </div>
+    <button onclick="closeGuide()" style="background:var(--red); width:100%; padding:14px; border:none; color:white; font-size:18px; border-radius:40px; cursor:pointer;">FECHAR</button>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
 <script>
 (function(){
-let state = { source:'archive', cat:'', q:'', page:1, tot:0, loading:false };
-const PP = 24;  // mais itens por página na TV
 
-const FMT_PRIORIDADE = ['MPEG4','512Kb MPEG4','H.264 IA','H.264','HiRes MPEG4','Ogg Video','HLS'];
-const EXT_VALIDAS = ['mp4','m4v','ogv','mkv','m3u8'];
+// ── Detecção de TV (igual ao K60 TV) ──────────────────────────
+var _ua = (navigator.userAgent || '').toLowerCase();
+var IS_TV = /smart-?tv|smarttv|tizen|web0s|webos|hbbtv|netcast|viera|bravia|aquos|inettvbrowser|crkey|googletv|appletv|aoc|philips|samsung.*tv|lg.*tv|tv.*browser/.test(_ua);
+try { if (localStorage.getItem('cine_tv') === '1') IS_TV = true; } catch(e) {}
 
-const gr = document.getElementById('gr');
-const ib = document.getElementById('ib');
-const si = document.getElementById('si');
-const pgd = document.getElementById('pg');
-const mo = document.getElementById('mo');
-const mt = document.getElementById('mt');
-const mbody = document.getElementById('mbody');
-const minfo = document.getElementById('minfo');
-const srcBadge = document.getElementById('srcBadge');
-const catsDiv = document.getElementById('cats');
+// ── Tamanho dos lotes (idêntico ao padrão K60 TV) ─────────────
+var CHUNK_SIZE  = IS_TV ? 4  : 12;   // quantos cards por lote
+var CHUNK_PAUSE = IS_TV ? 200 : 60;  // ms entre lotes
 
-let hlsObj = null, curArchId = null;
+// ── Estado global ──────────────────────────────────────────────
+var state = { source:'archive', cat:'', q:'', page:1, tot:0, loading:false };
+var PP = IS_TV ? 16 : 24; // menos itens por página na TV
 
-// ========== MINIATURA CORRETA (thumbnail pequena) ==========
+var FMT_PRIORIDADE = ['MPEG4','512Kb MPEG4','H.264 IA','H.264','HiRes MPEG4','Ogg Video','HLS'];
+var EXT_VALIDAS = ['mp4','m4v','ogv','mkv','m3u8'];
+
+var gr = document.getElementById('gr');
+var ib = document.getElementById('ib');
+var si = document.getElementById('si');
+var pgd = document.getElementById('pg');
+var mo = document.getElementById('mo');
+var mt = document.getElementById('mt');
+var mbody = document.getElementById('mbody');
+var minfo = document.getElementById('minfo');
+var srcBadge = document.getElementById('srcBadge');
+var catsDiv = document.getElementById('cats');
+var progressBar = document.getElementById('progressBar');
+
+var hlsObj = null, curArchId = null;
+
+// ── Miniatura ──────────────────────────────────────────────────
 function getThumbnailUrl(identifier) {
-  // método mais leve e rápido para TV
-  return `https://archive.org/services/img/${encodeURIComponent(identifier)}?size=small`;
-  // alternativamente: `https://archive.org/download/${identifier}/${identifier}_thumb.jpg`
+  return 'https://archive.org/services/img/' + encodeURIComponent(identifier) + '?size=small';
 }
 
-// ========== CARDS COM IMAGEM OTIMIZADA ==========
-function renderCards(docs) {
-  if(!docs.length) { gr.innerHTML = '<div class="ld" style="text-align:center; padding:60px">Nenhum resultado</div>'; return; }
-  let html = '';
-  for(let d of docs) {
-    let id = d.identifier;
-    let titulo = d.title || 'Sem título';
-    let curto = titulo.length > 50 ? titulo.substr(0,47)+'…' : titulo;
-    let ano = d.year || '?';
-    let downloads = d.downloads ? Number(d.downloads).toLocaleString() : '—';
-    let creator = d.creator ? String(d.creator).substr(0,40) : '';
-    let thumbUrl = getThumbnailUrl(id);
-    html += `<div class="cd" data-id="${esc(id)}" data-titulo="${esc(titulo)}" data-ano="${esc(ano)}" data-creator="${esc(creator)}" data-views="${esc(downloads)}">
-      <img src="${thumbUrl}" loading="lazy" onerror="this.src='https://archive.org/images/notfound.png'; this.style.objectFit='contain'">
-      <div class="ci">
-        <div class="ct">${esc(curto)}</div>
-        <div class="cm">${esc(ano)}</div>
-        <div class="cc">${esc(creator)}</div>
-      </div>
-    </div>`;
+// ── Barra de progresso ─────────────────────────────────────────
+function setProgress(pct) {
+  progressBar.style.width = pct + '%';
+}
+
+// ── Skeletons enquanto carrega ─────────────────────────────────
+function renderSkeletons(count) {
+  var html = '';
+  for (var i = 0; i < count; i++) {
+    html += '<div class="cd-skeleton">'
+      + '<div class="cd-skeleton-img"></div>'
+      + '<div style="padding:8px">'
+      + '<div class="cd-skeleton-line"></div>'
+      + '<div class="cd-skeleton-line short"></div>'
+      + '</div></div>';
   }
   gr.innerHTML = html;
-  document.querySelectorAll('.cd').forEach(el => {
-    el.onclick = () => {
-      let id = el.dataset.id, titulo = el.dataset.titulo, ano = el.dataset.ano, creator = el.dataset.creator, views = el.dataset.views;
-      abrirPlayer(id, titulo, `<strong>${esc(titulo)}</strong> ${ano!='?'?`(${ano})`:''} · ${creator} · ${views} acessos · <a href="https://archive.org/details/${encodeURIComponent(id)}" target="_blank">Detalhes ↗</a>`);
-    };
-  });
 }
 
-// ========== BUSCA E METADADOS ==========
+// ── Criar elemento card ────────────────────────────────────────
+function criarCard(d) {
+  var id = d.identifier;
+  var titulo = d.title || 'Sem título';
+  var curto = titulo.length > 50 ? titulo.substr(0,47) + '…' : titulo;
+  var ano = d.year || '?';
+  var downloads = d.downloads ? Number(d.downloads).toLocaleString() : '—';
+  var creator = d.creator ? String(d.creator).substr(0,40) : '';
+  var thumbUrl = getThumbnailUrl(id);
+
+  var el = document.createElement('div');
+  el.className = 'cd';
+  el.innerHTML =
+    '<img src="' + thumbUrl + '" loading="lazy" onerror="this.src=\'https://archive.org/images/notfound.png\';this.style.objectFit=\'contain\'">'
+    + '<div class="ci">'
+    + '<div class="ct">' + esc(curto) + '</div>'
+    + '<div class="cm">' + esc(ano) + '</div>'
+    + '<div class="cc">' + esc(creator) + '</div>'
+    + '</div>';
+
+  el.onclick = function() {
+    abrirPlayer(id, titulo,
+      '<strong>' + esc(titulo) + '</strong> '
+      + (ano !== '?' ? '(' + ano + ')' : '')
+      + ' · ' + esc(creator)
+      + ' · ' + downloads + ' acessos'
+      + ' · <a href="https://archive.org/details/' + encodeURIComponent(id) + '" target="_blank">Detalhes ↗</a>'
+    );
+  };
+  return el;
+}
+
+// ── Renderização progressiva em lotes (padrão K60 TV) ─────────
+function renderCardsProgressivo(docs) {
+  if (!docs.length) {
+    gr.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted)">Nenhum resultado encontrado</div>';
+    setProgress(100);
+    return;
+  }
+
+  gr.innerHTML = ''; // limpa skeletons
+  var total = docs.length;
+  var idx = 0;
+
+  function processarLote() {
+    var fim = Math.min(idx + CHUNK_SIZE, total);
+
+    // Usa fragment para inserir o lote de uma vez (não causa reflow por card)
+    var frag = document.createDocumentFragment();
+    for (var i = idx; i < fim; i++) {
+      frag.appendChild(criarCard(docs[i]));
+    }
+    gr.appendChild(frag);
+
+    idx = fim;
+    var pct = Math.round((idx / total) * 100);
+    setProgress(pct);
+    ib.textContent = state.tot.toLocaleString() + ' itens · Pág.' + state.page
+      + ' · Carregando ' + idx + '/' + total + '…';
+
+    if (idx < total) {
+      setTimeout(processarLote, CHUNK_PAUSE);
+    } else {
+      // Concluído
+      ib.textContent = state.tot.toLocaleString() + ' itens · Pág.' + state.page
+        + ' · Archive.org' + (IS_TV ? ' (Modo TV)' : '');
+      setTimeout(function(){ setProgress(0); }, 800);
+    }
+  }
+
+  // Primeiro lote imediato, resto com pausa
+  processarLote();
+}
+
+// ── Busca ──────────────────────────────────────────────────────
 function load() {
-  if(state.loading) return;
+  if (state.loading) return;
   state.loading = true;
-  gr.innerHTML = '<div class="ld" style="text-align:center;padding:60px"><div style="width:40px;height:40px;border:3px solid #333;border-top:3px solid red;border-radius:50%;margin:0 auto 12px;animation:spin 0.8s linear infinite"></div>Buscando...</div>';
+
+  renderSkeletons(PP);
   pgd.innerHTML = '';
-  ib.textContent = 'Carregando arquivo...';
-  
-  let query = buildQuery();
-  let url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(query)}&fl[]=identifier&fl[]=title&fl[]=year&fl[]=creator&fl[]=downloads&sort[]=downloads+desc&rows=${PP}&page=${state.page}&output=json`;
-  
-  fetchJSONP(url, (data) => {
+  ib.textContent = 'Buscando no Archive.org…';
+  setProgress(10);
+
+  var query = buildQuery();
+  var url = 'https://archive.org/advancedsearch.php?q=' + encodeURIComponent(query)
+    + '&fl[]=identifier&fl[]=title&fl[]=year&fl[]=creator&fl[]=downloads'
+    + '&sort[]=downloads+desc&rows=' + PP + '&page=' + state.page + '&output=json';
+
+  fetchJSONP(url, function(data) {
     state.loading = false;
-    if(!data || data.error || !data.response) {
-      gr.innerHTML = '<div class="ld">Erro de conexão com Archive.org</div>';
-      ib.textContent = 'Falha';
+    setProgress(50);
+
+    if (!data || data.error || !data.response) {
+      gr.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted)">Erro de conexão com Archive.org</div>';
+      ib.textContent = 'Falha na conexão';
+      setProgress(0);
       return;
     }
-    let docs = data.response.docs || [];
+
+    var docs = data.response.docs || [];
     state.tot = data.response.numFound || 0;
-    ib.textContent = `${state.tot.toLocaleString()} itens · Pág.${state.page} · Archive.org (Miniaturas TV)`;
-    renderCards(docs);
+
+    if (!docs.length) {
+      gr.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted)">Nenhum resultado</div>';
+      ib.textContent = 'Nenhum resultado encontrado';
+      setProgress(0);
+      return;
+    }
+
+    // Inicia renderização progressiva em lotes
+    renderCardsProgressivo(docs);
     renderPag();
   });
 }
 
 function buildQuery() {
-  let q = state.q, cat = state.cat, src = state.source;
-  let col = '';
-  if(src === 'docs') {
-    col = cat ? `collection:${cat}` : '(collection:feature_films OR collection:prelinger OR collection:german_cinema OR collection:classic_tv)';
+  var q = state.q, cat = state.cat, src = state.source;
+  var col = '';
+  if (src === 'docs') {
+    col = cat
+      ? 'collection:' + cat
+      : '(collection:feature_films OR collection:prelinger OR collection:german_cinema OR collection:classic_tv)';
     col += ' AND mediatype:movies';
-  } else if(src === 'cartoons') {
-    col = cat ? `collection:${cat}` : 'collection:animationandcartoons';
+  } else if (src === 'cartoons') {
+    col = cat ? 'collection:' + cat : 'collection:animationandcartoons';
     col += ' AND mediatype:movies';
   } else {
-    col = cat ? `collection:${cat}` : '(collection:feature_films OR collection:Comedy_Films OR collection:Film_Noir OR collection:SciFi_Horror OR collection:silent_films OR collection:short_films OR collection:prelinger OR collection:animationandcartoons)';
+    col = cat
+      ? 'collection:' + cat
+      : '(collection:feature_films OR collection:Comedy_Films OR collection:Film_Noir OR collection:SciFi_Horror OR collection:silent_films OR collection:short_films OR collection:prelinger OR collection:animationandcartoons)';
     col += ' AND mediatype:movies';
   }
-  if(q) col = `(${col}) AND title:(${q})`;
+  if (q) col = '(' + col + ') AND title:(' + q + ')';
   return col;
 }
 
 function fetchJSONP(url, cb) {
-  let name = '_cb_' + Date.now() + '_' + Math.floor(Math.random()*99999);
-  let script = document.createElement('script');
-  let timeout = setTimeout(() => { cleanup(); cb({error:'timeout'}); }, 15000);
-  window[name] = (data) => { clearTimeout(timeout); cleanup(); cb(data); };
-  function cleanup() { delete window[name]; if(script.parentNode) script.parentNode.removeChild(script); }
-  script.onerror = () => { clearTimeout(timeout); cleanup(); cb({error:'network'}); };
+  var name = '_cb_' + Date.now() + '_' + Math.floor(Math.random() * 99999);
+  var script = document.createElement('script');
+  var timeout = setTimeout(function(){ cleanup(); cb({ error:'timeout' }); }, 15000);
+  window[name] = function(data) { clearTimeout(timeout); cleanup(); cb(data); };
+  function cleanup() {
+    delete window[name];
+    if (script.parentNode) script.parentNode.removeChild(script);
+  }
+  script.onerror = function() { clearTimeout(timeout); cleanup(); cb({ error:'network' }); };
   script.src = url + '&callback=' + name;
   document.head.appendChild(script);
 }
 
 function renderPag() {
-  let total = Math.ceil(state.tot / PP);
-  if(total <= 1) { pgd.innerHTML = ''; return; }
-  let html = `<span class="pb" data-page="${state.page-1}" ${state.page===1?'disabled':''}>◀</span>`;
-  for(let i=1; i<=total && i<=8; i++) {
-    html += `<span class="pb ${i===state.page?'on':''}" data-page="${i}">${i}</span>`;
+  var total = Math.ceil(state.tot / PP);
+  if (total <= 1) { pgd.innerHTML = ''; return; }
+  var html = '<span class="pb" data-page="' + (state.page - 1) + '"' + (state.page === 1 ? ' style="opacity:.4;cursor:default"' : '') + '>◀</span>';
+  var maxPag = Math.min(total, 8);
+  for (var i = 1; i <= maxPag; i++) {
+    html += '<span class="pb ' + (i === state.page ? 'on' : '') + '" data-page="' + i + '">' + i + '</span>';
   }
-  html += `<span class="pb" data-page="${state.page+1}" ${state.page>=total?'disabled':''}>▶</span>`;
+  html += '<span class="pb" data-page="' + (state.page + 1) + '"' + (state.page >= total ? ' style="opacity:.4;cursor:default"' : '') + '>▶</span>';
   pgd.innerHTML = html;
-  document.querySelectorAll('.pb').forEach(btn => {
-    let p = parseInt(btn.dataset.page);
-    if(!isNaN(p) && p>=1 && p<=total) btn.onclick = () => { state.page = p; load(); window.scrollTo(0,0); };
+  document.querySelectorAll('.pb').forEach(function(btn) {
+    var p = parseInt(btn.dataset.page);
+    if (!isNaN(p) && p >= 1 && p <= total) {
+      btn.onclick = function() { state.page = p; load(); window.scrollTo(0, 0); };
+    }
   });
 }
 
-// ========== PLAYER IDÊNTICO AO ORIGINAL (resumido) ==========
-function pararPlayer() { if(hlsObj) hlsObj.destroy(); let vid=document.getElementById('cv'); if(vid){vid.pause();vid.src='';} }
-function montarPlayerHTML() { return `<div style="position:relative;width:100%;padding-bottom:56.25%;background:#000"><video id="cv" controls playsinline style="position:absolute;width:100%;height:100%"></video><div id="cv-err" style="display:none;position:absolute;inset:0;background:#000;flex-direction:column;align-items:center;justify-content:center"><p>Erro ao carregar</p><button id="btn-embed">Usar alternativo</button><button id="btn-direct">Abrir no Archive</button></div></div>`; }
+// ── Player ─────────────────────────────────────────────────────
+function pararPlayer() {
+  if (hlsObj) { hlsObj.destroy(); hlsObj = null; }
+  var vid = document.getElementById('cv');
+  if (vid) { vid.pause(); vid.src = ''; }
+}
+
+function montarPlayerHTML() {
+  return '<div style="position:relative;width:100%;padding-bottom:56.25%;background:#000">'
+    + '<video id="cv" controls playsinline style="position:absolute;width:100%;height:100%"></video>'
+    + '<div id="cv-err" style="display:none;position:absolute;inset:0;background:#000;flex-direction:column;align-items:center;justify-content:center;gap:12px">'
+    + '<p style="color:var(--muted)">Erro ao carregar o vídeo</p>'
+    + '<button id="btn-embed" style="padding:10px 24px;background:var(--red);border:none;color:white;border-radius:30px;cursor:pointer;font-size:16px">Usar alternativo</button>'
+    + '<button id="btn-direct" style="padding:10px 24px;background:var(--bg4);border:1px solid var(--border);color:var(--text);border-radius:30px;cursor:pointer;font-size:16px">Abrir no Archive</button>'
+    + '</div></div>';
+}
+
 function abrirPlayer(id, titulo, infoHtml) {
-  curArchId = id; mt.textContent = titulo; minfo.innerHTML = infoHtml;
+  curArchId = id;
+  mt.textContent = titulo;
+  minfo.innerHTML = infoHtml;
   mbody.innerHTML = montarPlayerHTML();
   mo.style.display = 'flex';
-  document.getElementById('btn-embed').onclick = () => usarEmbed(id);
-  document.getElementById('btn-direct').onclick = () => window.open(`https://archive.org/details/${encodeURIComponent(id)}`, '_blank');
+  document.getElementById('btn-embed').onclick = function() { usarEmbed(id); };
+  document.getElementById('btn-direct').onclick = function() { window.open('https://archive.org/details/' + encodeURIComponent(id), '_blank'); };
   carregarVideo(id);
 }
-function carregarVideo(id) {
-  fetch(`https://archive.org/metadata/${encodeURIComponent(id)}`).then(r=>r.json()).then(data=>{
-    let files = data.files || [];
-    let url = null;
-    for(let fmt of FMT_PRIORIDADE) {
-      let f = files.find(f=>f.format===fmt && EXT_VALIDAS.some(ext=>f.name.endsWith(ext)));
-      if(f) { url = `https://archive.org/download/${encodeURIComponent(id)}/${encodeURIComponent(f.name)}`; break; }
-    }
-    if(!url) url = files.find(f=>f.name && f.name.endsWith('.mp4'))?.name && `https://archive.org/download/${encodeURIComponent(id)}/${encodeURIComponent(files.find(f=>f.name.endsWith('.mp4')).name)}`;
-    if(url) tocarUrl(url, id);
-    else usarEmbed(id);
-  }).catch(()=>usarEmbed(id));
-}
-function tocarUrl(url,id) {
-  let vid = document.getElementById('cv');
-  if(!vid) return;
-  vid.src = url; vid.load(); vid.play().catch(()=>vid.muted=true&&vid.play());
-}
-function usarEmbed(id) {
-  let container = document.querySelector('#mbody > div');
-  if(container) container.innerHTML = `<iframe src="https://archive.org/embed/${encodeURIComponent(id)}?autoplay=1" allowfullscreen style="position:absolute;width:100%;height:100%;border:none"></iframe>`;
-}
-function fecharModal() { pararPlayer(); mo.style.display = 'none'; mbody.innerHTML = ''; }
-document.getElementById('mx').onclick = fecharModal;
-mo.onclick = (e) => { if(e.target===mo) fecharModal(); };
 
-// ========== CATEGORIAS & MUDANÇA DE FONTE ==========
-const CATS = {
-  archive: [{k:'',l:'TODOS'},{k:'feature_films',l:'LONGAS'},{k:'Comedy_Films',l:'COMÉDIA'},{k:'SciFi_Horror',l:'SCI-FI'},{k:'silent_films',l:'MUDOS'},{k:'short_films',l:'CURTAS'},{k:'animationandcartoons',l:'ANIMAÇÃO'},{k:'prelinger',l:'PRELINGER'},{k:'classic_tv',l:'TV'},{k:'german_cinema',l:'ALEMÃO'}],
-  cartoons: [{k:'',l:'TODOS'},{k:'animationandcartoons',l:'ANIMAÇÃO'},{k:'short_films',l:'CURTAS'}],
-  docs: [{k:'',l:'TODOS'},{k:'feature_films',l:'LONGAS'},{k:'prelinger',l:'HISTÓRIA'},{k:'classic_tv',l:'TV CLÁSSICA'}]
-};
-function renderCats() {
-  let list = CATS[state.source] || [];
-  catsDiv.innerHTML = list.map(c => `<span class="cb ${c.k===state.cat?'on':''}" data-k="${c.k}">${c.l}</span>`).join('');
-  document.querySelectorAll('.cb').forEach(el => el.onclick = () => { state.cat = el.dataset.k; state.page=1; renderCats(); load(); });
+function carregarVideo(id) {
+  fetch('https://archive.org/metadata/' + encodeURIComponent(id))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var files = data.files || [];
+      var url = null;
+      for (var f = 0; f < FMT_PRIORIDADE.length; f++) {
+        var fmt = FMT_PRIORIDADE[f];
+        var found = files.find(function(fi) {
+          return fi.format === fmt && EXT_VALIDAS.some(function(ext) { return fi.name && fi.name.endsWith(ext); });
+        });
+        if (found) {
+          url = 'https://archive.org/download/' + encodeURIComponent(id) + '/' + encodeURIComponent(found.name);
+          break;
+        }
+      }
+      if (!url) {
+        var mp4 = files.find(function(f) { return f.name && f.name.endsWith('.mp4'); });
+        if (mp4) url = 'https://archive.org/download/' + encodeURIComponent(id) + '/' + encodeURIComponent(mp4.name);
+      }
+      if (url) tocarUrl(url, id);
+      else usarEmbed(id);
+    })
+    .catch(function() { usarEmbed(id); });
 }
+
+function tocarUrl(url, id) {
+  var vid = document.getElementById('cv');
+  if (!vid) return;
+  if (url.endsWith('.m3u8') && window.Hls && Hls.isSupported()) {
+    if (hlsObj) hlsObj.destroy();
+    hlsObj = new Hls();
+    hlsObj.loadSource(url);
+    hlsObj.attachMedia(vid);
+    hlsObj.on(Hls.Events.MANIFEST_PARSED, function() { vid.play().catch(function(){}); });
+  } else {
+    vid.src = url;
+    vid.load();
+    vid.play().catch(function() { vid.muted = true; vid.play(); });
+  }
+  vid.onerror = function() { usarEmbed(id); };
+}
+
+function usarEmbed(id) {
+  var wrap = mbody.querySelector('div');
+  if (wrap) wrap.innerHTML = '<iframe src="https://archive.org/embed/' + encodeURIComponent(id) + '?autoplay=1" allowfullscreen style="position:absolute;width:100%;height:100%;border:none"></iframe>';
+}
+
+function fecharModal() {
+  pararPlayer();
+  mo.style.display = 'none';
+  mbody.innerHTML = '';
+}
+
+document.getElementById('mx').onclick = fecharModal;
+mo.onclick = function(e) { if (e.target === mo) fecharModal(); };
+
+// ── Categorias ─────────────────────────────────────────────────
+var CATS = {
+  archive: [
+    {k:'',l:'TODOS'},{k:'feature_films',l:'LONGAS'},{k:'Comedy_Films',l:'COMÉDIA'},
+    {k:'SciFi_Horror',l:'SCI-FI'},{k:'silent_films',l:'MUDOS'},{k:'short_films',l:'CURTAS'},
+    {k:'animationandcartoons',l:'ANIMAÇÃO'},{k:'prelinger',l:'PRELINGER'},
+    {k:'classic_tv',l:'TV'},{k:'german_cinema',l:'ALEMÃO'}
+  ],
+  cartoons: [
+    {k:'',l:'TODOS'},{k:'animationandcartoons',l:'ANIMAÇÃO'},{k:'short_films',l:'CURTAS'}
+  ],
+  docs: [
+    {k:'',l:'TODOS'},{k:'feature_films',l:'LONGAS'},{k:'prelinger',l:'HISTÓRIA'},{k:'classic_tv',l:'TV CLÁSSICA'}
+  ]
+};
+
+function renderCats() {
+  var list = CATS[state.source] || [];
+  catsDiv.innerHTML = list.map(function(c) {
+    return '<span class="cb ' + (c.k === state.cat ? 'on' : '') + '" data-k="' + c.k + '">' + c.l + '</span>';
+  }).join('');
+  document.querySelectorAll('.cb').forEach(function(el) {
+    el.onclick = function() {
+      state.cat = el.dataset.k;
+      state.page = 1;
+      renderCats();
+      load();
+    };
+  });
+}
+
 window.switchSource = function(src) {
-  document.querySelectorAll('.nt').forEach(b=>b.classList.remove('on'));
-  if(src==='archive') document.querySelectorAll('.nt')[0].classList.add('on');
-  else if(src==='cartoons') document.querySelectorAll('.nt')[1].classList.add('on');
-  else document.querySelectorAll('.nt')[2].classList.add('on');
+  document.querySelectorAll('.nt').forEach(function(b) { b.classList.remove('on'); });
+  var idx = {archive:0, cartoons:1, docs:2}[src] || 0;
+  document.querySelectorAll('.nt')[idx].classList.add('on');
   state.source = src;
-  state.cat = (src==='cartoons') ? 'animationandcartoons' : '';
-  state.q = ''; state.page = 1; si.value = '';
-  let badgeText = {archive:'ARCHIVE.ORG', cartoons:'ARCHIVE.ORG', docs:'ARCHIVE.ORG'};
-  srcBadge.textContent = badgeText[src];
+  state.cat = (src === 'cartoons') ? 'animationandcartoons' : '';
+  state.q = '';
+  state.page = 1;
+  si.value = '';
   renderCats();
   load();
 };
 
-function esc(s) { if(!s) return ''; return String(s).replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+// ── Escape HTML ────────────────────────────────────────────────
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"]/g, function(m) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];
+  });
+}
 
-document.getElementById('btnBuscar').onclick = () => { state.q = si.value.trim(); state.page=1; load(); };
-si.onkeydown = e => { if(e.key==='Enter') { state.q=si.value.trim(); state.page=1; load(); } };
-window.openGuide = () => { document.getElementById('gm').style.display='block'; };
-window.closeGuide = () => { document.getElementById('gm').style.display='none'; };
+// ── Guia ───────────────────────────────────────────────────────
+window.openGuide = function() { document.getElementById('gm').style.display = 'block'; };
+window.closeGuide = function() { document.getElementById('gm').style.display = 'none'; };
+
+// ── Busca manual ───────────────────────────────────────────────
+document.getElementById('btnBuscar').onclick = function() {
+  state.q = si.value.trim();
+  state.page = 1;
+  load();
+};
+si.onkeydown = function(e) {
+  if (e.key === 'Enter') { state.q = si.value.trim(); state.page = 1; load(); }
+};
+
+// ── Iniciar ────────────────────────────────────────────────────
+// Mostra modo TV se detectado
+if (IS_TV) {
+  srcBadge.textContent = 'ARCHIVE.ORG · TV';
+  srcBadge.style.background = 'rgba(0,212,180,.15)';
+  srcBadge.style.color = '#00d4b4';
+}
 
 renderCats();
 load();
+
 })();
 </script>
 </body>

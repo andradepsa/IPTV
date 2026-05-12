@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Cine Arquivo</title>
+<title>Cine Arquivo +18</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size:14px}
@@ -12,7 +12,7 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
 .sb{padding:10px;background:#1a1a1a;text-align:center}
 .sb input{width:60%;max-width:500px;padding:8px;border:1px solid #444;background:#222;color:#fff;font-size:14px;border-radius:4px}
 .sb button{padding:8px 16px;border:none;background:#e50914;color:#fff;font-size:14px;cursor:pointer;border-radius:4px;margin-left:4px}
-.cats{padding:6px;text-align:center;background:#1a1a1a;max-height:130px;overflow-y:auto;scrollbar-width:thin}
+.cats{padding:6px;text-align:center;background:#1a1a1a;max-height:140px;overflow-y:auto;scrollbar-width:thin}
 .cb{display:inline-block;background:#333;border:none;color:#ccc;padding:4px 10px;margin:2px;cursor:pointer;font-size:12px;border-radius:3px}
 .cb:hover,.cb.on{background:#e50914;color:#fff}
 .ib{text-align:center;padding:6px;font-size:12px;color:#888;background:#111}
@@ -39,10 +39,11 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
 .mv iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none}
 .ft{text-align:center;padding:8px;font-size:11px;color:#555;background:#000;border-top:1px solid #222}
 .aviso{background:#330000;color:#ff9999;padding:8px;text-align:center;font-size:12px;border-bottom:1px solid #e50914}
+.warning18{background:#2a0000;color:#ff8888;font-size:11px;padding:4px 8px;border-radius:12px;margin-left:6px}
 </style>
 </head>
 <body>
-<div class="hd"><h1>CINE ARQUIVO</h1></div>
+<div class="hd"><h1>CINE ARQUIVO <span class="warning18">🔞 +18</span></h1></div>
 <div class="sb">
 <input type="text" id="si" placeholder="Buscar filmes...">
 <button id="bt">BUSCAR</button>
@@ -64,6 +65,8 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
 <span class="cb" data-c="collectie_filmcollectief">FILM COLLECTIEF</span>
 <span class="cb" data-c="german_cinema">ALEMAO</span>
 <span class="cb" data-c="KINOfilm">KINO</span>
+<span class="cb" data-c="adult">🔞 ADULTOS</span>
+<span class="cb" data-c="erotica">🔞 EROTICA</span>
 </div>
 <div class="ib" id="ib">Carregando...</div>
 <div class="gr" id="gr"><div class="ld">Conectando ao Archive...</div></div>
@@ -74,19 +77,18 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
 <div class="mv"><iframe id="mf" allowfullscreen></iframe></div>
 </div>
 </div>
-<div class="ft">Cine Arquivo | Internet Archive | 15 colecoes | Conexao segura</div>
+<div class="ft">Cine Arquivo | Internet Archive | Inclui conteudo adulto 🔞 | 17 colecoes</div>
 
 <script>
 (function(){
     // ---------- CONFIG ----------
     var pg = 1;
-    var qr = "";        // termo de busca
-    var cc = "";        // coleção selecionada
+    var qr = "";
+    var cc = "";
     var tot = 0;
-    var pp = 24;        // filmes por página
-    var maxRetries = 2; // tentativas com fallback
+    var pp = 24;
+    var maxRetries = 2;
     
-    // Elementos DOM
     var gr = document.getElementById("gr");
     var ib = document.getElementById("ib");
     var si = document.getElementById("si");
@@ -95,11 +97,11 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
     var mf = document.getElementById("mf");
     var mt = document.getElementById("mt");
     
-    // Query base: todas as coleções de filmes
-    var allC = "(collection:feature_films OR collection:Comedy_Films OR collection:Film_Noir OR collection:SciFi_Horror OR collection:film_scifi OR collection:silent_films OR collection:short_films OR collection:classic_tv OR collection:prelinger OR collection:collectie_filmcollectief OR collection:german_cinema OR collection:KINOfilm) AND mediatype:movies";
+    // Query base incluindo ADULT e EROTICA
+    var allC = "(collection:feature_films OR collection:Comedy_Films OR collection:Film_Noir OR collection:SciFi_Horror OR collection:film_scifi OR collection:silent_films OR collection:short_films OR collection:classic_tv OR collection:prelinger OR collection:collectie_filmcollectief OR collection:german_cinema OR collection:KINOfilm OR collection:adult OR collection:erotica) AND mediatype:movies";
     
-    // Sistema de fallback: JSONP + Proxies
-    var useProxy = false;           // muda dinamicamente se falhar
+    // Fallback CORS
+    var useProxy = false;
     var proxyList = [
         "https://corsproxy.io/?",
         "https://api.allorigins.win/raw?url=",
@@ -107,19 +109,13 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
     ];
     var currentProxyIndex = 0;
     
-    // ----- JSONP + XHR FALLBACK (sem CORS) -----
     function fetchArchiveAPI(queryURL, callback, retryCount) {
         retryCount = retryCount || 0;
-        // Tenta primeiro JSONP (mais seguro contra CORS)
         var callbackName = "jsonp_callback_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
         var script = document.createElement('script');
         var timeout = setTimeout(function() {
-            // Timeout do JSONP
-            if (window[callbackName]) {
-                delete window[callbackName];
-            }
+            if (window[callbackName]) delete window[callbackName];
             if (script.parentNode) script.parentNode.removeChild(script);
-            // Fallback para XHR com proxy se JSONP falhar
             if (retryCount < maxRetries) {
                 fetchArchiveWithProxy(queryURL, callback, retryCount + 1);
             } else {
@@ -154,7 +150,6 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
         var proxy = proxyList[currentProxyIndex % proxyList.length];
         var fullURL = proxy + encodeURIComponent(queryURL);
         if (!useProxy) {
-            // tenta sem proxy primeiro (CORS direto)
             var xhr = new XMLHttpRequest();
             xhr.open("GET", queryURL, true);
             xhr.timeout = 12000;
@@ -166,7 +161,6 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
                             callback(data);
                         } catch(e) { callback({ error: "Parse error" }); }
                     } else {
-                        // mudar para modo proxy nas próximas
                         useProxy = true;
                         if (retryCount < maxRetries) {
                             fetchArchiveWithProxy(queryURL, callback, retryCount + 1);
@@ -194,7 +188,6 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
             };
             xhr.send();
         } else {
-            // tentativa com proxy
             var xhr2 = new XMLHttpRequest();
             xhr2.open("GET", fullURL, true);
             xhr2.timeout = 20000;
@@ -235,17 +228,12 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
         }
     }
     
-    // Função principal para buscar dados (usa JSONP primeira tentativa)
     function performSearch(queryURL, callback) {
-        // tenta JSONP primeiro (sem problemas de CORS)
         var callbackName = "search_cb_" + Date.now() + "_" + Math.floor(Math.random() * 99999);
         var script = document.createElement('script');
         var timeoutId = setTimeout(function() {
-            if (window[callbackName]) {
-                delete window[callbackName];
-            }
+            if (window[callbackName]) delete window[callbackName];
             if (script.parentNode) script.parentNode.removeChild(script);
-            // fallback para fetchArchiveWithProxy
             fetchArchiveWithProxy(queryURL, callback, 0);
         }, 18000);
         
@@ -266,7 +254,7 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
         document.head.appendChild(script);
     }
     
-    // ----- eventos da UI -----
+    // Eventos dos botões de categoria
     var catsSpans = document.getElementById("cats").getElementsByTagName("span");
     for(var i=0; i<catsSpans.length; i++){
         catsSpans[i].onclick = (function(el){
@@ -306,7 +294,6 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
         mf.src = "";
     }
     
-    // Monta query
     function buildQuery(){
         var q = "";
         if(qr){
@@ -367,7 +354,6 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
             var ano = d.year || "?";
             var downloads = d.downloads ? d.downloads.toLocaleString() : "0";
             var imgURL = "https://archive.org/services/img/" + encodeURIComponent(id);
-            // fallback de imagem (caso não carregue)
             html += '<div class="cd" data-id="'+escapeHtml(id)+'" data-titulo="'+escapeHtml(titulo)+'">' +
                     '<img src="'+imgURL+'" alt="capa" loading="lazy" onerror="this.src=\'https://archive.org/download/noimage.png\'; this.style.objectFit=\'contain\'">' +
                     '<div class="ci">' +
@@ -377,7 +363,6 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
                     '</div></div>';
         }
         gr.innerHTML = html;
-        // adicionar eventos nos cards
         var cards = gr.getElementsByClassName("cd");
         for(var i=0; i<cards.length; i++){
             cards[i].onclick = (function(el){
@@ -385,7 +370,6 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
                     var filmId = el.getAttribute("data-id");
                     var filmTitle = el.getAttribute("data-titulo") || "Filme";
                     mt.textContent = filmTitle;
-                    // Embed do Internet Archive com player nativo
                     mf.src = "https://archive.org/embed/" + encodeURIComponent(filmId) + "?autoplay=1&playsinline=1";
                     mo.className = "mo show";
                 };
@@ -427,7 +411,6 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
         }
     }
     
-    // Detectar se está em ambiente restrito (mostrar aviso amigável)
     function testCORSAndNotify() {
         var xhrTest = new XMLHttpRequest();
         xhrTest.open("GET", "https://archive.org/advancedsearch.php?q=identifier:test&output=json", true);
@@ -441,7 +424,7 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
     function showSmallWarning() {
         var warnDiv = document.createElement("div");
         warnDiv.className = "aviso";
-        warnDiv.innerHTML = "⚠️ Conexão com proxy ativada (CORS). A busca pode ser um pouco mais lenta, mas funciona normalmente.";
+        warnDiv.innerHTML = "⚠️ Conexão com proxy ativada (CORS). A busca pode ser um pouco mais lenta, mas funciona normalmente. | Conteúdo adulto presente 🔞";
         var ref = document.querySelector(".ib");
         if(ref && !document.querySelector(".aviso")) {
             ref.parentNode.insertBefore(warnDiv, ref);
@@ -449,9 +432,7 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
         }
     }
     
-    // Iniciar
     carregar();
-    // Pequeno delay para testar CORS e avisar
     setTimeout(testCORSAndNotify, 1500);
 })();
 </script>

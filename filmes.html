@@ -69,8 +69,8 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
 <span class="cb" data-c="collectie_filmcollectief">FILM COLLECTIEF</span>
 <span class="cb" data-c="german_cinema">ALEMAO</span>
 <span class="cb" data-c="KINOfilm">KINO</span>
-<span class="cb" data-c="adult">🔞 ADULTOS</span>
-<span class="cb" data-c="erotica">🔞 EROTICA</span>
+<span class="cb" data-c="adult" style="display:none">🔞 ADULTOS</span>
+<span class="cb" data-c="erotica" style="display:none">🔞 EROTICA</span>
 </div>
 <div class="ib" id="ib">Carregando...</div>
 <div id="stb-wrap" class="stb-wrap">
@@ -104,7 +104,19 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
     var mf = document.getElementById("mf");
     var mt = document.getElementById("mt");
     
-    // Query base incluindo ADULT e EROTICA
+    // Referências das abas +18
+    var adultTab = null;
+    var eroticaTab = null;
+    var catsContainer = document.getElementById("cats");
+    var allCatSpans = catsContainer.getElementsByTagName("span");
+    // Identificar as duas abas específicas (já com style.display:none no HTML)
+    for(var i=0;i<allCatSpans.length;i++){
+        var catVal = allCatSpans[i].getAttribute("data-c");
+        if(catVal === "adult") adultTab = allCatSpans[i];
+        if(catVal === "erotica") eroticaTab = allCatSpans[i];
+    }
+    
+    // Query base incluindo ADULT e EROTICA (mas essas coleções podem não existir; mantido)
     var allC = "(collection:feature_films OR collection:Comedy_Films OR collection:Film_Noir OR collection:SciFi_Horror OR collection:film_scifi OR collection:silent_films OR collection:short_films OR collection:classic_tv OR collection:prelinger OR collection:collectie_filmcollectief OR collection:german_cinema OR collection:KINOfilm OR collection:animationandcartoons OR collection:moviesandfilms OR collection:movie_trailers) AND mediatype:movies";
     
     // Fallback CORS
@@ -261,35 +273,64 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
         document.head.appendChild(script);
     }
     
-    // Eventos dos botões de categoria
-    var catsSpans = document.getElementById("cats").getElementsByTagName("span");
-    for(var i=0; i<catsSpans.length; i++){
-        catsSpans[i].onclick = (function(el){
+    // Função para ocultar/mostrar as abas adultas
+    function setAdultTabsVisible(visible) {
+        if(adultTab) adultTab.style.display = visible ? "inline-block" : "none";
+        if(eroticaTab) eroticaTab.style.display = visible ? "inline-block" : "none";
+    }
+    
+    // Eventos dos botões de categoria (redefinindo o comportamento das abas +18)
+    for(var i=0; i<allCatSpans.length; i++){
+        allCatSpans[i].onclick = (function(el){
             return function(){
                 var cat = el.getAttribute("data-c");
+                // Se for uma das abas adultas
                 if(cat === "adult" || cat === "erotica"){
-                    for(var j=0;j<catsSpans.length;j++) catsSpans[j].className = "cb";
-                    el.className = "cb on";
-                    cc = cat;
-                    qr = "";
-                    pg = 1;
-                    si.value = "";
-                    adultMode = false;
-                    stbWrap.className = "stb-wrap";
-                    carregar();
+                    // Se o modo adulto estiver ativo, carregar conteúdo adulto (EPORNER) adequado
+                    if(adultMode){
+                        // Remove classe "on" de todos e marca este
+                        for(var j=0;j<allCatSpans.length;j++) allCatSpans[j].className = "cb";
+                        el.className = "cb on";
+                        // Define a busca de acordo com a aba
+                        if(cat === "adult"){
+                            qr = "";   // busca vazia = mais votados
+                        } else if(cat === "erotica"){
+                            qr = "erotica";
+                        }
+                        cc = ""; // limpa coleção
+                        pg = 1;
+                        si.value = "";
+                        carregarAdult();
+                    } else {
+                        // Fora do modo adulto, as abas estão ocultas, mas por segurança recarrega normal
+                        for(var j=0;j<allCatSpans.length;j++) allCatSpans[j].className = "cb";
+                        el.className = "cb on";
+                        cc = cat;
+                        qr = "";
+                        pg = 1;
+                        si.value = "";
+                        adultMode = false;
+                        stbWrap.className = "stb-wrap";
+                        carregar();
+                    }
                     return;
                 }
-                for(var j=0;j<catsSpans.length;j++) catsSpans[j].className = "cb";
+                // Demais categorias (sempre no modo normal)
+                for(var j=0;j<allCatSpans.length;j++) allCatSpans[j].className = "cb";
                 el.className = "cb on";
                 cc = cat;
                 qr = "";
                 pg = 1;
                 si.value = "";
-                adultMode = false;
-                stbWrap.className = "stb-wrap";
+                // Se eventualmente adultMode estiver ativo, desativa ao clicar em categoria comum
+                if(adultMode){
+                    adultMode = false;
+                    setAdultTabsVisible(false);
+                    stbWrap.className = "stb-wrap";
+                }
                 carregar();
             };
-        })(catsSpans[i]);
+        })(allCatSpans[i]);
     }
     
     document.getElementById("bt").onclick = function(){
@@ -297,22 +338,26 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
         if(!v) return;
         if(v === "18"){
             if(adultMode){
-                // desativar
+                // desativar modo adulto
                 adultMode = false;
+                setAdultTabsVisible(false);
                 stbWrap.className = "stb-wrap";
                 si.value = "";
                 qr = "";
                 pg = 1;
-                for(var j=0;j<catsSpans.length;j++) catsSpans[j].className = "cb";
-                catsSpans[0].className = "cb on";
+                // Voltar para a categoria TODOS visualmente
+                for(var j=0;j<allCatSpans.length;j++) allCatSpans[j].className = "cb";
+                if(allCatSpans[0]) allCatSpans[0].className = "cb on";
                 carregar();
             } else {
-                // ativar
+                // ativar modo adulto
                 adultMode = true;
+                setAdultTabsVisible(true);
                 si.value = "";
                 qr = "";
                 pg = 1;
-                for(var j=0;j<catsSpans.length;j++) catsSpans[j].className = "cb";
+                // Desmarcar qualquer categoria comum
+                for(var j=0;j<allCatSpans.length;j++) allCatSpans[j].className = "cb";
                 carregarAdult();
             }
             return;
@@ -325,9 +370,10 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
             qr = v;
             cc = "";
             pg = 1;
-            for(var j=0;j<catsSpans.length;j++) catsSpans[j].className = "cb";
-            catsSpans[0].className = "cb on";
+            for(var j=0;j<allCatSpans.length;j++) allCatSpans[j].className = "cb";
+            if(allCatSpans[0]) allCatSpans[0].className = "cb on";
             adultMode = false;
+            setAdultTabsVisible(false);
             stbWrap.className = "stb-wrap";
             carregar();
         }
@@ -357,8 +403,6 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
         }
         return q;
     }
-    
-
     
     // ---------- ARCHIVE.ORG ----------
     function carregar(){
@@ -390,11 +434,11 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
             paginacao();
         });
     }
-
+    
     // ---------- ADULT APIs ----------
     var adultMode = false;
     var stbWrap = document.getElementById("stb-wrap");
-
+    
     function carregarAdult(){
         adultMode = true;
         stbWrap.className = "stb-wrap show";
@@ -403,7 +447,7 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
         pgd.innerHTML = "";
         fetchEporner();
     }
-
+    
     function xhrFetch(url, cb){
         var xhr = new XMLHttpRequest();
         xhr.open("GET", url, true);
@@ -422,17 +466,17 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
         xhr.ontimeout = function(){ cb("timeout"); };
         xhr.send();
     }
-
+    
     function xhrFetchProxy(url, cb){
         xhrFetch("https://corsproxy.io/?" + encodeURIComponent(url), function(err, data){
             if(err) xhrFetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(url), cb);
             else cb(null, data);
         });
     }
-
+    
     function fetchEporner(){
-        var q = qr ? encodeURIComponent(qr) : "";
-        var url = "https://www.eporner.com/api/v2/video/search/?query=" + q + "&per_page=" + pp + "&page=" + pg + "&format=json&thumbsize=big&order=top-rated";
+        var queryTerm = qr ? encodeURIComponent(qr) : "";
+        var url = "https://www.eporner.com/api/v2/video/search/?query=" + queryTerm + "&per_page=" + pp + "&page=" + pg + "&format=json&thumbsize=big&order=top-rated";
         xhrFetch(url, function(err, data){
             if(err){
                 xhrFetchProxy(url, function(err2, data2){
@@ -444,7 +488,7 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
             }
         });
     }
-
+    
     function normalizeEporner(data){
         if(!data || !data.videos) return {total:0, items:[]};
         var items = [];
@@ -464,7 +508,7 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
         }
         return {total: data.count || items.length, items: items};
     }
-
+    
     function renderAdult(result){
         if(!result.items.length){
             gr.innerHTML = '<div class="ld">Nenhum resultado encontrado.</div>';
@@ -476,13 +520,13 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
         renderizarAdult(result.items);
         paginacaoAdult(result.total);
     }
-
+    
     function showAdultError(src){
         gr.innerHTML = '<div class="ld">⚠️ Erro ao conectar em ' + src + '. Tente outra fonte ou verifique sua conexão.</div>';
         ib.textContent = "Erro";
         pgd.innerHTML = "";
     }
-
+    
     function renderizarAdult(items){
         var html = "";
         for(var i=0;i<items.length;i++){
@@ -516,7 +560,7 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
             })(cards[i]);
         }
     }
-
+    
     function paginacaoAdult(total){
         var totalPaginas = Math.ceil(total / pp);
         if(totalPaginas <= 1){ pgd.innerHTML = ""; return; }
@@ -543,7 +587,7 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
             })(botoes[j]);
         }
     }
-
+    
     function escapeHtml(str){
         if(!str) return "";
         return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -639,6 +683,8 @@ body{background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif;font-size
         }
     }
     
+    // Inicialização: ocultar abas +18 e carregar modo normal
+    setAdultTabsVisible(false);
     carregar();
     setTimeout(testCORSAndNotify, 1500);
 })();

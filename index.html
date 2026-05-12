@@ -2,14 +2,19 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>K60 — TV & Rádio</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>K60 — TV & Rádio (Navegação por Controle)</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
 
-*{margin:0;padding:0;box-sizing:border-box}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  user-select: none; /* evita seleção acidental na TV */
+}
 
-:root{
+:root {
   --green: #00ff88;
   --amber: #ffaa00;
   --red:   #ff3355;
@@ -18,258 +23,245 @@
   --line:  #1a1a1a;
 }
 
-html,body{
-  height:100%;
-  background:var(--bg);
-  color:#fff;
-  font-family:'Share Tech Mono', monospace;
-  overflow:hidden;
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: #fff;
+  font-family: 'Share Tech Mono', monospace;
+  overflow: hidden;
 }
 
-/* ── SCANLINES overlay ── */
-body::before{
-  content:'';
-  position:fixed;inset:0;
-  background:repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0,0,0,.18) 2px,
-    rgba(0,0,0,.18) 4px
-  );
-  pointer-events:none;
-  z-index:999;
+/* Remove o cursor padrão em TVs (opcional, mas evita o "mouse travado") */
+body {
+  cursor: none;
 }
 
-/* ── NOISE grain ── */
-body::after{
-  content:'';
-  position:fixed;inset:0;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-  pointer-events:none;
-  z-index:998;
-  opacity:.35;
+/* Para debug em PC, pode remover a linha acima. Em TV, fica melhor sem cursor. */
+
+/* Scanlines e ruído (mantido, sem interferência) */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.18) 2px, rgba(0,0,0,.18) 4px);
+  pointer-events: none;
+  z-index: 999;
+}
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 998;
+  opacity: .35;
 }
 
-/* ── LAYOUT ── */
-.stage{
-  position:relative;
-  height:100vh;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:0;
-  padding:20px;
+.stage {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 20px;
 }
 
-/* ── HEADER ── */
-.brand{
-  text-align:center;
-  margin-bottom:48px;
-  animation: fadeDown .8s ease both;
+.brand {
+  text-align: center;
+  margin-bottom: 48px;
 }
-.brand-k60{
-  font-family:'Orbitron',monospace;
-  font-size:clamp(48px,10vw,96px);
-  font-weight:900;
-  color:var(--green);
-  letter-spacing:8px;
-  line-height:1;
-  text-shadow:0 0 30px rgba(0,255,136,.5), 0 0 80px rgba(0,255,136,.2);
-  position:relative;
+.brand-k60 {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(48px, 10vw, 96px);
+  font-weight: 900;
+  color: var(--green);
+  letter-spacing: 8px;
+  line-height: 1;
+  text-shadow: 0 0 30px rgba(0,255,136,.5), 0 0 80px rgba(0,255,136,.2);
+  position: relative;
 }
-.brand-k60::after{
-  content:'BROADCAST';
-  position:absolute;
-  bottom:-16px;
-  left:50%;
-  transform:translateX(-50%);
-  font-size:11px;
-  letter-spacing:10px;
-  color:#333;
-  font-weight:400;
-  white-space:nowrap;
+.brand-k60::after {
+  content: 'BROADCAST';
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  letter-spacing: 10px;
+  color: #333;
+  font-weight: 400;
+  white-space: nowrap;
 }
-.brand-tagline{
-  margin-top:28px;
-  font-size:12px;
-  letter-spacing:4px;
-  color:#444;
-  text-transform:uppercase;
+.brand-tagline {
+  margin-top: 28px;
+  font-size: 12px;
+  letter-spacing: 4px;
+  color: #444;
+  text-transform: uppercase;
 }
 
-/* ── CARDS ROW ── */
-.cards{
-  display:flex;
-  gap:28px;
-  align-items:stretch;
+.cards {
+  display: flex;
+  gap: 28px;
+  align-items: stretch;
 }
 
-.card{
-  position:relative;
-  width:clamp(200px,38vw,300px);
-  padding:36px 28px 32px;
-  background:var(--card);
-  border:1px solid #1e1e1e;
-  border-radius:4px;
-  cursor:pointer;
-  text-decoration:none;
-  color:#fff;
-  overflow:hidden;
-  transition:transform .2s, border-color .2s;
-  animation: fadeUp .7s ease both;
-}
-.card:nth-child(1){ animation-delay:.15s; }
-.card:nth-child(2){ animation-delay:.3s; }
-
-/* corner accents */
-.card::before,.card::after{
-  content:'';
-  position:absolute;
-  width:12px;height:12px;
-}
-.card::before{ top:8px;left:8px; border-top:2px solid var(--accent); border-left:2px solid var(--accent); }
-.card::after{  bottom:8px;right:8px; border-bottom:2px solid var(--accent); border-right:2px solid var(--accent); }
-
-.card:hover{
-  transform:translateY(-6px);
-  border-color:var(--accent);
-}
-.card:hover .card-glow{ opacity:1; }
-.card:hover .card-icon{ animation:pulse-icon 1.2s ease-in-out infinite; }
-
-/* glow layer */
-.card-glow{
-  position:absolute;inset:0;
-  background:radial-gradient(ellipse at 50% 0%, var(--accent-dim) 0%, transparent 70%);
-  opacity:0;
-  transition:opacity .4s;
-  pointer-events:none;
+.card {
+  position: relative;
+  width: clamp(200px, 38vw, 300px);
+  padding: 36px 28px 32px;
+  background: var(--card);
+  border: 2px solid #1e1e1e; /* borda mais grossa para foco */
+  border-radius: 4px;
+  text-decoration: none;
+  color: #fff;
+  overflow: hidden;
+  transition: transform 0.15s ease, border-color 0.1s ease;
+  cursor: pointer;
+  
+  /* Fundamental para navegação por controle */
+  outline: none !important;
+  box-shadow: 0 0 0 0 rgba(0, 255, 136, 0);
 }
 
-/* accent line top */
-.card-line{
-  position:absolute;
-  top:0;left:0;right:0;
-  height:2px;
-  background:linear-gradient(90deg, transparent, var(--accent), transparent);
-  opacity:0;
-  transition:opacity .3s;
-}
-.card:hover .card-line{ opacity:1; }
-
-/* TV card */
-.card-tv{
-  --accent:     var(--amber);
-  --accent-dim: rgba(255,170,0,.08);
-}
-/* Radio card */
-.card-radio{
-  --accent:     var(--green);
-  --accent-dim: rgba(0,255,136,.08);
+/* ESTILO DE FOCO VISÍVEL NA TV - o que resolve o problema */
+.card:focus-visible {
+  border-color: var(--accent);
+  transform: scale(1.02);
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.7), 0 0 0 6px var(--accent);
+  transition: all 0.08s linear;
 }
 
-.card-icon{
-  font-size:52px;
-  margin-bottom:20px;
-  display:block;
-  filter:drop-shadow(0 0 10px var(--accent));
+/* Opcional: efeito de pressionar (ao clicar/OK) */
+.card:active {
+  transform: scale(0.98);
 }
 
-.card-title{
-  font-family:'Orbitron',monospace;
-  font-size:22px;
-  font-weight:700;
-  letter-spacing:3px;
-  color:var(--accent);
-  margin-bottom:10px;
+/* Cantos decorativos */
+.card::before, .card::after {
+  content: '';
+  position: absolute;
+  width: 12px; height: 12px;
+}
+.card::before { top: 8px; left: 8px; border-top: 2px solid var(--accent); border-left: 2px solid var(--accent); }
+.card::after { bottom: 8px; right: 8px; border-bottom: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+
+.card-glow {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, var(--accent-dim) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity .4s;
+  pointer-events: none;
+}
+.card:focus-visible .card-glow, .card:hover .card-glow { opacity: 1; }
+
+.card-line {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0;
+  transition: opacity .3s;
+}
+.card:focus-visible .card-line, .card:hover .card-line { opacity: 1; }
+
+/* Cores dos cards */
+.card-tv {
+  --accent: var(--amber);
+  --accent-dim: rgba(255,170,0,.12);
+}
+.card-radio {
+  --accent: var(--green);
+  --accent-dim: rgba(0,255,136,.12);
+}
+/* Filmes usa mesma cor do rádio, mas pode trocar depois */
+.card-filmes {
+  --accent: #ff44cc;
+  --accent-dim: rgba(255,68,204,.12);
 }
 
-.card-desc{
-  font-size:11px;
-  color:#555;
-  line-height:1.8;
-  letter-spacing:1px;
+.card-icon {
+  font-size: 52px;
+  margin-bottom: 20px;
+  display: block;
+  filter: drop-shadow(0 0 10px var(--accent));
+}
+.card-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+.card-desc {
+  font-size: 11px;
+  color: #aaa;
+  line-height: 1.8;
+  letter-spacing: 1px;
+}
+.card-cta {
+  margin-top: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--accent);
+  opacity: .7;
+  transition: opacity .2s, gap .2s;
+}
+.card:focus-visible .card-cta, .card:hover .card-cta {
+  opacity: 1;
+  gap: 12px;
 }
 
-.card-cta{
-  margin-top:24px;
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  font-size:11px;
-  letter-spacing:3px;
-  color:var(--accent);
-  opacity:.7;
-  transition:opacity .2s, gap .2s;
+.card-badge {
+  position: absolute;
+  top: 14px; right: 14px;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--accent);
+  opacity: .5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
-.card:hover .card-cta{ opacity:1; gap:12px; }
-
-/* signal badge */
-.card-badge{
-  position:absolute;
-  top:14px;right:14px;
-  font-size:9px;
-  letter-spacing:2px;
-  color:var(--accent);
-  opacity:.5;
-  display:flex;
-  align-items:center;
-  gap:4px;
-}
-.badge-dot{
-  width:5px;height:5px;
-  border-radius:50%;
-  background:var(--accent);
-  animation:blink 1.6s ease-in-out infinite;
-}
-.card:nth-child(2) .badge-dot{ animation-delay:.8s; }
-
-/* ── FOOTER ── */
-.footer{
-  position:absolute;
-  bottom:20px;
-  font-size:9px;
-  letter-spacing:3px;
-  color:#222;
-  text-transform:uppercase;
-  animation: fadeUp 1s ease .6s both;
+.badge-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: blink 1.6s ease-in-out infinite;
 }
 
-/* ── DECORATIVE horizontal rules ── */
-.hbar{
-  width:clamp(300px,70vw,700px);
-  height:1px;
-  background:linear-gradient(90deg,transparent,#1e1e1e,transparent);
-  margin:24px 0;
-  animation:fadeUp .7s ease .05s both;
+.hbar {
+  width: clamp(300px, 70vw, 700px);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #1e1e1e, transparent);
+  margin: 24px 0;
 }
 
-/* ── ANIMATIONS ── */
-@keyframes fadeDown{
-  from{opacity:0;transform:translateY(-24px)}
-  to  {opacity:1;transform:translateY(0)}
-}
-@keyframes fadeUp{
-  from{opacity:0;transform:translateY(20px)}
-  to  {opacity:1;transform:translateY(0)}
-}
-@keyframes blink{
-  0%,100%{opacity:.3} 50%{opacity:1}
-}
-@keyframes pulse-icon{
-  0%,100%{filter:drop-shadow(0 0 10px var(--accent))}
-  50%    {filter:drop-shadow(0 0 22px var(--accent)) drop-shadow(0 0 6px #fff)}
+.footer {
+  position: absolute;
+  bottom: 20px;
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: #222;
+  text-transform: uppercase;
 }
 
-/* ── MOBILE ── */
-@media(max-width:540px){
-  html,body{overflow-y:auto}
-  .cards{flex-direction:column;gap:16px}
-  .card{width:100%;max-width:340px}
-  .brand-k60::after{font-size:9px;letter-spacing:7px}
-  .brand{margin-bottom:32px}
+@keyframes blink {
+  0%,100% { opacity: .3; }
+  50% { opacity: 1; }
+}
+
+@media (max-width: 540px) {
+  html, body { overflow-y: auto; }
+  .cards { flex-direction: column; gap: 16px; align-items: center; }
+  .card { width: 100%; max-width: 340px; }
+  .brand-k60::after { font-size: 9px; letter-spacing: 7px; }
+  .brand { margin-bottom: 32px; }
+  body { cursor: auto; } /* Em mobile comum, cursor normal */
 }
 </style>
 </head>
@@ -284,44 +276,120 @@ body::after{
   <div class="hbar"></div>
 
   <div class="cards">
-
     <!-- TV -->
-    <a href="tv.html" class="card card-tv">
+    <a href="tv.html" class="card card-tv" data-nav="tv">
       <div class="card-glow"></div>
       <div class="card-line"></div>
       <div class="card-badge"><div class="badge-dot"></div>AO VIVO</div>
       <span class="card-icon">📺</span>
       <div class="card-title">TV</div>
       <div class="card-desc">Canais ao vivo<br>do mundo todo</div>
-      <div class="card-cta">ACESSAR &#8594;</div>
+      <div class="card-cta">ACESSAR →</div>
     </a>
 
     <!-- RÁDIO -->
-    <a href="radio.html" class="card card-radio">
+    <a href="radio.html" class="card card-radio" data-nav="radio">
       <div class="card-glow"></div>
       <div class="card-line"></div>
       <div class="card-badge"><div class="badge-dot"></div>AO VIVO</div>
       <span class="card-icon">📻</span>
       <div class="card-title">RÁDIO</div>
       <div class="card-desc">Estações de rádio<br>em todos os idiomas</div>
-      <div class="card-cta">ACESSAR &#8594;</div>
+      <div class="card-cta">ACESSAR →</div>
     </a>
-  <!-- FILMES -->
-    <a href="filmes.html" class="card card-radio">
+
+    <!-- FILMES (adicionei estilo próprio) -->
+    <a href="filmes.html" class="card card-filmes" data-nav="filmes">
       <div class="card-glow"></div>
       <div class="card-line"></div>
-      <div class="card-badge"><div class="badge-dot"></div>AO VIVO</div>
-      <span class="card-icon">📺</span>
+      <div class="card-badge"><div class="badge-dot"></div>LANÇAMENTOS</div>
+      <span class="card-icon">🎬</span>
       <div class="card-title">FILMES</div>
-      <div class="card-desc">Estações de rádio<br>em todos os idiomas</div>
-      <div class="card-cta">ACESSAR &#8594;</div>
+      <div class="card-desc">Cinema em casa<br>sessão contínua</div>
+      <div class="card-cta">ACESSAR →</div>
     </a>
   </div>
 
   <div class="hbar"></div>
-
-  <footer class="footer">K60 Broadcast &nbsp;·&nbsp; Ao vivo &nbsp;·&nbsp; Mundial</footer>
-
+  <footer class="footer">K60 Broadcast &nbsp;·&nbsp; Controle remoto ativo &nbsp;·&nbsp; Navegue com as setas</footer>
 </div>
+
+<script>
+  // Script que melhora ainda mais a navegação por controle remoto
+  // Garante que os cards sejam focáveis imediatamente e que as setas não rolem a página
+  (function() {
+    const cards = document.querySelectorAll('.card');
+    if (cards.length === 0) return;
+
+    // Adiciona tabindex para garantir foco programático
+    cards.forEach(card => {
+      if (!card.hasAttribute('tabindex')) {
+        card.setAttribute('tabindex', '0');
+      }
+    });
+
+    // Remove scroll das setas (evita que a página role ao navegar)
+    window.addEventListener('keydown', function(e) {
+      const key = e.key;
+      if (key === 'ArrowUp' || key === 'ArrowDown' || key === 'ArrowLeft' || key === 'ArrowRight') {
+        e.preventDefault();
+        
+        const current = document.activeElement;
+        if (!current || !current.classList || !current.classList.contains('card')) {
+          // se nada estiver focado, foca no primeiro card
+          cards[0]?.focus();
+          return;
+        }
+        
+        // Lógica simples de grid horizontal (para 3 cards lado a lado)
+        const index = Array.from(cards).indexOf(current);
+        if (index === -1) return;
+        
+        let nextIndex = index;
+        if (key === 'ArrowRight') {
+          nextIndex = (index + 1) % cards.length;
+        } else if (key === 'ArrowLeft') {
+          nextIndex = (index - 1 + cards.length) % cards.length;
+        } else if (key === 'ArrowUp' || key === 'ArrowDown') {
+          // Em layout horizontal, cima/baixo não muda de card (mas evita rolagem)
+          // Se quiser navegação vertical, descomente abaixo:
+          // if (key === 'ArrowDown') nextIndex = (index + 1) % cards.length;
+          // if (key === 'ArrowUp') nextIndex = (index - 1 + cards.length) % cards.length;
+          return;
+        }
+        
+        cards[nextIndex]?.focus();
+      }
+      
+      // Tecla Enter ou Espaço ativa o link (já funciona por padrão em <a>, mas garantimos)
+      if (e.key === 'Enter' || e.key === ' ') {
+        const focused = document.activeElement;
+        if (focused && focused.classList && focused.classList.contains('card')) {
+          e.preventDefault();
+          focused.click();  // dispara o clique no link
+        }
+      }
+    });
+    
+    // Opcional: focar o primeiro card automaticamente ao carregar a página
+    // Isso elimina a necessidade de clicar antes de usar as setas
+    setTimeout(() => {
+      cards[0]?.focus();
+    }, 100);
+    
+    // Melhora visual: ao focar, garante que o elemento esteja visível (scroll se necessário)
+    cards.forEach(card => {
+      card.addEventListener('focus', function(e) {
+        this.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      });
+    });
+    
+    // Previne o comportamento de arrastar cursor em TVs touchpad
+    document.body.addEventListener('touchmove', function(e) {
+      // se quiser desabilitar o scroll por toque (melhora navegação), descomente:
+      // e.preventDefault();
+    }, { passive: false });
+  })();
+</script>
 </body>
 </html>

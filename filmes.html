@@ -4,11 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 <title>CineStream — Archive.org para TV</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
 <style>
 :root {
   --red: #e50914;
-  --red2: #b0060f;
   --teal: #00d4b4;
   --bg: #0a0a0f;
   --bg2: #111118;
@@ -22,105 +20,139 @@
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Nunito', sans-serif;
-  font-size: 18px;
+  font-family: Arial, sans-serif;
+  font-size: 16px;
   min-height: 100vh;
+  overflow-x: hidden;
 }
+@-webkit-keyframes spin { to { -webkit-transform: rotate(360deg); } }
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+@-webkit-keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+@-webkit-keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* ── TELA HOME ── */
+#tela-home { display: block; }
 
 /* CABEÇALHO */
 .hd {
-  background: linear-gradient(180deg, #000 0%, rgba(0,0,0,.8) 100%);
-  padding: 0 20px;
+  background: #000;
+  padding: 0 16px;
   border-bottom: 3px solid var(--red);
+  position: -webkit-sticky;
   position: sticky;
   top: 0;
   z-index: 50;
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
   align-items: center;
-  gap: 16px;
-  height: 64px;
+  gap: 12px;
+  height: 60px;
 }
 .logo {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 32px;
+  font-size: 28px;
+  font-weight: bold;
   color: var(--red);
   letter-spacing: 1px;
   white-space: nowrap;
 }
-.logo span { color: var(--teal); font-size: 16px; }
-.nav-tabs { display: flex; gap: 8px; flex: 1; overflow-x: auto; }
+.logo span { color: var(--teal); font-size: 14px; }
+.nav-tabs {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  gap: 6px;
+  -webkit-box-flex: 1;
+  -webkit-flex: 1;
+  flex: 1;
+  overflow-x: auto;
+}
 .nt {
-  padding: 8px 20px;
+  padding: 8px 16px;
   background: transparent;
   color: var(--muted);
-  font-size: 18px;
-  font-weight: 700;
-  cursor: pointer;
-  border-radius: 40px;
-  transition: all 0.2s;
-  border: none;
-  white-space: nowrap;
-}
-.nt.on { background: var(--red); color: white; }
-.nt:hover { background: var(--bg4); color: var(--text); }
-.btn-guide {
-  padding: 8px 20px;
-  border: 2px solid var(--teal);
-  background: transparent;
-  color: var(--teal);
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
-  border-radius: 40px;
+  border-radius: 30px;
+  border: none;
+  white-space: nowrap;
+  font-family: Arial, sans-serif;
+}
+.nt.on { background: var(--red); color: white; }
+.btn-guide {
+  padding: 8px 16px;
+  border: 2px solid var(--teal);
+  background: transparent;
+  color: var(--teal);
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 30px;
+  font-family: Arial, sans-serif;
 }
 
 /* BARRA DE BUSCA */
 .sb {
-  padding: 14px 20px;
+  padding: 12px 16px;
   background: var(--bg2);
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
-  gap: 12px;
+  gap: 10px;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
   align-items: center;
+  -webkit-flex-wrap: wrap;
   flex-wrap: wrap;
   border-bottom: 1px solid var(--border);
 }
 .sb input {
+  -webkit-box-flex: 3;
+  -webkit-flex: 3;
   flex: 3;
-  min-width: 200px;
-  padding: 12px 18px;
+  min-width: 160px;
+  padding: 10px 16px;
   background: var(--bg3);
   border: 1px solid var(--border);
   color: var(--text);
-  font-size: 18px;
-  border-radius: 40px;
+  font-size: 16px;
+  border-radius: 30px;
   outline: none;
+  font-family: Arial, sans-serif;
 }
 .sb button {
-  padding: 12px 28px;
+  padding: 10px 22px;
   background: var(--red);
   border: none;
   color: white;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
-  border-radius: 40px;
+  border-radius: 30px;
   cursor: pointer;
+  font-family: Arial, sans-serif;
 }
 .src-badge {
-  padding: 8px 16px;
-  border-radius: 40px;
-  font-size: 16px;
+  padding: 6px 14px;
+  border-radius: 30px;
+  font-size: 14px;
   font-weight: bold;
   white-space: nowrap;
 }
 
 /* CATEGORIAS */
 .cats {
-  padding: 12px 20px;
+  padding: 10px 16px;
   background: var(--bg2);
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  -webkit-flex-wrap: wrap;
   flex-wrap: wrap;
   border-bottom: 1px solid var(--border);
 }
@@ -128,49 +160,41 @@ body {
   background: var(--bg4);
   border: 1px solid var(--border);
   color: var(--muted);
-  padding: 6px 18px;
-  font-size: 16px;
+  padding: 6px 14px;
+  font-size: 14px;
   font-weight: bold;
-  border-radius: 40px;
+  border-radius: 30px;
   cursor: pointer;
-  transition: 0.2s;
+  font-family: Arial, sans-serif;
 }
-.cb.on, .cb:hover {
-  background: var(--red);
-  border-color: var(--red);
-  color: white;
-}
+.cb.on { background: var(--red); border-color: var(--red); color: white; }
 
 /* INFOS */
 .ib {
   text-align: center;
-  padding: 12px;
-  font-size: 16px;
+  padding: 10px;
+  font-size: 14px;
   color: var(--muted);
   background: var(--bg);
 }
 
-/* BARRA DE PROGRESSO DE CARREGAMENTO */
-.progress-bar-wrap {
-  height: 3px;
-  background: var(--bg3);
-  overflow: hidden;
-}
-.progress-bar {
-  height: 100%;
-  background: var(--red);
-  width: 0%;
-  transition: width 0.3s ease;
-}
+/* BARRA DE PROGRESSO */
+.progress-bar-wrap { height: 3px; background: var(--bg3); overflow: hidden; }
+.progress-bar { height: 100%; background: var(--red); width: 0%; }
 
 /* GRADE */
 .gr {
-  padding: 20px 16px;
+  padding: 16px 12px;
   max-width: 1600px;
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 140px));
-  gap: 20px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-wrap: wrap;
+  flex-wrap: wrap;
+  gap: 16px;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
   justify-content: center;
 }
 
@@ -178,64 +202,68 @@ body {
 .cd-skeleton {
   background: var(--bg3);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
-  width: 100%;
+  width: 130px;
 }
 .cd-skeleton-img {
   width: 100%;
-  aspect-ratio: 2/3;
+  /* padding-bottom trick = aspect-ratio 2/3 */
+  padding-bottom: 150%;
   background: linear-gradient(90deg, var(--bg3) 25%, var(--bg4) 50%, var(--bg3) 75%);
   background-size: 200% 100%;
+  -webkit-animation: shimmer 1.5s infinite;
   animation: shimmer 1.5s infinite;
 }
 .cd-skeleton-line {
-  height: 12px;
-  margin: 8px;
-  border-radius: 6px;
+  height: 10px;
+  margin: 6px 8px;
+  border-radius: 5px;
   background: linear-gradient(90deg, var(--bg3) 25%, var(--bg4) 50%, var(--bg3) 75%);
   background-size: 200% 100%;
+  -webkit-animation: shimmer 1.5s infinite;
   animation: shimmer 1.5s infinite;
 }
 .cd-skeleton-line.short { width: 60%; }
-@keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
 
 /* CARD INDIVIDUAL */
 .cd {
   background: var(--bg3);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: transform 0.2s, border-color 0.2s;
   overflow: hidden;
-  width: 100%;
+  width: 130px;
+  -webkit-animation: fadeIn 0.3s ease both;
   animation: fadeIn 0.3s ease both;
 }
-.cd:hover {
-  transform: scale(1.02);
-  border-color: var(--red);
-  box-shadow: 0 8px 20px rgba(229,9,20,0.3);
-}
-.cd img {
+/* wrapper para substituir aspect-ratio */
+.cd-thumb-wrap {
   width: 100%;
-  aspect-ratio: 2/3;
-  display: block;
-  object-fit: cover;
+  padding-bottom: 150%; /* 2:3 ratio */
+  position: relative;
+  overflow: hidden;
   background: #111;
 }
-.ci { padding: 8px; }
+.cd-thumb-wrap img {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  -o-object-fit: cover;
+  object-fit: cover;
+}
+.ci { padding: 6px 8px 8px; }
 .ct {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: bold;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--text);
 }
-.cm { font-size: 12px; color: var(--red); margin-top: 4px; }
+.cm { font-size: 11px; color: var(--red); margin-top: 3px; }
 .cc {
   font-size: 10px;
   color: var(--muted);
@@ -245,72 +273,192 @@ body {
 }
 
 /* PAGINAÇÃO */
+.pg { text-align: center; padding: 14px; }
 .pb {
   display: inline-block;
   background: var(--bg4);
-  padding: 8px 16px;
-  margin: 4px;
-  border-radius: 30px;
-  font-size: 16px;
+  padding: 8px 14px;
+  margin: 3px;
+  border-radius: 24px;
+  font-size: 14px;
   font-weight: bold;
   cursor: pointer;
 }
-.pb.on, .pb:hover { background: var(--red); color: white; }
+.pb.on { background: var(--red); color: white; }
 
-/* MODAL PLAYER */
-.mo {
+/* ── TELA PLAYER (igual ao tv.html) ── */
+#tela-player {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: #000;
+  z-index: 200;
+}
+#vid-player {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+#player-osd {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  background: rgba(0,0,0,0.85);
+  padding: 14px 20px;
+}
+#player-titulo {
   font-size: 18px;
+  font-weight: bold;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#player-info {
+  font-size: 12px;
+  color: var(--teal);
+  margin-top: 3px;
+}
+#player-carregando {
+  position: absolute;
+  top: 50%; left: 50%;
+  -webkit-transform: translate(-50%,-50%);
+  transform: translate(-50%,-50%);
+  font-size: 16px;
+  color: #888;
+  text-align: center;
+}
+#player-controles {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  -webkit-transform: translateX(-50%);
+  transform: translateX(-50%);
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  gap: 12px;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+}
+#player-controles.oculto { opacity: 0; pointer-events: none; }
+#btn-voltar-home {
+  background: #111;
+  border: 2px solid #00aaff;
+  color: #00aaff;
+  font-size: 14px;
+  font-weight: bold;
+  padding: 10px 32px;
+  border-radius: 30px;
+  cursor: pointer;
+  font-family: Arial, sans-serif;
+}
+#btn-archive-direct {
+  background: #111;
+  border: 2px solid var(--teal);
+  color: var(--teal);
+  font-size: 14px;
+  font-weight: bold;
+  padding: 10px 24px;
+  border-radius: 30px;
+  cursor: pointer;
+  font-family: Arial, sans-serif;
+}
+#player-erro {
+  display: none;
+  position: absolute;
+  top: 50%; left: 50%;
+  -webkit-transform: translate(-50%,-50%);
+  transform: translate(-50%,-50%);
+  background: #111;
+  border: 2px solid #ff5555;
+  border-radius: 12px;
+  padding: 20px 32px;
+  text-align: center;
+  z-index: 10;
+}
+#player-erro p { font-size: 15px; color: #ff8888; margin-bottom: 12px; }
+#player-erro button {
+  padding: 10px 22px;
+  background: var(--bg4);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 24px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: Arial, sans-serif;
+}
+
+/* GUIA */
+#gm {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.97);
+  z-index: 300;
+  overflow: auto;
+  padding: 30px 16px;
 }
 </style>
 </head>
 <body>
 
-<div class="hd">
-  <div class="logo">CINE<span>STREAM</span></div>
-  <div class="nav-tabs">
-    <button class="nt on" onclick="switchSource('archive')">🎬 FILMES</button>
-    <button class="nt" onclick="switchSource('cartoons')">📺 CARTOONS</button>
-    <button class="nt" onclick="switchSource('docs')">📽️ DOCS</button>
-  </div>
-  <button class="btn-guide" onclick="openGuide()">📡 APIs</button>
-</div>
-
-<div class="sb">
-  <input type="text" id="si" placeholder="Buscar título...">
-  <button id="btnBuscar">BUSCAR</button>
-  <span class="src-badge" id="srcBadge" style="background:rgba(229,9,20,.15);color:#e50914;">ARCHIVE.ORG</span>
-</div>
-
-<div class="cats" id="cats"></div>
-<div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
-<div class="ib" id="ib">Carregando...</div>
-<div class="gr" id="gr"></div>
-<div class="pg" id="pg" style="text-align:center;padding:16px;"></div>
-
-<!-- MODAL PLAYER -->
-<div class="mo" id="mo" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.98); z-index:100; align-items:center; justify-content:center;">
-  <div style="width:95%; max-width:1200px; background:#000; border-radius:16px; overflow:hidden;">
-    <div style="padding:12px 20px; background:#111; display:flex; justify-content:space-between; border-bottom:1px solid #333;">
-      <h3 id="mt" style="font-size:20px;">Filme</h3>
-      <span id="mx" style="font-size:32px; cursor:pointer;">&times;</span>
+<!-- ── TELA HOME ── -->
+<div id="tela-home">
+  <div class="hd">
+    <div class="logo">CINE<span>STREAM</span></div>
+    <div class="nav-tabs">
+      <button class="nt on" id="tab-filmes">&#127916; FILMES</button>
+      <button class="nt" id="tab-cartoons">&#128250; CARTOONS</button>
+      <button class="nt" id="tab-docs">&#127901;&#65039; DOCS</button>
     </div>
-    <div id="mbody"></div>
-    <div id="minfo" style="padding:12px 20px; background:#111; font-size:14px; color:#aaa;"></div>
+    <button class="btn-guide" id="btnGuide">&#128225; Info</button>
+  </div>
+
+  <div class="sb">
+    <input type="text" id="si" placeholder="Buscar título...">
+    <button id="btnBuscar">BUSCAR</button>
+    <span class="src-badge" id="srcBadge" style="background:rgba(229,9,20,.15);color:#e50914;">ARCHIVE.ORG</span>
+  </div>
+
+  <div class="cats" id="cats"></div>
+  <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+  <div class="ib" id="ib">Carregando...</div>
+  <div class="gr" id="gr"></div>
+  <div class="pg" id="pg"></div>
+</div>
+
+<!-- ── TELA PLAYER FULLSCREEN (padrão tv.html) ── -->
+<div id="tela-player">
+  <video id="vid-player" autoplay controls playsinline></video>
+  <div id="player-osd">
+    <div id="player-titulo">Carregando...</div>
+    <div id="player-info">Conectando ao Archive.org...</div>
+  </div>
+  <div id="player-carregando">Carregando vídeo...</div>
+  <div id="player-erro">
+    <p>Erro ao carregar o vídeo</p>
+    <button id="btn-archive-direct2">Abrir no Archive.org</button>
+  </div>
+  <div id="player-controles">
+    <button id="btn-voltar-home">&#9664; Voltar</button>
+    <button id="btn-archive-direct">Archive.org &#8599;</button>
   </div>
 </div>
 
 <!-- GUIA -->
-<div id="gm" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.97); z-index:200; overflow:auto; padding:40px 20px;">
-  <div style="max-width:900px; margin:0 auto; background:#0f0f15; border-radius:20px; padding:20px;">
-    <span onclick="closeGuide()" style="float:right; font-size:36px; cursor:pointer;">&times;</span>
-    <h2 style="font-size:32px;">GUIA DE <span style="color:var(--teal)">APIs</span></h2>
-    <p style="margin:10px 0 20px; color:var(--muted);">Conteúdo público do Internet Archive. Carregamento progressivo otimizado para TV.</p>
-    <div style="background:var(--bg3);border-radius:12px;padding:16px;margin-bottom:16px;font-size:15px;color:var(--muted);line-height:1.8;">
-      <b style="color:var(--teal)">🖥️ Modo TV detectado</b><br>
-      Cards carregados em lotes pequenos com pausa entre cada lote.<br>
-      Evita travamentos em Smart TVs e dispositivos com pouca memória.
+<div id="gm">
+  <div style="max-width:860px;margin:0 auto;background:#0f0f15;border-radius:16px;padding:20px;">
+    <span id="btnCloseGuide" style="float:right;font-size:32px;cursor:pointer;">&times;</span>
+    <h2 style="font-size:26px;">GUIA <span style="color:var(--teal)">CINESTREAM</span></h2>
+    <p style="margin:10px 0 16px;color:var(--muted);">Filmes e vídeos públicos do Internet Archive.</p>
+    <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:14px;font-size:14px;color:var(--muted);line-height:1.9;">
+      <b style="color:var(--teal)">&#128250; Modo TV</b><br>
+      Cards carregados em lotes. Player nativo sem iframe.<br>
+      Compatível com TVs antigas e Smart TVs.
     </div>
-    <button onclick="closeGuide()" style="background:var(--red); width:100%; padding:14px; border:none; color:white; font-size:18px; border-radius:40px; cursor:pointer;">FECHAR</button>
+    <button id="btnCloseGuide2" style="background:var(--red);width:100%;padding:12px;border:none;color:white;font-size:16px;border-radius:30px;cursor:pointer;">FECHAR</button>
   </div>
 </div>
 
@@ -318,39 +466,73 @@ body {
 <script>
 (function(){
 
-// ── Detecção de TV (igual ao K60 TV) ──────────────────────────
+// ── Detecção de TV ─────────────────────────────────────────────
 var _ua = (navigator.userAgent || '').toLowerCase();
 var IS_TV = /smart-?tv|smarttv|tizen|web0s|webos|hbbtv|netcast|viera|bravia|aquos|inettvbrowser|crkey|googletv|appletv|aoc|philips|samsung.*tv|lg.*tv|tv.*browser/.test(_ua);
 try { if (localStorage.getItem('cine_tv') === '1') IS_TV = true; } catch(e) {}
 
-// ── Tamanho dos lotes (idêntico ao padrão K60 TV) ─────────────
-var CHUNK_SIZE  = IS_TV ? 4  : 12;   // quantos cards por lote
-var CHUNK_PAUSE = IS_TV ? 200 : 60;  // ms entre lotes
+// ── Lotes (igual ao tv.html) ───────────────────────────────────
+var CHUNK_SIZE  = IS_TV ? 4  : 12;
+var CHUNK_PAUSE = IS_TV ? 200 : 60;
+var PP = IS_TV ? 16 : 24;
 
 // ── Estado global ──────────────────────────────────────────────
 var state = { source:'archive', cat:'', q:'', page:1, tot:0, loading:false };
-var PP = IS_TV ? 16 : 24; // menos itens por página na TV
-
 var FMT_PRIORIDADE = ['MPEG4','512Kb MPEG4','H.264 IA','H.264','HiRes MPEG4','Ogg Video','HLS'];
-var EXT_VALIDAS = ['mp4','m4v','ogv','mkv','m3u8'];
+var EXT_VALIDAS = ['.mp4','.m4v','.ogv','.mkv','.m3u8'];
 
 var gr = document.getElementById('gr');
 var ib = document.getElementById('ib');
 var si = document.getElementById('si');
 var pgd = document.getElementById('pg');
-var mo = document.getElementById('mo');
-var mt = document.getElementById('mt');
-var mbody = document.getElementById('mbody');
-var minfo = document.getElementById('minfo');
 var srcBadge = document.getElementById('srcBadge');
 var catsDiv = document.getElementById('cats');
 var progressBar = document.getElementById('progressBar');
+var telaHome = document.getElementById('tela-home');
+var telaPlayer = document.getElementById('tela-player');
+var vidPlayer = document.getElementById('vid-player');
+var playerTitulo = document.getElementById('player-titulo');
+var playerInfo = document.getElementById('player-info');
+var playerCarregando = document.getElementById('player-carregando');
+var playerErro = document.getElementById('player-erro');
 
-var hlsObj = null, curArchId = null;
+var hlsObj = null;
+var curArchId = null;
+var hidePlayerCtrlTmr = null;
 
-// ── Miniatura ──────────────────────────────────────────────────
-function getThumbnailUrl(identifier) {
-  return 'https://archive.org/services/img/' + encodeURIComponent(identifier) + '?size=small';
+// ── Proxies CORS (igual tv.html) ──────────────────────────────
+var PROXIES = [
+  'https://corsproxy.io/?url=',
+  'https://api.allorigins.win/raw?url=',
+  'https://api.codetabs.com/v1/proxy/?quest='
+];
+
+// ── XHR com fallback proxy (igual tv.html) ────────────────────
+function xhrGet(url, cb) {
+  var tentativas = [url];
+  for (var i = 0; i < PROXIES.length; i++) {
+    tentativas.push(PROXIES[i] + encodeURIComponent(url));
+  }
+  var ti = 0;
+  function next() {
+    if (ti >= tentativas.length) { cb(null); return; }
+    var u = tentativas[ti++];
+    var r = new XMLHttpRequest();
+    r.open('GET', u, true);
+    try { r.timeout = 14000; } catch(e) {}
+    r.onreadystatechange = function() {
+      if (r.readyState !== 4) return;
+      if (r.status === 200 && r.responseText) {
+        cb(r.responseText);
+      } else {
+        next();
+      }
+    };
+    r.onerror = next;
+    r.ontimeout = next;
+    try { r.send(); } catch(e) { next(); }
+  }
+  next();
 }
 
 // ── Barra de progresso ─────────────────────────────────────────
@@ -358,13 +540,26 @@ function setProgress(pct) {
   progressBar.style.width = pct + '%';
 }
 
-// ── Skeletons enquanto carrega ─────────────────────────────────
+// ── Miniatura ──────────────────────────────────────────────────
+function getThumbnailUrl(id) {
+  return 'https://archive.org/services/img/' + encodeURIComponent(id);
+}
+
+// ── Escape HTML ────────────────────────────────────────────────
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"]/g, function(m) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];
+  });
+}
+
+// ── Skeletons ──────────────────────────────────────────────────
 function renderSkeletons(count) {
   var html = '';
   for (var i = 0; i < count; i++) {
     html += '<div class="cd-skeleton">'
       + '<div class="cd-skeleton-img"></div>'
-      + '<div style="padding:8px">'
+      + '<div style="padding:6px 8px">'
       + '<div class="cd-skeleton-line"></div>'
       + '<div class="cd-skeleton-line short"></div>'
       + '</div></div>';
@@ -372,20 +567,24 @@ function renderSkeletons(count) {
   gr.innerHTML = html;
 }
 
-// ── Criar elemento card ────────────────────────────────────────
+// ── Criar card ─────────────────────────────────────────────────
 function criarCard(d) {
   var id = d.identifier;
   var titulo = d.title || 'Sem título';
-  var curto = titulo.length > 50 ? titulo.substr(0,47) + '…' : titulo;
+  var curto = titulo.length > 50 ? titulo.substr(0,47) + '...' : titulo;
   var ano = d.year || '?';
-  var downloads = d.downloads ? Number(d.downloads).toLocaleString() : '—';
   var creator = d.creator ? String(d.creator).substr(0,40) : '';
-  var thumbUrl = getThumbnailUrl(id);
+  var downloads = d.downloads ? Number(d.downloads).toLocaleString() : '';
 
   var el = document.createElement('div');
   el.className = 'cd';
-  el.innerHTML =
-    '<img src="' + thumbUrl + '" loading="lazy" onerror="this.src=\'https://archive.org/images/notfound.png\';this.style.objectFit=\'contain\'">'
+
+  var thumbHtml = '<div class="cd-thumb-wrap">'
+    + '<img src="' + getThumbnailUrl(id) + '" alt="" '
+    + 'onerror="this.src=\'https://archive.org/images/notfound.png\'">'
+    + '</div>';
+
+  el.innerHTML = thumbHtml
     + '<div class="ci">'
     + '<div class="ct">' + esc(curto) + '</div>'
     + '<div class="cm">' + esc(ano) + '</div>'
@@ -393,67 +592,78 @@ function criarCard(d) {
     + '</div>';
 
   el.onclick = function() {
-    abrirPlayer(id, titulo,
-      '<strong>' + esc(titulo) + '</strong> '
-      + (ano !== '?' ? '(' + ano + ')' : '')
-      + ' · ' + esc(creator)
-      + ' · ' + downloads + ' acessos'
-      + ' · <a href="https://archive.org/details/' + encodeURIComponent(id) + '" target="_blank">Detalhes ↗</a>'
-    );
+    abrirPlayer(id, titulo, ano, creator, downloads);
   };
   return el;
 }
 
-// ── Renderização progressiva em lotes (padrão K60 TV) ─────────
+// ── Renderização progressiva em lotes (padrão tv.html) ─────────
 function renderCardsProgressivo(docs) {
   if (!docs.length) {
-    gr.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted)">Nenhum resultado encontrado</div>';
+    gr.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">Nenhum resultado</div>';
     setProgress(100);
     return;
   }
-
-  gr.innerHTML = ''; // limpa skeletons
+  gr.innerHTML = '';
   var total = docs.length;
   var idx = 0;
 
   function processarLote() {
     var fim = Math.min(idx + CHUNK_SIZE, total);
-
-    // Usa fragment para inserir o lote de uma vez (não causa reflow por card)
     var frag = document.createDocumentFragment();
     for (var i = idx; i < fim; i++) {
       frag.appendChild(criarCard(docs[i]));
     }
     gr.appendChild(frag);
-
     idx = fim;
     var pct = Math.round((idx / total) * 100);
     setProgress(pct);
     ib.textContent = state.tot.toLocaleString() + ' itens · Pág.' + state.page
-      + ' · Carregando ' + idx + '/' + total + '…';
-
+      + ' · Carregando ' + idx + '/' + total + '...';
     if (idx < total) {
       setTimeout(processarLote, CHUNK_PAUSE);
     } else {
-      // Concluído
       ib.textContent = state.tot.toLocaleString() + ' itens · Pág.' + state.page
         + ' · Archive.org' + (IS_TV ? ' (Modo TV)' : '');
       setTimeout(function(){ setProgress(0); }, 800);
     }
   }
-
-  // Primeiro lote imediato, resto com pausa
   processarLote();
+}
+
+// ── JSONP para Archive.org (sem fetch) ─────────────────────────
+function fetchJSONP(url, cb) {
+  var name = '_cb_' + Date.now() + '_' + Math.floor(Math.random() * 99999);
+  var script = document.createElement('script');
+  var timeout = setTimeout(function() {
+    cleanup();
+    cb(null);
+  }, 15000);
+  window[name] = function(data) {
+    clearTimeout(timeout);
+    cleanup();
+    cb(data);
+  };
+  function cleanup() {
+    try { delete window[name]; } catch(e) { window[name] = undefined; }
+    if (script.parentNode) script.parentNode.removeChild(script);
+  }
+  script.onerror = function() {
+    clearTimeout(timeout);
+    cleanup();
+    cb(null);
+  };
+  script.src = url + '&callback=' + name;
+  document.head.appendChild(script);
 }
 
 // ── Busca ──────────────────────────────────────────────────────
 function load() {
   if (state.loading) return;
   state.loading = true;
-
   renderSkeletons(PP);
   pgd.innerHTML = '';
-  ib.textContent = 'Buscando no Archive.org…';
+  ib.textContent = 'Buscando no Archive.org...';
   setProgress(10);
 
   var query = buildQuery();
@@ -464,25 +674,20 @@ function load() {
   fetchJSONP(url, function(data) {
     state.loading = false;
     setProgress(50);
-
-    if (!data || data.error || !data.response) {
-      gr.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted)">Erro de conexão com Archive.org</div>';
+    if (!data || !data.response) {
+      gr.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">Erro de conexão</div>';
       ib.textContent = 'Falha na conexão';
       setProgress(0);
       return;
     }
-
     var docs = data.response.docs || [];
     state.tot = data.response.numFound || 0;
-
     if (!docs.length) {
-      gr.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted)">Nenhum resultado</div>';
-      ib.textContent = 'Nenhum resultado encontrado';
+      gr.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">Nenhum resultado</div>';
+      ib.textContent = 'Nenhum resultado';
       setProgress(0);
       return;
     }
-
-    // Inicia renderização progressiva em lotes
     renderCardsProgressivo(docs);
     renderPag();
   });
@@ -509,122 +714,178 @@ function buildQuery() {
   return col;
 }
 
-function fetchJSONP(url, cb) {
-  var name = '_cb_' + Date.now() + '_' + Math.floor(Math.random() * 99999);
-  var script = document.createElement('script');
-  var timeout = setTimeout(function(){ cleanup(); cb({ error:'timeout' }); }, 15000);
-  window[name] = function(data) { clearTimeout(timeout); cleanup(); cb(data); };
-  function cleanup() {
-    delete window[name];
-    if (script.parentNode) script.parentNode.removeChild(script);
-  }
-  script.onerror = function() { clearTimeout(timeout); cleanup(); cb({ error:'network' }); };
-  script.src = url + '&callback=' + name;
-  document.head.appendChild(script);
-}
-
+// ── Paginação ──────────────────────────────────────────────────
 function renderPag() {
   var total = Math.ceil(state.tot / PP);
   if (total <= 1) { pgd.innerHTML = ''; return; }
-  var html = '<span class="pb" data-page="' + (state.page - 1) + '"' + (state.page === 1 ? ' style="opacity:.4;cursor:default"' : '') + '>◀</span>';
+  var html = '<span class="pb" id="pg-prev">&#9664;</span>';
   var maxPag = Math.min(total, 8);
   for (var i = 1; i <= maxPag; i++) {
     html += '<span class="pb ' + (i === state.page ? 'on' : '') + '" data-page="' + i + '">' + i + '</span>';
   }
-  html += '<span class="pb" data-page="' + (state.page + 1) + '"' + (state.page >= total ? ' style="opacity:.4;cursor:default"' : '') + '>▶</span>';
+  html += '<span class="pb" id="pg-next">&#9654;</span>';
   pgd.innerHTML = html;
-  document.querySelectorAll('.pb').forEach(function(btn) {
-    var p = parseInt(btn.dataset.page);
-    if (!isNaN(p) && p >= 1 && p <= total) {
-      btn.onclick = function() { state.page = p; load(); window.scrollTo(0, 0); };
+
+  var prev = document.getElementById('pg-prev');
+  var next = document.getElementById('pg-next');
+  if (state.page <= 1) prev.style.opacity = '0.4';
+  else prev.onclick = function() { state.page--; load(); window.scrollTo(0,0); };
+
+  if (state.page >= total) next.style.opacity = '0.4';
+  else next.onclick = function() { state.page++; load(); window.scrollTo(0,0); };
+
+  var pbs = document.querySelectorAll('.pb[data-page]');
+  for (var j = 0; j < pbs.length; j++) {
+    (function(btn) {
+      var p = parseInt(btn.getAttribute('data-page'), 10);
+      btn.onclick = function() { state.page = p; load(); window.scrollTo(0,0); };
+    })(pbs[j]);
+  }
+}
+
+// ── Player fullscreen (padrão tv.html, SEM iframe) ────────────
+function pararPlayer() {
+  if (hlsObj) { try { hlsObj.destroy(); } catch(e){} hlsObj = null; }
+  try { vidPlayer.pause(); vidPlayer.src = ''; vidPlayer.load(); } catch(e) {}
+}
+
+function abrirPlayer(id, titulo, ano, creator, downloads) {
+  curArchId = id;
+  pararPlayer();
+  playerTitulo.textContent = titulo;
+  playerInfo.textContent = (ano && ano !== '?' ? ano + ' · ' : '') + (creator || '') + (downloads ? ' · ' + downloads + ' acessos' : '');
+  playerCarregando.textContent = 'Carregando vídeo...';
+  playerCarregando.style.display = 'block';
+  playerErro.style.display = 'none';
+
+  telaHome.style.display = 'none';
+  telaPlayer.style.display = 'block';
+
+  carregarVideo(id);
+  mostrarControlesPlayer();
+}
+
+function voltarHome() {
+  pararPlayer();
+  telaPlayer.style.display = 'none';
+  telaHome.style.display = 'block';
+  curArchId = null;
+}
+
+// ── Carregar metadados via XHR (sem fetch) ────────────────────
+function carregarVideo(id) {
+  var metaUrl = 'https://archive.org/metadata/' + encodeURIComponent(id);
+  xhrGet(metaUrl, function(txt) {
+    if (!txt) {
+      mostrarErroPlayer();
+      return;
+    }
+    var data;
+    try { data = JSON.parse(txt); } catch(e) { mostrarErroPlayer(); return; }
+
+    var files = data.files || [];
+    var url = encontrarMelhorUrl(files, id);
+    if (url) {
+      tocarUrl(url, id);
+    } else {
+      mostrarErroPlayer();
     }
   });
 }
 
-// ── Player ─────────────────────────────────────────────────────
-function pararPlayer() {
-  if (hlsObj) { hlsObj.destroy(); hlsObj = null; }
-  var vid = document.getElementById('cv');
-  if (vid) { vid.pause(); vid.src = ''; }
+// ── Encontrar URL sem Array.find/some (compatível com TVs antigas) ──
+function temExtensaoValida(nome) {
+  if (!nome) return false;
+  var nomeLower = nome.toLowerCase();
+  for (var ei = 0; ei < EXT_VALIDAS.length; ei++) {
+    if (nomeLower.indexOf(EXT_VALIDAS[ei], nomeLower.length - EXT_VALIDAS[ei].length) !== -1) {
+      return true;
+    }
+  }
+  return false;
 }
 
-function montarPlayerHTML() {
-  return '<div style="position:relative;width:100%;padding-bottom:56.25%;background:#000">'
-    + '<video id="cv" controls playsinline style="position:absolute;width:100%;height:100%"></video>'
-    + '<div id="cv-err" style="display:none;position:absolute;inset:0;background:#000;flex-direction:column;align-items:center;justify-content:center;gap:12px">'
-    + '<p style="color:var(--muted)">Erro ao carregar o vídeo</p>'
-    + '<button id="btn-embed" style="padding:10px 24px;background:var(--red);border:none;color:white;border-radius:30px;cursor:pointer;font-size:16px">Usar alternativo</button>'
-    + '<button id="btn-direct" style="padding:10px 24px;background:var(--bg4);border:1px solid var(--border);color:var(--text);border-radius:30px;cursor:pointer;font-size:16px">Abrir no Archive</button>'
-    + '</div></div>';
-}
-
-function abrirPlayer(id, titulo, infoHtml) {
-  curArchId = id;
-  mt.textContent = titulo;
-  minfo.innerHTML = infoHtml;
-  mbody.innerHTML = montarPlayerHTML();
-  mo.style.display = 'flex';
-  document.getElementById('btn-embed').onclick = function() { usarEmbed(id); };
-  document.getElementById('btn-direct').onclick = function() { window.open('https://archive.org/details/' + encodeURIComponent(id), '_blank'); };
-  carregarVideo(id);
-}
-
-function carregarVideo(id) {
-  fetch('https://archive.org/metadata/' + encodeURIComponent(id))
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      var files = data.files || [];
-      var url = null;
-      for (var f = 0; f < FMT_PRIORIDADE.length; f++) {
-        var fmt = FMT_PRIORIDADE[f];
-        var found = files.find(function(fi) {
-          return fi.format === fmt && EXT_VALIDAS.some(function(ext) { return fi.name && fi.name.endsWith(ext); });
-        });
-        if (found) {
-          url = 'https://archive.org/download/' + encodeURIComponent(id) + '/' + encodeURIComponent(found.name);
-          break;
-        }
+function encontrarMelhorUrl(files, id) {
+  // Prioridade por formato
+  for (var f = 0; f < FMT_PRIORIDADE.length; f++) {
+    var fmt = FMT_PRIORIDADE[f];
+    for (var i = 0; i < files.length; i++) {
+      var fi = files[i];
+      if (fi.format === fmt && temExtensaoValida(fi.name)) {
+        return 'https://archive.org/download/' + encodeURIComponent(id) + '/' + encodeURIComponent(fi.name);
       }
-      if (!url) {
-        var mp4 = files.find(function(f) { return f.name && f.name.endsWith('.mp4'); });
-        if (mp4) url = 'https://archive.org/download/' + encodeURIComponent(id) + '/' + encodeURIComponent(mp4.name);
-      }
-      if (url) tocarUrl(url, id);
-      else usarEmbed(id);
-    })
-    .catch(function() { usarEmbed(id); });
+    }
+  }
+  // Fallback: qualquer .mp4
+  for (var j = 0; j < files.length; j++) {
+    var fn = files[j].name || '';
+    if (fn.toLowerCase().indexOf('.mp4') !== -1) {
+      return 'https://archive.org/download/' + encodeURIComponent(id) + '/' + encodeURIComponent(fn);
+    }
+  }
+  return null;
 }
 
+// ── Tocar URL (igual ao tv.html: HLS.js + fallback nativo) ─────
 function tocarUrl(url, id) {
-  var vid = document.getElementById('cv');
-  if (!vid) return;
-  if (url.endsWith('.m3u8') && window.Hls && Hls.isSupported()) {
-    if (hlsObj) hlsObj.destroy();
+  playerCarregando.style.display = 'none';
+  playerErro.style.display = 'none';
+
+  var isHls = url.toLowerCase().indexOf('.m3u8') !== -1;
+
+  if (isHls && window.Hls && Hls.isSupported()) {
+    if (hlsObj) { try { hlsObj.destroy(); } catch(e){} }
     hlsObj = new Hls();
     hlsObj.loadSource(url);
-    hlsObj.attachMedia(vid);
-    hlsObj.on(Hls.Events.MANIFEST_PARSED, function() { vid.play().catch(function(){}); });
+    hlsObj.attachMedia(vidPlayer);
+    hlsObj.on(Hls.Events.MANIFEST_PARSED, function() {
+      try { vidPlayer.play(); } catch(e) { vidPlayer.muted = true; vidPlayer.play(); }
+    });
+    hlsObj.on(Hls.Events.ERROR, function(evt, data) {
+      if (data && data.fatal) { mostrarErroPlayer(); }
+    });
   } else {
-    vid.src = url;
-    vid.load();
-    vid.play().catch(function() { vid.muted = true; vid.play(); });
+    vidPlayer.src = url;
+    vidPlayer.load();
+    try { vidPlayer.play(); } catch(e) { vidPlayer.muted = true; try { vidPlayer.play(); } catch(e2){} }
   }
-  vid.onerror = function() { usarEmbed(id); };
+
+  vidPlayer.onerror = function() {
+    mostrarErroPlayer();
+  };
 }
 
-function usarEmbed(id) {
-  var wrap = mbody.querySelector('div');
-  if (wrap) wrap.innerHTML = '<iframe src="https://archive.org/embed/' + encodeURIComponent(id) + '?autoplay=1" allowfullscreen style="position:absolute;width:100%;height:100%;border:none"></iframe>';
+function mostrarErroPlayer() {
+  playerCarregando.style.display = 'none';
+  playerErro.style.display = 'block';
 }
 
-function fecharModal() {
-  pararPlayer();
-  mo.style.display = 'none';
-  mbody.innerHTML = '';
+// ── Controles do player ───────────────────────────────────────
+var playerCtrl = document.getElementById('player-controles');
+function mostrarControlesPlayer() {
+  playerCtrl.classList.remove('oculto');
+  clearTimeout(hidePlayerCtrlTmr);
+  hidePlayerCtrlTmr = setTimeout(function() {
+    playerCtrl.classList.add('oculto');
+  }, 4000);
 }
 
-document.getElementById('mx').onclick = fecharModal;
-mo.onclick = function(e) { if (e.target === mo) fecharModal(); };
+['mousemove','mousedown','touchstart','keydown'].forEach(function(ev) {
+  telaPlayer.addEventListener(ev, mostrarControlesPlayer);
+});
+
+document.getElementById('btn-voltar-home').onclick = voltarHome;
+
+document.getElementById('btn-archive-direct').onclick = function() {
+  if (curArchId) {
+    window.open('https://archive.org/details/' + encodeURIComponent(curArchId), '_blank');
+  }
+};
+document.getElementById('btn-archive-direct2').onclick = function() {
+  if (curArchId) {
+    window.open('https://archive.org/details/' + encodeURIComponent(curArchId), '_blank');
+  }
+};
 
 // ── Categorias ─────────────────────────────────────────────────
 var CATS = {
@@ -644,23 +905,30 @@ var CATS = {
 
 function renderCats() {
   var list = CATS[state.source] || [];
-  catsDiv.innerHTML = list.map(function(c) {
-    return '<span class="cb ' + (c.k === state.cat ? 'on' : '') + '" data-k="' + c.k + '">' + c.l + '</span>';
-  }).join('');
-  document.querySelectorAll('.cb').forEach(function(el) {
-    el.onclick = function() {
-      state.cat = el.dataset.k;
-      state.page = 1;
-      renderCats();
-      load();
-    };
-  });
+  var html = '';
+  for (var i = 0; i < list.length; i++) {
+    var c = list[i];
+    html += '<span class="cb' + (c.k === state.cat ? ' on' : '') + '" data-k="' + c.k + '">' + c.l + '</span>';
+  }
+  catsDiv.innerHTML = html;
+  var cbs = document.querySelectorAll('.cb');
+  for (var j = 0; j < cbs.length; j++) {
+    (function(el) {
+      el.onclick = function() {
+        state.cat = el.getAttribute('data-k');
+        state.page = 1;
+        renderCats();
+        load();
+      };
+    })(cbs[j]);
+  }
 }
 
-window.switchSource = function(src) {
-  document.querySelectorAll('.nt').forEach(function(b) { b.classList.remove('on'); });
+function switchSource(src) {
+  var tabs = document.querySelectorAll('.nt');
+  for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('on');
   var idx = {archive:0, cartoons:1, docs:2}[src] || 0;
-  document.querySelectorAll('.nt')[idx].classList.add('on');
+  tabs[idx].classList.add('on');
   state.source = src;
   state.cat = (src === 'cartoons') ? 'animationandcartoons' : '';
   state.q = '';
@@ -668,38 +936,46 @@ window.switchSource = function(src) {
   si.value = '';
   renderCats();
   load();
-};
-
-// ── Escape HTML ────────────────────────────────────────────────
-function esc(s) {
-  if (!s) return '';
-  return String(s).replace(/[&<>"]/g, function(m) {
-    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];
-  });
 }
 
-// ── Guia ───────────────────────────────────────────────────────
-window.openGuide = function() { document.getElementById('gm').style.display = 'block'; };
-window.closeGuide = function() { document.getElementById('gm').style.display = 'none'; };
+document.getElementById('tab-filmes').onclick   = function() { switchSource('archive'); };
+document.getElementById('tab-cartoons').onclick = function() { switchSource('cartoons'); };
+document.getElementById('tab-docs').onclick     = function() { switchSource('docs'); };
 
-// ── Busca manual ───────────────────────────────────────────────
+// ── Busca ──────────────────────────────────────────────────────
 document.getElementById('btnBuscar').onclick = function() {
-  state.q = si.value.trim();
+  state.q = si.value.replace(/^\s+|\s+$/g, '');
   state.page = 1;
   load();
 };
 si.onkeydown = function(e) {
-  if (e.key === 'Enter') { state.q = si.value.trim(); state.page = 1; load(); }
+  var key = e.key || e.keyCode;
+  if (key === 'Enter' || key === 13) {
+    state.q = si.value.replace(/^\s+|\s+$/g, '');
+    state.page = 1;
+    load();
+  }
 };
 
-// ── Iniciar ────────────────────────────────────────────────────
-// Mostra modo TV se detectado
+// ── Guia ───────────────────────────────────────────────────────
+document.getElementById('btnGuide').onclick = function() {
+  document.getElementById('gm').style.display = 'block';
+};
+document.getElementById('btnCloseGuide').onclick = function() {
+  document.getElementById('gm').style.display = 'none';
+};
+document.getElementById('btnCloseGuide2').onclick = function() {
+  document.getElementById('gm').style.display = 'none';
+};
+
+// ── Badge TV ───────────────────────────────────────────────────
 if (IS_TV) {
   srcBadge.textContent = 'ARCHIVE.ORG · TV';
   srcBadge.style.background = 'rgba(0,212,180,.15)';
   srcBadge.style.color = '#00d4b4';
 }
 
+// ── Init ───────────────────────────────────────────────────────
 renderCats();
 load();
 

@@ -595,14 +595,16 @@ function atualizarDisplay() {
 }
 
 function irCanal() {
-  if (!pronto || !buf) return;
   var n = parseInt(buf, 10);
   buf = ''; atualizarDisplay();
-  if (n >= 1 && n <= canais.length) { tocar(n - 1); }
-  else {
-    setStatus('Canal ' + n + ' não existe. Digite 1 a <span>' + canais.length + '</span>');
-    setTimeout(function() { atualizarTela(); }, 2500);
+  if (!pronto || isNaN(n) || n < 1 || n > canais.length) {
+    if (pronto && !isNaN(n)) {
+      setStatus('Canal ' + n + ' não existe. Digite 1 a <span>' + canais.length + '</span>');
+      setTimeout(function() { atualizarTela(); }, 2500);
+    }
+    return;
   }
+  tocar(n - 1);
 }
 
 // ── Player ─────────────────────────────────────────────────────

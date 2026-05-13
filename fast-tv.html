@@ -764,7 +764,7 @@ document.onkeydown = function(e) {
   if (e.preventDefault && (eNum || ok || del || voltar || cima || baixo)) e.preventDefault();
   if (naHome) {
     if (eNum && pronto) {
-      if (buf.length >= MAX_DIGITOS + 1) return;
+      if (buf.length >= MAX_DIGITOS) return;
       buf += String(num); atualizarDisplay(); clearTimeout(bufTmr);
       if (buf.length > MAX_DIGITOS) irCanal();
       else bufTmr = setTimeout(irCanal, 2500);

@@ -766,8 +766,8 @@ document.onkeydown = function(e) {
     if (eNum && pronto) {
       if (buf.length >= MAX_DIGITOS) return;
       buf += String(num); atualizarDisplay(); clearTimeout(bufTmr);
-      if (buf.length > MAX_DIGITOS) irCanal();
-      else bufTmr = setTimeout(irCanal, 2500);
+      if (buf.length === MAX_DIGITOS) bufTmr = setTimeout(irCanal, 800);
+      else bufTmr = setTimeout(irCanal, 3000);
     } else if (del && buf.length > 0) {
       buf = buf.slice(0, -1); atualizarDisplay(); clearTimeout(bufTmr);
     } else if (ok) { clearTimeout(bufTmr); irCanal(); }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FILMSPACE TV</title>
+<title>FILMSPACE TV-V1</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -98,7 +98,7 @@ body{background:#08090E;color:#EDE8FF;font-family:'Outfit',sans-serif;overflow:h
   <aside id="home-lado"><div id="favs"></div></aside>
 </div>
 <div id="tela-player">
-  <iframe id="player-frame" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation" src="about:blank"></iframe>
+  <iframe id="player-frame" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" referrerpolicy="no-referrer" src="about:blank"></iframe>
   <div id="osd"><div id="osd-num">-</div><div id="osd-nome">Canal</div><div id="osd-tipo"></div><div id="osd-estado">Conectando...</div></div>
   <div id="carregando"><div id="load-spin"></div><div id="load-txt">Conectando ao stream...</div></div>
   <div id="ep-ctrl"></div>
@@ -130,7 +130,40 @@ function getEmbed(ch,s,e){var src=SOURCES[srcIdx]||SOURCES[0];if(ch.tipo==='anim
 
 function tmdb(path,extra){return fetch(T_BASE+path+'?api_key='+T_KEY+'&language=pt-BR'+(extra||'')).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()})}
 
+var LS_CACHE='fs_catalogo',LS_CACHE_TS='fs_catalogo_ts',CACHE_TTL=6*60*60*1000; // 6 horas
+
+function salvarCache(){
+  try{
+    var slim=todosCanais.map(function(c){return{tipo:c.tipo,titulo:c.titulo,ano:c.ano,nota:c.nota,tmdbId:c.tmdbId,malId:c.malId,episodes:c.episodes}});
+    localStorage.setItem(LS_CACHE,JSON.stringify(slim));
+    localStorage.setItem(LS_CACHE_TS,String(Date.now()))
+  }catch(e){console.warn('Cache cheio, limpando...');try{localStorage.removeItem(LS_CACHE)}catch(x){}}
+}
+
+function carregarDoCache(){
+  try{
+    var ts=parseInt(localStorage.getItem(LS_CACHE_TS)||'0',10);
+    if(Date.now()-ts>CACHE_TTL)return false;
+    var raw=localStorage.getItem(LS_CACHE);if(!raw)return false;
+    var arr=JSON.parse(raw);if(!arr||!arr.length)return false;
+    todosCanais=arr;
+    return true
+  }catch(e){return false}
+}
+
+function finalizarCatalogo(){
+  todosCanais.sort(function(a,b){var o={filme:0,serie:1,anime:2,doc:3};return(o[a.tipo]||0)-(o[b.tipo]||0)});
+  for(var i=0;i<todosCanais.length;i++)todosCanais[i]._num=i+1;
+  aplicarFiltro();pronto=true;atualizarTela();
+  salvarCache()
+}
+
 function carregarTudo(){
+  if(carregarDoCache()){
+    $('status-line').innerHTML='✓ Catálogo carregado do cache (<span>'+todosCanais.length+'</span> canais)';
+    finalizarCatalogo();
+    return
+  }
   $('status-line').innerHTML='⏳ Carregando filmes...';
   tmdb('/movie/popular','&page=1').then(function(d){addTMDB(d.results,'filme');return tmdb('/movie/popular','&page=2')}).then(function(d){addTMDB(d.results,'filme')}).catch(function(){}).then(function(){
     $('status-line').innerHTML='⏳ Carregando séries...';
@@ -146,10 +179,8 @@ function carregarTudo(){
     $('status-line').innerHTML='⏳ Carregando documentários...';
     return tmdb('/discover/movie','&with_genres=99&sort_by=popularity.desc&vote_count.gte=50&page=1').then(function(d){addTMDB(d.results,'doc')}).catch(function(){})
   }).then(function(){
-    todosCanais.sort(function(a,b){var o={filme:0,serie:1,anime:2,doc:3};return(o[a.tipo]||0)-(o[b.tipo]||0)});
-    for(var i=0;i<todosCanais.length;i++)todosCanais[i]._num=i+1;
-    aplicarFiltro();pronto=true;atualizarTela();
-    if(todosCanais.length===0)$('status-line').innerHTML='<span style="color:#ff5555">Erro ao carregar. Verifique conexão e recarregue.</span>';
+    if(todosCanais.length>0)finalizarCatalogo();
+    else $('status-line').innerHTML='<span style="color:#ff5555">Erro ao carregar. Verifique conexão e recarregue.</span>';
   })
 }
 

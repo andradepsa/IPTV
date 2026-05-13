@@ -223,11 +223,9 @@ function proximoProxy() {
 function marcarErroProxy(pi) {
   var s = proxyStats[pi];
   s.erros++;
-  // Limiar maior quando há poucos proxies para não paralisar a sintonia inteira
-  var limiar = Math.max(12, PROXIES.length < 2 ? 20 : 8);
-  if (s.erros >= limiar) {
+  if (s.erros >= 3) {
     s.bloqueado = true;
-    s.cooldown = Date.now() + 60000; // 60s de cooldown
+    s.cooldown = Date.now() + 30000; // 30s de cooldown
   }
 }
 
@@ -247,106 +245,11 @@ var platFiltro = null, catFiltro = null;
 var canaisBrutos = [];
 var skipCount = 0;
 
-// ── Persistência da sintonização ───────────────────────────────
-var LS_SINT = 'k60fast_sint_v1';
-var _sintoniaRestaurada = false;
-
-function _salvarSintonia() {
-  try {
-    var slim = canaisBrutos.map(function(c) {
-      return { nome: c.nome, url: c.url, plat: c.plat, cats: c.cats || [], logo: c.logo || null };
-    });
-    localStorage.setItem(LS_SINT, JSON.stringify({ ts: Date.now(), canais: slim }));
-  } catch(e) {
-    console.error('[K60FAST] Falha ao salvar sintonia:', e);
-  }
-}
-
-function _restaurarSintonia() {
-  try {
-    var raw = localStorage.getItem(LS_SINT);
-    if (!raw) return false;
-    var obj = JSON.parse(raw);
-    if (!obj || !obj.canais || !obj.canais.length) return false;
-    canaisBrutos = [];
-    seenUrls = {};
-    nextNum = 1;
-    for (var i = 0; i < obj.canais.length; i++) {
-      var c = obj.canais[i];
-      if (!c || !c.url || seenUrls[c.url]) continue;
-      seenUrls[c.url] = true;
-      c._num = nextNum++;
-      canaisBrutos.push(c);
-    }
-    _sintoniaRestaurada = true;
-    var d = new Date(obj.ts);
-    var dataStr = d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR');
-    setStatus('Sintonia restaurada (<span>' + canaisBrutos.length + '</span> canais) — ' + dataStr
-      + ' &nbsp;<button onclick="limparSintonia()" style="background:none;border:1px solid #ff4444;color:#ff4444;font-size:11px;padding:2px 10px;border-radius:10px;cursor:pointer">&#10005; Recarregar fontes</button>');
-    aplicarFiltro();
-    atualizarTela();
-    popularPlataformas();
-    popularCategorias();
-    return true;
-  } catch(e) {
-    return false;
-  }
-}
-
-function limparSintonia() {
-  try { localStorage.removeItem(LS_SINT); } catch(e) {}
-  _sintoniaRestaurada = false;
-  canaisBrutos = [];
-  seenUrls = {};
-  nextNum = 1;
-  pronto = false;
-  document.getElementById('log-fontes').innerHTML = '';
-  setStatus('Carregando fontes...');
-  carregar();
-}
-
-// ── Normalização global de macros de anúncio ─────────────────
-// Substitui placeholders não preenchidos para evitar erro 400.
-// Escopo GLOBAL: usada tanto na sintonia quanto na reprodução.
-function normalizarUrl(url) {
-  if (!url) return url;
-  return url
-    .replace(/\[DEVICE_ID\]/gi,        'aaa00000000')
-    .replace(/\[IFA\]/gi,              'aaa00000000')
-    .replace(/\[IFA_TYPE\]/gi,         'idfa')
-    .replace(/\[LMT\]/gi,              '0')
-    .replace(/\[DNS\]/gi,              '0')
-    .replace(/\[DNT\]/gi,              '0')
-    .replace(/\[UA\]/gi,               'Mozilla%2F5.0')
-    .replace(/\[IP\]/gi,               '0.0.0.0')
-    .replace(/\[GDPR\]/gi,             '0')
-    .replace(/\[GDPR_CONSENT\]/gi,     '')
-    .replace(/\[COUNTRY\]/gi,          'US')
-    .replace(/\[US_PRIVACY\]/gi,       '1---')
-    .replace(/\[APP_STOREURL\]/gi,     '')
-    .replace(/\[APP_BUNDLE\]/gi,       'com.test.app')
-    .replace(/\[APP_NAME\]/gi,         'TestApp')
-    .replace(/\[APP_VERSION\]/gi,      '1.0')
-    .replace(/\[DEVICE_TYPE\]/gi,      'tv')
-    .replace(/\[DEVICE_MAKE\]/gi,      'LG')
-    .replace(/\[DEVICE_MODEL\]/gi,     'OLED55')
-    .replace(/\[TARGETAD_ALLOWED\]/gi, '1')
-    .replace(/\[FCK\]/gi,              '')
-    .replace(/\[VIEWSIZE\]/gi,         '1920x1080')
-    .replace(/\[NONCE\]/gi,            '')
-    .replace(/\[IC\]/gi,               '')
-    .replace(/\[IAB_CATEGORY\]/gi,     '')
-    .replace(/\[PCS\]/gi,              '')
-    .replace(/\[HOTEL_TYPE\]/gi,       '')
-    .replace(/\{\{[^}]+\}\}/g,         '')   // {{MACRO}}
-    .replace(/\{[A-Z_]{2,}\}/g,        '')   // {MACRO}
-    .replace(/REPLACE_ME/g,            '')
-    .replace(/REPLACEME/g,             '');
-}
-
 // ── XHR com fallback proxy e rodízio ──────────────────────────
 function fetchM3u(url, cb) {
+  // Tenta direto primeiro, depois proxies em rodízio
   var tentativas = [{ url: url, pi: -1 }];
+  // Monta lista de proxies disponíveis na ordem do rodízio atual
   var startIdx = proxyIdx;
   for (var i = 0; i < PROXIES.length; i++) {
     var pi = (startIdx + i) % PROXIES.length;
@@ -360,8 +263,7 @@ function fetchM3u(url, cb) {
     var t = tentativas[ti++];
     var r = new XMLHttpRequest();
     r.open('GET', t.url, true);
-    // 22s: M3Us grandes (Roku/Pluto/Tubi têm 400+ canais)
-    try { r.timeout = 22000; } catch(e){}
+    try { r.timeout = 15000; } catch(e){}
     r.onreadystatechange = function() {
       if (r.readyState !== 4) return;
       if (r.status === 429 || r.status === 503) {
@@ -373,17 +275,12 @@ function fetchM3u(url, cb) {
         if (t.pi >= 0) marcarOkProxy(t.pi);
         cb(null, r.responseText);
       } else {
-        // 400/404 = problema da fonte, não do proxy — não penaliza
+        if (t.pi >= 0 && r.status >= 400) marcarErroProxy(t.pi);
         next();
       }
     };
-    // onerror direto = CORS bloqueado (esperado); via proxy = falha de rede real
     r.onerror = function() { if (t.pi >= 0) marcarErroProxy(t.pi); next(); };
-    // Timeout do proxy = proxy lento; penaliza 0.5 (suave) e tenta próximo
-    r.ontimeout = function() {
-      if (t.pi >= 0) { proxyStats[t.pi].erros = Math.min(proxyStats[t.pi].erros + 0.5, 19); }
-      next();
-    };
+    r.ontimeout = function() { if (t.pi >= 0) marcarErroProxy(t.pi); next(); };
     try { r.send(); } catch(e) { next(); }
   }
   next();
@@ -560,7 +457,6 @@ function logFonte(nome, estado, count) {
 }
 
 function carregar() {
-  if (_sintoniaRestaurada) return;
   var total = FONTES.length, done = 0;
   function fimFonte() {
     done++;
@@ -598,358 +494,221 @@ function irCanal() {
   var n = parseInt(buf, 10);
   buf = ''; atualizarDisplay();
   if (!pronto || isNaN(n) || n < 1 || n > canais.length) {
-    if (pronto && !isNaN(n)) {
-      setStatus('Canal ' + n + ' não existe. Digite 1 a <span>' + canais.length + '</span>');
-      setTimeout(function() { atualizarTela(); }, 2500);
-    }
+    if (!pronto) return;
+    mostrarToast();
     return;
   }
-  tocar(n - 1);
+  tocarCanal(n - 1);
 }
 
-// ── Player ─────────────────────────────────────────────────────
-function pararHls() { if (hlsObj) { try { hlsObj.destroy(); } catch(e){} hlsObj = null; } }
-
-function pararVideo() {
-  pararHls();
-  var vid = document.getElementById('vid');
-  vid.onerror = null; vid.oncanplay = null; vid.onloadedmetadata = null; vid.onplaying = null;
-  clearTimeout(failTmr);
-  try { vid.pause(); } catch(e) {}
-  try { vid.src = ''; } catch(e) {}
-  try { vid.removeAttribute('src'); } catch(e) {}
-  try { vid.load(); } catch(e) {}
-  try { vid.muted = false; vid.volume = 1; } catch(e) {}
-}
-
-function tocar(idx) {
-  var ch = canais[idx]; if (!ch) return;
-  curCh = idx;
-  pararVideo();
-  var vid = document.getElementById('vid');
-  document.getElementById('osd-num').textContent = String(idx + 1).padStart(3, '0');
-  document.getElementById('osd-nome').textContent = ch.nome;
-  document.getElementById('osd-plat').textContent = ch.plat || '';
-  document.getElementById('osd-estado').textContent = 'Conectando...';
-  setTimeout(sincVolSlider, 100);
-  document.getElementById('carregando').style.display = 'block';
-  document.getElementById('tela-home').style.display = 'none';
-  document.getElementById('tela-player').style.display = 'block';
-  mostrarOSD();
-  atualizarBtnFav();
-  failTmr = setTimeout(mostrarErro, 15000);
-  var okJa = false;
-  function onOk() {
-    if (okJa) return; okJa = true;
-    clearTimeout(failTmr); skipCount = 0;
-    document.getElementById('carregando').style.display = 'none';
-    document.getElementById('osd-estado').textContent = 'Ao vivo';
-    try { if (vid.muted) { vid.muted = false; vid.volume = 1; } } catch(e) {}
-  }
-  vid.oncanplay = onOk;
-  vid.onplaying = onOk;
-  vid.onloadedmetadata = function() { try { vid.play(); } catch(e) {} };
-  // Normaliza macros de anúncio antes de reproduzir
-  var url = normalizarUrl(ch.url);
-  var ehHls  = /\.m3u8?($|\?)/i.test(url);
-  var nativeHls = !!(vid.canPlayType && (
-    vid.canPlayType('application/vnd.apple.mpegurl') !== '' ||
-    vid.canPlayType('application/x-mpegURL') !== ''
-  ));
-  var temMSE = typeof window.MediaSource !== 'undefined' &&
-               typeof Hls !== 'undefined' && Hls.isSupported();
-  function onErroNativo() {
-    vid.onerror = null;
-    if (ehHls && temMSE) { tentarHlsJs(); return; }
-    clearTimeout(failTmr); mostrarErro();
-  }
-  vid.onerror = onErroNativo;
-  function tentarHlsJs() {
-    try {
-      hlsObj = new Hls({ enableWorker: false, lowLatencyMode: false, backBufferLength: 20,
-        maxBufferLength: 20, maxMaxBufferLength: 40, capLevelToPlayerSize: true });
-      hlsObj.loadSource(url);
-      hlsObj.attachMedia(vid);
-      hlsObj.on(Hls.Events.MANIFEST_PARSED, function() { try { vid.play(); } catch(e) {} });
-      hlsObj.on(Hls.Events.ERROR, function(ev, d) {
-        if (!d || !d.fatal) return;
-        clearTimeout(failTmr); mostrarErro();
-      });
-    } catch(e) { mostrarErro(); }
-  }
-  if (ehHls && temMSE && !nativeHls) {
-    tentarHlsJs();
-  } else {
-    try {
-      vid.src = url; vid.load();
-      var p = vid.play();
-      if (p && p.catch) p.catch(function() {
-        try {
-          vid.muted = true;
-          var p2 = vid.play();
-          if (p2 && p2.then) p2.then(function() {
-            setTimeout(function() { try { vid.muted = false; vid.volume = 1; } catch(e){} }, 800);
-          }).catch(function(){});
-        } catch(e) {}
-      });
-    } catch(e) { clearTimeout(failTmr); mostrarErro(); }
-  }
-}
-
-function mostrarOSD() {
-  document.getElementById('osd').style.display = 'block'; clearTimeout(osdTmr);
-  osdTmr = setTimeout(function(){ document.getElementById('osd').style.display = 'none'; }, 5000);
-}
-
-function voltarHome() {
-  pararVideo(); clearTimeout(osdTmr); clearTimeout(errTmr);
-  skipCount = 0;
-  document.getElementById('toast').style.display = 'none';
-  document.getElementById('tela-player').style.display = 'none';
-  document.getElementById('tela-home').style.display = 'flex';
-  document.getElementById('osd').style.display = 'block';
-  buf = ''; atualizarDisplay();
-}
-
-function mostrarErro() {
-  clearTimeout(failTmr); clearTimeout(errTmr);
-  if (curCh >= 0 && canais[curCh]) {
-    // Remove canal defeituoso da lista
-    var urlDefeituosa = canais[curCh].url;
-    for (var _i = canaisBrutos.length - 1; _i >= 0; _i--) {
-      if (canaisBrutos[_i].url === urlDefeituosa) { canaisBrutos.splice(_i, 1); break; }
-    }
-    delete seenUrls[urlDefeituosa];
-    aplicarFiltro();
-    if (canais.length === 0) { voltarHome(); return; }
-    curCh = curCh % canais.length;
-  }
-  skipCount++;
-  if (skipCount >= canais.length) skipCount = 1;
-  document.getElementById('carregando').style.display = 'none';
-  document.getElementById('osd-estado').textContent = 'Sem sinal — pulando...';
-  document.getElementById('osd').style.display = 'block';
-  errTmr = setTimeout(function() {
-    curCh = (curCh + 1) % canais.length;
-    tocar(curCh);
-  }, 900);
-}
-
-function digitarNoPlayer(num) {
-  if (pBuf.length >= MAX_DIGITOS) return;
-  pBuf += String(num);
-  document.getElementById('p-canal-val').textContent = pBuf + '_';
-  document.getElementById('p-canal').style.display = 'block';
-  clearTimeout(pBufTmr);
-  pBufTmr = setTimeout(function() {
-    var idx = parseInt(pBuf, 10) - 1; pBuf = '';
-    document.getElementById('p-canal-val').textContent = '_';
-    document.getElementById('p-canal').style.display = 'none';
-    if (idx >= 0 && idx < canais.length) tocar(idx);
-  }, pBuf.length >= MAX_DIGITOS ? 600 : 2000);
-}
-
-function canalCima()  { if (canais.length) { skipCount = 0; curCh = (curCh + 1) % canais.length; tocar(curCh); } }
-function canalBaixo() { if (canais.length) { skipCount = 0; curCh = ((curCh - 1) + canais.length) % canais.length; tocar(curCh); } }
-
-// ── Teclado ────────────────────────────────────────────────────
 document.addEventListener('keydown', function(e) {
   var c = e.key;
-  var naPlayer = document.getElementById('tela-player').style.display === 'block';
-
   if (c >= '0' && c <= '9') {
-    e.preventDefault();
-    if (naPlayer) {
+    if (document.getElementById('tela-player').style.display === 'block') {
       pBuf += c;
       var pv = document.getElementById('p-canal-val');
       pv.textContent = pBuf;
       document.getElementById('p-canal').style.display = 'block';
       clearTimeout(pBufTmr);
       pBufTmr = setTimeout(function() {
-        var n = parseInt(pBuf, 10); pBuf = '';
-        document.getElementById('p-canal-val').textContent = '_';
+        var n = parseInt(pBuf, 10);
+        pBuf = '';
         document.getElementById('p-canal').style.display = 'none';
-        if (!isNaN(n) && n >= 1 && n <= canais.length) tocar(n - 1);
+        if (!isNaN(n) && n >= 1 && n <= canais.length) tocarCanal(n - 1);
       }, 1800);
     } else {
-      if (!pronto) return;
       buf += c;
       if (buf.length > MAX_DIGITOS) buf = buf.slice(1);
       atualizarDisplay();
       clearTimeout(bufTmr);
       bufTmr = setTimeout(irCanal, 2000);
     }
-  } else if (c === 'Enter' || c === 'Accept') {
-    e.preventDefault();
-    if (!naPlayer) { clearTimeout(bufTmr); irCanal(); }
-    else mostrarOSD();
+  } else if (c === 'Enter') {
+    clearTimeout(bufTmr); irCanal();
   } else if (c === 'Backspace') {
-    e.preventDefault();
-    if (naPlayer) voltarHome();
-    else { buf = buf.slice(0, -1); atualizarDisplay(); clearTimeout(bufTmr); }
-  } else if (c === 'Escape' || c === 'GoBack') {
-    e.preventDefault();
-    if (naPlayer) voltarHome();
-  } else if (c === 'ArrowUp' || c === 'PageUp' || c === 'ChannelUp') {
-    e.preventDefault();
-    if (naPlayer) canalCima();
-  } else if (c === 'ArrowDown' || c === 'PageDown' || c === 'ChannelDown') {
-    e.preventDefault();
-    if (naPlayer) canalBaixo();
-  } else if (naPlayer) {
-    var vid = document.getElementById('vid');
-    if (c === '+' || c === 'VolumeUp') {
-      var nv = Math.min(1, (vid.muted ? 0 : vid.volume) + 0.1);
-      vid.volume = nv; vid.muted = false; sincVolSlider(); mostrarVolume(); e.preventDefault();
-    } else if (c === '-' || c === 'VolumeDown') {
-      var nv2 = Math.max(0, (vid.muted ? 0 : vid.volume) - 0.1);
-      vid.volume = nv2; vid.muted = (nv2 === 0); sincVolSlider(); mostrarVolume(); e.preventDefault();
-    } else if (c === 'm' || c === 'M' || c === 'VolumeMute') {
-      vid.muted = !vid.muted;
-      if (!vid.muted && vid.volume === 0) vid.volume = 0.5;
-      sincVolSlider(); mostrarVolume(); e.preventDefault();
-    }
+    buf = buf.slice(0, -1); atualizarDisplay();
+  } else if (c === 'Escape' || c === 'Backspace' && document.getElementById('tela-player').style.display === 'block') {
+    voltarHome();
+  } else if (c === 'ArrowUp' || c === 'PageUp') {
+    if (document.getElementById('tela-player').style.display === 'block') canalCima();
+  } else if (c === 'ArrowDown' || c === 'PageDown') {
+    if (document.getElementById('tela-player').style.display === 'block') canalBaixo();
   }
 });
 
-// Keycodes TV — fallback para controles remotos com keyCodes não-padrão
+// Keycodes TV
+var KC_UP=[38,33,427,33], KC_DOWN=[40,34,428,34];
 document.addEventListener('keydown', function(e) {
-  var k = e.keyCode || e.which;
-  var naPlayer = document.getElementById('tela-player').style.display === 'block';
-  var cima   = k === 38 || k === 33 || k === 427;
-  var baixo  = k === 40 || k === 34 || k === 428;
-  var voltar = k === 27 || k === 36 || k === 88 || k === 166 || k === 461;
-  var enter  = k === 13 || k === 179;
-  if (naPlayer) {
-    if (cima)   { e.preventDefault(); canalCima(); }
-    if (baixo)  { e.preventDefault(); canalBaixo(); }
-    if (voltar) { e.preventDefault(); voltarHome(); }
-  } else {
-    if (enter)  { e.preventDefault(); clearTimeout(bufTmr); irCanal(); }
-  }
+  if (KC_UP.indexOf(e.keyCode) !== -1 && document.getElementById('tela-player').style.display === 'block') canalCima();
+  if (KC_DOWN.indexOf(e.keyCode) !== -1 && document.getElementById('tela-player').style.display === 'block') canalBaixo();
 });
+
+function canalCima() { if (curCh > 0) tocarCanal(curCh - 1); }
+function canalBaixo() { if (curCh < canais.length - 1) tocarCanal(curCh + 1); }
+
+// ── Player ─────────────────────────────────────────────────────
+function tocarCanal(idx) {
+  curCh = idx;
+  var ch = canais[idx];
+  skipCount = 0;
+  document.getElementById('tela-home').style.display = 'none';
+  var tp = document.getElementById('tela-player');
+  tp.style.display = 'block';
+  document.getElementById('osd-num').textContent = String(idx + 1).padStart(3, '0');
+  document.getElementById('osd-nome').textContent = ch.nome;
+  document.getElementById('osd-plat').textContent = ch.plat;
+  document.getElementById('osd-estado').textContent = 'Conectando...';
+  document.getElementById('carregando').style.display = 'block';
+  clearTimeout(osdTmr);
+  osdTmr = setTimeout(function(){ document.getElementById('osd').style.display='none'; }, 5000);
+  atualizarFav();
+  iniciarStream(ch.url);
+}
+
+function iniciarStream(url) {
+  var vid = document.getElementById('vid');
+  clearTimeout(errTmr); clearTimeout(failTmr);
+  if (hlsObj) { try { hlsObj.destroy(); } catch(e){} hlsObj = null; }
+  vid.pause(); vid.src = '';
+  errTmr = setTimeout(onFalha, 12000);
+  if (Hls.isSupported()) {
+    hlsObj = new Hls({ enableWorker: false });
+    hlsObj.loadSource(url);
+    hlsObj.attachMedia(vid);
+    hlsObj.on(Hls.Events.MANIFEST_PARSED, function() {
+      vid.play(); clearTimeout(errTmr);
+      document.getElementById('osd-estado').textContent = 'Ao vivo';
+      document.getElementById('carregando').style.display = 'none';
+    });
+    hlsObj.on(Hls.Events.ERROR, function(ev, data) {
+      if (data.fatal) onFalha();
+    });
+  } else if (vid.canPlayType('application/vnd.apple.mpegurl')) {
+    vid.src = url;
+    vid.addEventListener('loadedmetadata', function() {
+      vid.play(); clearTimeout(errTmr);
+      document.getElementById('osd-estado').textContent = 'Ao vivo';
+      document.getElementById('carregando').style.display = 'none';
+    }, { once: true });
+  } else {
+    vid.src = url;
+    vid.play();
+    clearTimeout(errTmr);
+  }
+  vid.onplaying = function() {
+    clearTimeout(errTmr);
+    document.getElementById('osd-estado').textContent = 'Ao vivo';
+    document.getElementById('carregando').style.display = 'none';
+  };
+}
+
+function onFalha() {
+  skipCount++;
+  if (skipCount <= 3) {
+    mostrarToastBreve();
+    var prox = (curCh + 1) % canais.length;
+    failTmr = setTimeout(function(){ tocarCanal(prox); }, 2000);
+  } else {
+    skipCount = 0;
+    document.getElementById('osd-estado').textContent = 'Falhou';
+    document.getElementById('carregando').textContent = 'Canal indisponível';
+  }
+}
+
+function mostrarToast() {
+  var t = document.getElementById('toast');
+  t.style.display = 'block';
+  setTimeout(function(){ t.style.display='none'; }, 2500);
+}
+function mostrarToastBreve() {
+  var t = document.getElementById('toast');
+  t.style.display = 'block';
+  setTimeout(function(){ t.style.display='none'; }, 1800);
+}
+
+function voltarHome() {
+  var vid = document.getElementById('vid');
+  if (hlsObj) { try { hlsObj.destroy(); } catch(e){} hlsObj = null; }
+  vid.pause(); vid.src = '';
+  clearTimeout(errTmr); clearTimeout(failTmr); clearTimeout(osdTmr);
+  document.getElementById('tela-player').style.display = 'none';
+  document.getElementById('tela-home').style.display = 'flex';
+  document.getElementById('osd').style.display = 'block';
+}
 
 // ── Favoritos ──────────────────────────────────────────────────
-function getFavs() { try { return JSON.parse(localStorage.getItem('k60fast_favs') || '[]'); } catch(e) { return []; } }
-function saveFavs(f) { try { localStorage.setItem('k60fast_favs', JSON.stringify(f)); } catch(e) {} }
-function isFavUrl(url) { return getFavs().some(function(f){ return f.url === url; }); }
-
-function toggleFav() {
-  if (curCh < 0) return;
+function atualizarFav() {
   var ch = canais[curCh];
-  var favs = getFavs();
+  var favs = [];
+  try { favs = JSON.parse(localStorage.getItem('k60fast_favs') || '[]'); } catch(e){}
+  var isFav = favs.some(function(f){ return f.url === ch.url; });
+  var btn = document.getElementById('btn-fav');
+  btn.className = isFav ? 'favoritado' : '';
+}
+
+document.getElementById('btn-fav').onclick = function() {
+  var ch = canais[curCh];
+  var favs = [];
+  try { favs = JSON.parse(localStorage.getItem('k60fast_favs') || '[]'); } catch(e){}
   var idx = -1;
   for (var i = 0; i < favs.length; i++) if (favs[i].url === ch.url) { idx = i; break; }
-  if (idx === -1) favs.push({ nome: ch.nome, url: ch.url, plat: ch.plat || '' });
+  if (idx === -1) favs.push({ nome: ch.nome, url: ch.url, plat: ch.plat });
   else favs.splice(idx, 1);
-  saveFavs(favs);
-  aplicarFiltro();
-  // Reconecta curCh ao canal atual após reordenação
-  curCh = canais.findIndex ? canais.findIndex(function(c){ return c.url === ch.url; })
-    : (function(){ for(var j=0;j<canais.length;j++) if(canais[j].url===ch.url) return j; return -1; })();
-  if (curCh >= 0) document.getElementById('osd-num').textContent = String(curCh + 1).padStart(3, '0');
-  atualizarBtnFav();
-  renderFavs();
-}
-
-function atualizarBtnFav() {
-  var btn = document.getElementById('btn-fav');
-  if (curCh >= 0 && canais[curCh] && isFavUrl(canais[curCh].url)) btn.classList.add('favoritado');
-  else btn.classList.remove('favoritado');
-}
+  try { localStorage.setItem('k60fast_favs', JSON.stringify(favs)); } catch(e){}
+  atualizarFav(); renderFavs(); aplicarFiltro();
+};
 
 function renderFavs() {
-  var favs = getFavs();
   var el = document.getElementById('favs');
-  if (!favs.length) {
-    el.innerHTML = '<div id="favs-titulo">&#9733; Favoritos</div><div style="font-size:12px;color:#444;padding:8px">Nenhum favorito ainda.</div>';
-    return;
-  }
+  var favs = [];
+  try { favs = JSON.parse(localStorage.getItem('k60fast_favs') || '[]'); } catch(e){}
+  if (!favs.length) { el.innerHTML = '<div id="favs-titulo">&#9733; Favoritos</div><div style="font-size:12px;color:#444;padding:8px">Nenhum favorito ainda.</div>'; return; }
   var html = '<div id="favs-titulo">&#9733; Favoritos (' + favs.length + ')</div>';
   for (var i = 0; i < favs.length; i++) {
-    html += '<div class="fav-item">'
-      + (favs[i].plat ? '<span class="fav-plat">' + favs[i].plat + '</span>' : '')
-      + '<span class="fav-nome" onclick="tocarFav(' + i + ')">' + favs[i].nome + '</span>'
-      + '<button class="fav-del" onclick="deletarFav(' + i + ')" title="Remover">&#10005;</button>'
+    html += '<div class="fav-item" onclick="irFav(' + i + ')">'
+      + '<span class="fav-plat">' + (favs[i].plat || '') + '</span>'
+      + '<span class="fav-nome">' + favs[i].nome + '</span>'
+      + '<button class="fav-del" onclick="delFav(event,' + i + ')">&#10005;</button>'
       + '</div>';
   }
   el.innerHTML = html;
 }
 
-function tocarFav(i) {
-  var f = getFavs()[i]; if (!f) return;
-  var idx = -1;
-  for (var j = 0; j < canais.length; j++) if (canais[j].url === f.url) { idx = j; break; }
-  if (idx !== -1) { tocar(idx); return; }
-  // Canal não está na lista atual — adiciona e toca
-  curCh = -1;
-  var obj = { nome: f.nome, url: f.url, plat: f.plat || '', cats: [] };
-  seenUrls[obj.url] = true;
-  obj._num = nextNum++;
-  canaisBrutos.push(obj);
-  aplicarFiltro();
-  for (var k = 0; k < canais.length; k++) if (canais[k].url === f.url) { tocar(k); return; }
-}
-
-function deletarFav(i) {
-  var urlAtual = (curCh >= 0 && canais[curCh]) ? canais[curCh].url : null;
-  var favs = getFavs();
-  favs.splice(i, 1);
-  saveFavs(favs);
-  aplicarFiltro();
-  if (urlAtual) {
-    for (var j = 0; j < canais.length; j++) {
-      if (canais[j].url === urlAtual) {
-        curCh = j;
-        document.getElementById('osd-num').textContent = String(j + 1).padStart(3, '0');
-        break;
-      }
-    }
+function irFav(i) {
+  var favs = [];
+  try { favs = JSON.parse(localStorage.getItem('k60fast_favs') || '[]'); } catch(e){}
+  var fav = favs[i]; if (!fav) return;
+  for (var j = 0; j < canais.length; j++) {
+    if (canais[j].url === fav.url) { tocarCanal(j); return; }
   }
-  renderFavs();
-  atualizarBtnFav();
 }
 
-document.getElementById('btn-fav').onclick = toggleFav;
+function delFav(e, i) {
+  e.stopPropagation();
+  var favs = [];
+  try { favs = JSON.parse(localStorage.getItem('k60fast_favs') || '[]'); } catch(e2){}
+  favs.splice(i, 1);
+  try { localStorage.setItem('k60fast_favs', JSON.stringify(favs)); } catch(e2){}
+  renderFavs(); aplicarFiltro(); atualizarTela();
+}
 
 // ── Volume ─────────────────────────────────────────────────────
-var volTmr = null;
-
-function atualizarIconeMute() {
-  var vid = document.getElementById('vid');
-  var btn = document.getElementById('btn-mute');
-  var mudo = vid.muted || vid.volume === 0;
-  btn.innerHTML = mudo ? '&#128264;' : (vid.volume < 0.4 ? '&#128265;' : '&#128266;');
-}
-
-function sincVolSlider() {
-  var vid = document.getElementById('vid');
-  var v = vid.muted ? 0 : Math.round(vid.volume * 100);
-  document.getElementById('vol-slider').value = v;
-  document.getElementById('vol-label').textContent = v + '%';
-  atualizarIconeMute();
-}
-
+var hideTmrVol;
 function mostrarVolume() {
-  var ctrl = document.getElementById('volume-ctrl');
-  ctrl.classList.remove('oculto');
-  clearTimeout(volTmr);
-  volTmr = setTimeout(function(){ ctrl.classList.add('oculto'); }, 3500);
+  var vc = document.getElementById('volume-ctrl');
+  vc.classList.remove('oculto');
+  clearTimeout(hideTmrVol);
+  hideTmrVol = setTimeout(function(){ vc.classList.add('oculto'); }, 3000);
 }
-
 document.getElementById('btn-mute').onclick = function() {
   var vid = document.getElementById('vid');
   vid.muted = !vid.muted;
-  if (!vid.muted && vid.volume === 0) vid.volume = 0.5;
-  sincVolSlider(); mostrarVolume();
+  this.textContent = vid.muted ? '&#128263;' : '&#128266;';
 };
-
 document.getElementById('vol-slider').oninput = function() {
   var vid = document.getElementById('vid');
-  var v = parseInt(this.value, 10) / 100;
-  vid.volume = v; vid.muted = (v === 0);
+  vid.volume = this.value / 100;
   document.getElementById('vol-label').textContent = this.value + '%';
-  atualizarIconeMute(); mostrarVolume();
 };
 
 // ── Auto-ocultar controles ─────────────────────────────────────
@@ -994,14 +753,13 @@ function sintonizarCanais() {
   var idx = 0, ok = 0, fail = 0, ativos = 0;
   var removidos = [];
 
-  // Paralelo adaptativo: começa em 8, reduz se muitos proxies bloquearem
-  var PARALELO = 8;
+  // Paralelo adaptativo: começa em 4, reduz se muitos proxies bloquearem
+  var PARALELO = 4;
   var TIMEOUT  = 6000;
   // Lote por proxy: a cada 100 canais muda o proxy preferencial
   var LOTE_PROXY = 100;
   // Contador de 429 recentes para reduzir paralelo
   var erros429 = 0;
-  // normalizarUrl está no escopo global — aplica macros dummy antes de testar
 
   prog.innerHTML = '&#9851; Testando ' + total + ' canais...';
 
@@ -1013,10 +771,7 @@ function sintonizarCanais() {
   }
 
   function testarCanal(ch, canalIdx, cb) {
-    // Normaliza macros e persiste no objeto — garante URL limpa na reprodução também
-    var urlNorm = normalizarUrl(ch.url);
-    if (urlNorm !== ch.url) ch.url = urlNorm;
-    var url = urlNorm;
+    var url = ch.url;
 
     // Proxy preferencial para este lote (rodízio por lote)
     var loteProxy = Math.floor(canalIdx / LOTE_PROXY) % PROXIES.length;
@@ -1041,8 +796,7 @@ function sintonizarCanais() {
     }
 
     var ti = 0, resolvido = false;
-    // Safety net global: se todas as tentativas falharem silenciosamente
-    var tmr = setTimeout(function() { resolver(false); }, TIMEOUT * 2 + 2000);
+    var tmr = setTimeout(function() { resolver(false); }, TIMEOUT + 3000);
     function resolver(s) {
       if (resolvido) return;
       resolvido = true;
@@ -1058,9 +812,10 @@ function sintonizarCanais() {
         try { r.timeout = Math.floor(TIMEOUT * 0.5); } catch(e) {}
         r.onreadystatechange = function() {
           if (r.readyState !== 4) return;
-          if (r.status === 429 || r.status === 503) {
+          if (r.status === 429) {
             if (t.pi >= 0) marcarErroProxy(t.pi);
             erros429++;
+            // Reduz paralelo se muitos 429
             if (erros429 > 10 && PARALELO > 2) { PARALELO = Math.max(2, PARALELO - 1); erros429 = 0; }
             next(); return;
           }
@@ -1068,7 +823,7 @@ function sintonizarCanais() {
             if (t.pi >= 0) marcarOkProxy(t.pi);
             resolver(true);
           } else if (r.status === 405) {
-            // HEAD não permitido — tenta GET parcial (abort em headers)
+            // HEAD não permitido, tenta GET parcial
             try {
               var r2 = new XMLHttpRequest();
               r2.open('GET', t.url, true);
@@ -1086,17 +841,12 @@ function sintonizarCanais() {
               r2.send();
             } catch(e2) { next(); }
           } else {
-            // 400/404/outros = problema do stream, não do proxy — não penaliza
+            if (t.pi >= 0 && r.status >= 400 && r.status !== 404) marcarErroProxy(t.pi);
             next();
           }
         };
-        // onerror via proxy = falha de rede real do proxy
         r.onerror = function() { if (t.pi >= 0) marcarErroProxy(t.pi); next(); };
-        // ontimeout via proxy = proxy lento — penaliza suavemente (0.5)
-        r.ontimeout = function() {
-          if (t.pi >= 0) { proxyStats[t.pi].erros = Math.min(proxyStats[t.pi].erros + 0.5, 19); }
-          next();
-        };
+        r.ontimeout = function() { next(); };
         r.send();
       } catch(e) { next(); }
     }
@@ -1154,9 +904,6 @@ function sintonizarCanais() {
     popularCategorias();
     prog.innerHTML = msg
       + (ok || fail ? ' &nbsp;<span class="ok">&#10003; ' + ok + '</span> <span class="err">&#10005; ' + fail + '</span>' : '');
-
-    // Persiste a lista sintonizada no localStorage
-    _salvarSintonia();
 
     // Gera relatório
     var agora = new Date();
@@ -1241,7 +988,7 @@ try { platFiltro = localStorage.getItem('k60fast_plat') || null; } catch(e){}
 try { catFiltro = localStorage.getItem('k60fast_cat') || null; } catch(e){}
 
 renderFavs();
-if (!_restaurarSintonia()) carregar();
+carregar();
 </script>
 </body>
 </html>

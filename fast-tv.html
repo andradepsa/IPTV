@@ -95,6 +95,7 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
     <button id="btn-enter" onclick="clearTimeout(bufTmr);irCanal()">&#9654; ENTER</button>
     <div><button id="btn-sintonizar" onclick="sintonizarCanais()">&#128225; Sintonizar canais</button></div>
     <div id="sint-progresso"></div>
+    <div><button id="btn-limpar-sint" onclick="limparSintonizacao()" style="margin-top:6px;background:#111;border:2px solid #ff5555;color:#ff5555;font-size:12px;font-weight:bold;padding:7px 20px;border-radius:30px;cursor:pointer;display:none">&#128465; Limpar sintonização</button></div>
     <div id="btn-relatorio-wrap" style="display:none"><button id="btn-relatorio" onclick="abrirRelatorio()">&#128196; Ver relatório</button></div>
     <div id="log-fontes"></div>
   </div>
@@ -244,6 +245,7 @@ var MAX_DIGITOS = 3;
 var platFiltro = null, catFiltro = null;
 var canaisBrutos = [];
 var skipCount = 0;
+var sintBloqueados = 0; // canais bloqueados por sintonização anterior
 
 // ── Canais removidos pelo Sintonizar (persistência) ────────────
 var urlsRemovidas = {};
@@ -336,7 +338,8 @@ function addCanais(lista, plat) {
   var adicionados = 0;
   for (var i = 0; i < lista.length; i++) {
     var c = lista[i];
-    if (!c || !c.url || seenUrls[c.url] || urlsRemovidas[c.url]) continue;
+    if (!c || !c.url || seenUrls[c.url]) continue;
+    if (urlsRemovidas[c.url]) { sintBloqueados++; continue; }
     seenUrls[c.url] = true;
     c._num = atribuirNumero(c.url);
     canaisBrutos.push(c);
@@ -468,9 +471,15 @@ function carregar() {
   function fimFonte() {
     done++;
     if (done === total) {
-      setStatus('Carregamento completo — <span>' + canaisBrutos.length + '</span> canais únicos');
+      var removCount = Object.keys(urlsRemovidas).length;
+      if (removCount > 0) {
+        setStatus('Carregamento completo — <span>' + canaisBrutos.length + '</span> canais únicos (&#128274; ' + sintBloqueados + ' bloqueados por sintonização anterior)');
+      } else {
+        setStatus('Carregamento completo — <span>' + canaisBrutos.length + '</span> canais únicos');
+      }
       popularPlataformas();
       popularCategorias();
+      mostrarBtnLimparSint();
     }
   }
   for (var i = 0; i < FONTES.length; i++) {
@@ -986,6 +995,24 @@ function copiarRelatorio() {
       });
     } catch(e2) {}
   }
+}
+
+// ── Limpar sintonização ────────────────────────────────────────
+function limparSintonizacao() {
+  if (!confirm('Limpar dados da sintonização anterior?\nTodos os canais removidos voltarão.')) return;
+  urlsRemovidas = {};
+  sintBloqueados = 0;
+  try { localStorage.removeItem('k60fast_removidos'); } catch(e){}
+  // Recarrega tudo do zero
+  canaisBrutos = []; canais = []; seenUrls = {}; nextNum = 1; pronto = false;
+  document.getElementById('btn-limpar-sint').style.display = 'none';
+  carregar();
+}
+
+function mostrarBtnLimparSint() {
+  var removCount = Object.keys(urlsRemovidas).length;
+  var btn = document.getElementById('btn-limpar-sint');
+  if (btn) btn.style.display = removCount > 0 ? 'inline-block' : 'none';
 }
 
 // ── Init ───────────────────────────────────────────────────────

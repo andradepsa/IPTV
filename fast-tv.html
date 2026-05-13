@@ -249,9 +249,22 @@ var sintBloqueados = 0; // canais bloqueados por sintonização anterior
 
 // ── Canais removidos pelo Sintonizar (persistência) ────────────
 var urlsRemovidas = {};
-try { urlsRemovidas = JSON.parse(localStorage.getItem('k60fast_removidos') || '{}'); } catch(e) {}
+var removidasCarregadas = 0;
+try {
+  var _raw = localStorage.getItem('k60fast_removidos');
+  if (_raw) {
+    urlsRemovidas = JSON.parse(_raw);
+    removidasCarregadas = Object.keys(urlsRemovidas).length;
+    console.log('k60fast_removidos: ' + removidasCarregadas + ' URLs carregadas (' + _raw.length + ' bytes)');
+  }
+} catch(e) { console.error('Erro ao carregar removidos:', e); }
 function salvarRemovidas() {
-  try { localStorage.setItem('k60fast_removidos', JSON.stringify(urlsRemovidas)); } catch(e) {}
+  try {
+    var json = JSON.stringify(urlsRemovidas);
+    localStorage.setItem('k60fast_removidos', json);
+  } catch(e) {
+    console.error('ERRO localStorage:', e);
+  }
 }
 
 // ── XHR com fallback proxy e rodízio ──────────────────────────
@@ -448,7 +461,8 @@ function atualizarTela() {
   var dig = String(total).length;
   if (dig < 3) dig = 3;
   MAX_DIGITOS = dig;
-  setStatus('Total: <span>' + total + '</span> canais  |  Digite 1 a ' + total);
+  var sintInfo = sintBloqueados > 0 ? '  |  &#128274; ' + sintBloqueados + ' removidos' : '';
+  setStatus('Total: <span>' + total + '</span> canais  |  Digite 1 a ' + total + sintInfo);
 }
 
 // ── Carregamento de fontes ─────────────────────────────────────
@@ -473,7 +487,7 @@ function carregar() {
     if (done === total) {
       var removCount = Object.keys(urlsRemovidas).length;
       if (removCount > 0) {
-        setStatus('Carregamento completo — <span>' + canaisBrutos.length + '</span> canais únicos (&#128274; ' + sintBloqueados + ' bloqueados por sintonização anterior)');
+        setStatus('Carregamento completo — <span>' + canaisBrutos.length + '</span> canais únicos (&#128274; ' + sintBloqueados + '/' + removCount + ' filtrados)');
       } else {
         setStatus('Carregamento completo — <span>' + canaisBrutos.length + '</span> canais únicos');
       }
@@ -871,7 +885,6 @@ function sintonizarCanais() {
 
   function removerUrl(url) {
     urlsRemovidas[url] = 1;
-    salvarRemovidas();
     for (var i = canaisBrutos.length - 1; i >= 0; i--) {
       if (canaisBrutos[i].url === url) { canaisBrutos.splice(i, 1); break; }
     }
@@ -916,12 +929,34 @@ function sintonizarCanais() {
     sintAbortar = false;
     btn.disabled = false;
     btn.innerHTML = '&#128225; Sintonizar canais';
+
+    // Salva TUDO de uma vez no localStorage
+    var totalRemovidos = Object.keys(urlsRemovidas).length;
+    var salvoOk = false;
+    try {
+      var json = JSON.stringify(urlsRemovidas);
+      localStorage.setItem('k60fast_removidos', json);
+      // Verifica se salvou corretamente
+      var check = localStorage.getItem('k60fast_removidos');
+      if (check && check.length === json.length) {
+        salvoOk = true;
+      }
+    } catch(e) {
+      salvoOk = false;
+    }
+
     aplicarFiltro();
     atualizarTela();
     popularPlataformas();
     popularCategorias();
+    mostrarBtnLimparSint();
+
+    var saveInfo = salvoOk
+      ? ' &nbsp;&#128190; ' + totalRemovidos + ' URLs salvas'
+      : ' &nbsp;<span class="err">&#9888; ERRO ao salvar no localStorage!</span>';
     prog.innerHTML = msg
-      + (ok || fail ? ' &nbsp;<span class="ok">&#10003; ' + ok + '</span> <span class="err">&#10005; ' + fail + '</span>' : '');
+      + (ok || fail ? ' &nbsp;<span class="ok">&#10003; ' + ok + '</span> <span class="err">&#10005; ' + fail + '</span>' : '')
+      + saveInfo;
 
     // Gera relatório
     var agora = new Date();

@@ -245,6 +245,13 @@ var platFiltro = null, catFiltro = null;
 var canaisBrutos = [];
 var skipCount = 0;
 
+// ── Canais removidos pelo Sintonizar (persistência) ────────────
+var urlsRemovidas = {};
+try { urlsRemovidas = JSON.parse(localStorage.getItem('k60fast_removidos') || '{}'); } catch(e) {}
+function salvarRemovidas() {
+  try { localStorage.setItem('k60fast_removidos', JSON.stringify(urlsRemovidas)); } catch(e) {}
+}
+
 // ── XHR com fallback proxy e rodízio ──────────────────────────
 function fetchM3u(url, cb) {
   // Tenta direto primeiro, depois proxies em rodízio
@@ -329,7 +336,7 @@ function addCanais(lista, plat) {
   var adicionados = 0;
   for (var i = 0; i < lista.length; i++) {
     var c = lista[i];
-    if (!c || !c.url || seenUrls[c.url]) continue;
+    if (!c || !c.url || seenUrls[c.url] || urlsRemovidas[c.url]) continue;
     seenUrls[c.url] = true;
     c._num = atribuirNumero(c.url);
     canaisBrutos.push(c);
@@ -543,8 +550,8 @@ document.addEventListener('keydown', function(e) {
   if (KC_DOWN.indexOf(e.keyCode) !== -1 && document.getElementById('tela-player').style.display === 'block') canalBaixo();
 });
 
-function canalCima() { if (curCh > 0) tocarCanal(curCh - 1); }
-function canalBaixo() { if (curCh < canais.length - 1) tocarCanal(curCh + 1); }
+function canalCima()  { if (canais.length) tocarCanal((curCh + 1) % canais.length); }
+function canalBaixo() { if (canais.length) tocarCanal((curCh - 1 + canais.length) % canais.length); }
 
 // ── Player ─────────────────────────────────────────────────────
 function tocarCanal(idx) {
@@ -854,6 +861,8 @@ function sintonizarCanais() {
   }
 
   function removerUrl(url) {
+    urlsRemovidas[url] = 1;
+    salvarRemovidas();
     for (var i = canaisBrutos.length - 1; i >= 0; i--) {
       if (canaisBrutos[i].url === url) { canaisBrutos.splice(i, 1); break; }
     }

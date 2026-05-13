@@ -247,6 +247,64 @@ var platFiltro = null, catFiltro = null;
 var canaisBrutos = [];
 var skipCount = 0;
 
+// ── Persistência da sintonização ───────────────────────────────
+var LS_SINT = 'k60fast_sint_v1';
+var _sintoniaRestaurada = false;
+
+function _salvarSintonia() {
+  try {
+    var slim = canaisBrutos.map(function(c) {
+      return { nome: c.nome, url: c.url, plat: c.plat, cats: c.cats || [], logo: c.logo || null };
+    });
+    localStorage.setItem(LS_SINT, JSON.stringify({ ts: Date.now(), canais: slim }));
+  } catch(e) {
+    console.error('[K60FAST] Falha ao salvar sintonia:', e);
+  }
+}
+
+function _restaurarSintonia() {
+  try {
+    var raw = localStorage.getItem(LS_SINT);
+    if (!raw) return false;
+    var obj = JSON.parse(raw);
+    if (!obj || !obj.canais || !obj.canais.length) return false;
+    canaisBrutos = [];
+    seenUrls = {};
+    nextNum = 1;
+    for (var i = 0; i < obj.canais.length; i++) {
+      var c = obj.canais[i];
+      if (!c || !c.url || seenUrls[c.url]) continue;
+      seenUrls[c.url] = true;
+      c._num = nextNum++;
+      canaisBrutos.push(c);
+    }
+    _sintoniaRestaurada = true;
+    var d = new Date(obj.ts);
+    var dataStr = d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR');
+    setStatus('Sintonia restaurada (<span>' + canaisBrutos.length + '</span> canais) — ' + dataStr
+      + ' &nbsp;<button onclick="limparSintonia()" style="background:none;border:1px solid #ff4444;color:#ff4444;font-size:11px;padding:2px 10px;border-radius:10px;cursor:pointer">&#10005; Recarregar fontes</button>');
+    aplicarFiltro();
+    atualizarTela();
+    popularPlataformas();
+    popularCategorias();
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+function limparSintonia() {
+  try { localStorage.removeItem(LS_SINT); } catch(e) {}
+  _sintoniaRestaurada = false;
+  canaisBrutos = [];
+  seenUrls = {};
+  nextNum = 1;
+  pronto = false;
+  document.getElementById('log-fontes').innerHTML = '';
+  setStatus('Carregando fontes...');
+  carregar();
+}
+
 // ── Normalização global de macros de anúncio ─────────────────
 // Substitui placeholders não preenchidos para evitar erro 400.
 // Escopo GLOBAL: usada tanto na sintonia quanto na reprodução.
@@ -502,6 +560,7 @@ function logFonte(nome, estado, count) {
 }
 
 function carregar() {
+  if (_sintoniaRestaurada) return;
   var total = FONTES.length, done = 0;
   function fimFonte() {
     done++;
@@ -1062,6 +1121,9 @@ function sintonizarCanais() {
     prog.innerHTML = msg
       + (ok || fail ? ' &nbsp;<span class="ok">&#10003; ' + ok + '</span> <span class="err">&#10005; ' + fail + '</span>' : '');
 
+    // Persiste a lista sintonizada no localStorage
+    _salvarSintonia();
+
     // Gera relatório
     var agora = new Date();
     var dataStr = agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR');
@@ -1145,7 +1207,7 @@ try { platFiltro = localStorage.getItem('k60fast_plat') || null; } catch(e){}
 try { catFiltro = localStorage.getItem('k60fast_cat') || null; } catch(e){}
 
 renderFavs();
-carregar();
+if (!_restaurarSintonia()) carregar();
 </script>
 </body>
 </html>

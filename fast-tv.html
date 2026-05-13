@@ -223,9 +223,11 @@ function proximoProxy() {
 function marcarErroProxy(pi) {
   var s = proxyStats[pi];
   s.erros++;
-  if (s.erros >= 3) {
+  // Limiar maior quando há poucos proxies para não paralisar a sintonia inteira
+  var limiar = Math.max(12, PROXIES.length < 2 ? 20 : 8);
+  if (s.erros >= limiar) {
     s.bloqueado = true;
-    s.cooldown = Date.now() + 30000; // 30s de cooldown
+    s.cooldown = Date.now() + 60000; // 60s de cooldown
   }
 }
 
@@ -275,7 +277,8 @@ function fetchM3u(url, cb) {
         if (t.pi >= 0) marcarOkProxy(t.pi);
         cb(null, r.responseText);
       } else {
-        if (t.pi >= 0 && r.status >= 400) marcarErroProxy(t.pi);
+        // 400/404 = problema do stream, não do proxy — não penaliza
+        if (t.pi >= 0 && (r.status === 429 || r.status === 503)) marcarErroProxy(t.pi);
         next();
       }
     };
@@ -753,13 +756,51 @@ function sintonizarCanais() {
   var idx = 0, ok = 0, fail = 0, ativos = 0;
   var removidos = [];
 
-  // Paralelo adaptativo: começa em 4, reduz se muitos proxies bloquearem
-  var PARALELO = 4;
+  // Paralelo adaptativo: começa em 8, reduz se muitos proxies bloquearem
+  var PARALELO = 8;
   var TIMEOUT  = 6000;
   // Lote por proxy: a cada 100 canais muda o proxy preferencial
   var LOTE_PROXY = 100;
   // Contador de 429 recentes para reduzir paralelo
   var erros429 = 0;
+
+  // Substitui macros de anúncio por valores dummy para evitar erro 400
+  function normalizarUrl(url) {
+    return url
+      // Padrão [MACRO]
+      .replace(/\[DEVICE_ID\]/gi,   'aaa00000000')
+      .replace(/\[IFA\]/gi,          'aaa00000000')
+      .replace(/\[IFA_TYPE\]/gi,     'idfa')
+      .replace(/\[LMT\]/gi,          '0')
+      .replace(/\[DNS\]/gi,          '0')
+      .replace(/\[UA\]/gi,           'Mozilla')
+      .replace(/\[IP\]/gi,           '0.0.0.0')
+      .replace(/\[GDPR\]/gi,         '0')
+      .replace(/\[GDPR_CONSENT\]/gi, '')
+      .replace(/\[COUNTRY\]/gi,      'US')
+      .replace(/\[US_PRIVACY\]/gi,   '1---')
+      .replace(/\[APP_STOREURL\]/gi, '')
+      .replace(/\[APP_BUNDLE\]/gi,   'com.test.app')
+      .replace(/\[APP_NAME\]/gi,     'TestApp')
+      .replace(/\[APP_VERSION\]/gi,  '1.0')
+      .replace(/\[DEVICE_TYPE\]/gi,  'tv')
+      .replace(/\[DEVICE_MAKE\]/gi,  'LG')
+      .replace(/\[DEVICE_MODEL\]/gi, 'OLED')
+      .replace(/\[TARGETAD_ALLOWED\]/gi, '1')
+      .replace(/\[FCK\]/gi,          '')
+      .replace(/\[VIEWSIZE\]/gi,     '1920x1080')
+      .replace(/\[NONCE\]/gi,        '')
+      .replace(/\[IC\]/gi,           '')
+      .replace(/\[DNT\]/gi,          '0')
+      .replace(/\[IAB_CATEGORY\]/gi, '')
+      .replace(/\[PCS\]/gi,          '')
+      .replace(/\[HOTEL_TYPE\]/gi,   '')
+      // Padrão {{MACRO}}
+      .replace(/\{\{[^}]+\}\}/g,    '')
+      // Padrão REPLACE_ME / REPLACEME
+      .replace(/REPLACE_ME/g,       '')
+      .replace(/REPLACEME/g,        '');
+  }
 
   prog.innerHTML = '&#9851; Testando ' + total + ' canais...';
 
@@ -771,7 +812,7 @@ function sintonizarCanais() {
   }
 
   function testarCanal(ch, canalIdx, cb) {
-    var url = ch.url;
+    var url = normalizarUrl(ch.url);
 
     // Proxy preferencial para este lote (rodízio por lote)
     var loteProxy = Math.floor(canalIdx / LOTE_PROXY) % PROXIES.length;
@@ -841,7 +882,8 @@ function sintonizarCanais() {
               r2.send();
             } catch(e2) { next(); }
           } else {
-            if (t.pi >= 0 && r.status >= 400 && r.status !== 404) marcarErroProxy(t.pi);
+            // 400/404 = problema do stream/macros, não do proxy
+            if (t.pi >= 0 && (r.status === 429 || r.status === 503)) marcarErroProxy(t.pi);
             next();
           }
         };

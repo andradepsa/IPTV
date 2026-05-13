@@ -9,97 +9,74 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#08090E;color:#EDE8FF;font-family:'Outfit',sans-serif;overflow:hidden;min-height:100vh}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:#E8B84B;border-radius:4px}::-webkit-scrollbar-track{background:#141520}
-
-/* ── HOME ─────────────────────────────────────── */
 #tela-home{position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;gap:20px;padding:0 20px;overflow:hidden}
 #home-centro{flex:1;max-width:620px;height:100%;overflow-y:auto;padding-bottom:20px;text-align:center}
 #home-lado{width:320px;max-width:35%;height:100%;padding:30px 0 20px;display:flex;flex-direction:column}
 @media(max-width:720px){#tela-home{flex-direction:column;align-items:stretch;padding:0 10px;overflow-y:auto}#home-centro{height:auto;max-width:none;overflow:visible}#home-lado{width:100%;max-width:none;height:300px;padding:0 0 20px}}
-
 #titulo{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:6px;padding-top:30px;margin-bottom:4px;background:linear-gradient(90deg,#E8B84B,#FFF0A0,#E8B84B);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 #subtitulo{font-size:13px;color:#6B6888;margin-bottom:16px}
 #status-line{font-size:15px;color:#6B6888;margin-bottom:10px}
 #status-line span{color:#E8B84B;font-weight:bold}
-#faixas{font-size:13px;color:#6B6888;margin-bottom:16px;line-height:1.9}
+#faixas{font-size:13px;color:#6B6888;margin-bottom:16px;line-height:1.9;text-align:left;max-width:400px;margin-left:auto;margin-right:auto}
 #faixas .dest{color:#E8B84B;font-weight:bold;font-size:14px}
 #faixas b{color:#aaa}
-
 #filtro-cat{margin-bottom:14px}
 #filtro-cat select{background:#141520;color:#E8B84B;border:2px solid #E8B84B;border-radius:20px;padding:8px 16px;font-size:14px;font-weight:bold;font-family:'Outfit',sans-serif;cursor:pointer;outline:none}
-#filtro-cat select:focus{border-color:#FFF0A0;color:#FFF0A0}
-
 #display-canal{display:inline-block;border:3px solid #1C1E2E;border-radius:12px;padding:14px 40px;margin-bottom:10px;min-width:260px;transition:border-color .3s}
 #display-canal.ativo{border-color:#E8B84B;box-shadow:0 0 30px rgba(232,184,75,.15)}
 #digitos{font-family:'Bebas Neue',sans-serif;font-size:58px;color:#E8B84B;letter-spacing:4px;min-height:68px;line-height:1}
 #digitos.vazio{color:#1C1E2E}
 #instrucao{font-size:12px;color:#6B6888;margin-top:8px}
-
-#btn-enter{margin-top:14px;background:#141520;border:2px solid #E8B84B;color:#E8B84B;font-family:'Outfit',sans-serif;font-size:16px;font-weight:bold;padding:12px 48px;border-radius:30px;cursor:pointer;transition:background .15s,transform .1s}
+#btn-enter{margin-top:14px;background:#141520;border:2px solid #E8B84B;color:#E8B84B;font-family:'Outfit',sans-serif;font-size:16px;font-weight:bold;padding:12px 48px;border-radius:30px;cursor:pointer}
 #btn-enter:active{background:rgba(232,184,75,.12);transform:scale(.95)}
-
 #busca-box{margin-top:14px;position:relative;display:inline-block}
-#busca-input{background:#141520;border:2px solid rgba(255,255,255,.07);border-radius:20px;padding:10px 16px 10px 38px;font-family:'Outfit',sans-serif;font-size:14px;color:#EDE8FF;width:280px;outline:none;transition:border-color .3s}
+#busca-input{background:#141520;border:2px solid rgba(255,255,255,.07);border-radius:20px;padding:10px 16px 10px 38px;font-family:'Outfit',sans-serif;font-size:14px;color:#EDE8FF;width:280px;outline:none}
 #busca-input:focus{border-color:#E8B84B}
 #busca-input::placeholder{color:#6B6888}
 #busca-ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none}
-
-/* ── PLAYER ───────────────────────────────────── */
+#src-box{margin-top:12px;font-size:12px;color:#6B6888}
+#src-box select{background:#141520;border:1px solid rgba(255,255,255,.07);color:#E8B84B;font-family:'Outfit',sans-serif;font-size:12px;padding:4px 8px;border-radius:8px;cursor:pointer;outline:none}
 #tela-player{position:absolute;inset:0;background:#000;display:none}
 #player-frame{width:100%;height:100%;border:none}
-
 #osd{position:absolute;top:0;left:0;right:0;background:rgba(8,9,14,.92);backdrop-filter:blur(12px);padding:16px 24px;border-bottom:1px solid rgba(232,184,75,.2);z-index:10;transition:opacity .4s}
 #osd.hide{opacity:0;pointer-events:none}
 #osd-num{font-family:'Bebas Neue',sans-serif;font-size:40px;color:#E8B84B;letter-spacing:3px}
 #osd-nome{font-size:18px;color:#EDE8FF;margin-top:2px}
 #osd-tipo{font-size:12px;color:#6B6888;margin-top:2px}
 #osd-estado{font-size:12px;color:#E8B84B;margin-top:4px}
-
 #carregando{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:5}
 #load-spin{width:42px;height:42px;border:3px solid rgba(232,184,75,.2);border-top-color:#E8B84B;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
 @keyframes spin{to{transform:rotate(360deg)}}
 #load-txt{font-size:14px;color:#6B6888}
-
 #p-canal{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:#141520;border:2px solid #E8B84B;border-radius:10px;padding:10px 32px;text-align:center;display:none;z-index:15}
 #p-canal-val{font-family:'Bebas Neue',sans-serif;font-size:36px;color:#E8B84B;letter-spacing:6px}
-
 #controles{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;transition:opacity .4s;z-index:15}
 #controles.oculto{opacity:0;pointer-events:none}
 #btn-voltar{background:#141520;border:2px solid #E8B84B;color:#E8B84B;font-family:'Outfit',sans-serif;font-size:15px;font-weight:bold;padding:12px 40px;border-radius:30px;cursor:pointer}
-.btn-ch{background:#141520;border:2px solid #E8B84B;color:#E8B84B;font-size:22px;font-weight:bold;width:52px;height:52px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .1s;user-select:none}
+.btn-ch{background:#141520;border:2px solid #E8B84B;color:#E8B84B;font-size:22px;font-weight:bold;width:52px;height:52px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none}
 .btn-ch:active{background:rgba(232,184,75,.15);transform:scale(.92)}
-#btn-fav{background:#141520;border:2px solid #E8B84B;color:#E8B84B;font-size:20px;width:52px;height:52px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .1s}
-#btn-fav:active{transform:scale(.92)}
+#btn-fav{background:#141520;border:2px solid #E8B84B;color:#E8B84B;font-size:20px;width:52px;height:52px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
 #btn-fav.favoritado{background:#E8B84B;color:#08090E}
-
-/* Serie/Anime controls overlay */
+#btn-src{background:#141520;border:2px solid #6B6888;color:#6B6888;font-size:13px;width:52px;height:52px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:bold}
+#btn-src:hover{border-color:#E8B84B;color:#E8B84B}
 #ep-ctrl{position:absolute;top:80px;right:20px;background:rgba(8,9,14,.92);backdrop-filter:blur(12px);border:1px solid rgba(232,184,75,.2);border-radius:12px;padding:12px 16px;display:none;z-index:15;font-size:14px}
 #ep-ctrl select{background:#1C1E2E;border:1px solid rgba(255,255,255,.07);color:#EDE8FF;font-family:'Outfit',sans-serif;font-size:13px;padding:4px 8px;border-radius:6px;cursor:pointer;outline:none;margin:0 6px}
-#ep-ctrl select:focus{border-color:#E8B84B}
 #ep-ctrl button{background:#E8B84B;color:#08090E;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;border:none;border-radius:6px;padding:5px 14px;cursor:pointer;margin-left:6px}
-
-#toast{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#141520;border:2px solid #E8B84B;border-radius:12px;padding:24px 40px;text-align:center;display:none;z-index:99}
-#toast p{font-size:16px;color:#E8B84B}
-#toast small{font-size:12px;color:#6B6888}
-
-/* ── FAVORITOS ────────────────────────────────── */
-#favs{margin:0;width:100%;height:100%;overflow-y:auto;background:#0d0e16;border:2px solid #1C1E2E;border-radius:12px;padding:12px;text-align:left}
+#favs{width:100%;height:100%;overflow-y:auto;background:#0d0e16;border:2px solid #1C1E2E;border-radius:12px;padding:12px;text-align:left}
 #favs-titulo{font-family:'Bebas Neue',sans-serif;font-size:16px;color:#E8B84B;margin-bottom:8px;letter-spacing:2px}
-.fav-item{display:flex;align-items:center;justify-content:space-between;background:#141520;border:1px solid #1C1E2E;border-radius:8px;padding:8px 14px;margin-bottom:6px;cursor:pointer;transition:border-color .15s}
+.fav-item{display:flex;align-items:center;background:#141520;border:1px solid #1C1E2E;border-radius:8px;padding:8px 14px;margin-bottom:6px;cursor:pointer;transition:border-color .15s}
 .fav-item:hover{border-color:#E8B84B}
-.fav-nome{font-size:13px;color:#EDE8FF;text-align:left;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fav-nome{font-size:13px;color:#EDE8FF;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fav-tipo{font-size:10px;color:#6B6888;margin-left:6px;flex-shrink:0}
 .fav-del{background:none;border:none;color:#ff5555;font-size:18px;cursor:pointer;padding:0 0 0 12px;line-height:1}
-
 .footer{text-align:center;padding:8px;color:#6B6888;font-size:11px;margin-top:8px}
 </style>
 </head>
 <body>
-
-<!-- ═══ HOME SCREEN ═══ -->
 <div id="tela-home">
   <div id="home-centro">
     <div id="titulo">FILMSPACE TV</div>
-    <div id="subtitulo">Filmes · Séries · Anime · Documentários — acesse por número</div>
+    <div id="subtitulo">Filmes · Séries · Anime · Docs — acesse por número</div>
     <div id="status-line">Carregando catálogo...</div>
     <div id="faixas"></div>
     <div id="filtro-cat">
@@ -111,590 +88,237 @@ body{background:#08090E;color:#EDE8FF;font-family:'Outfit',sans-serif;overflow:h
         <option value="doc">📖 Documentários</option>
       </select>
     </div>
-    <div id="display-canal">
-      <div id="digitos" class="vazio">_</div>
-    </div>
-    <div id="instrucao">Digite o número do canal e aperte ENTER</div>
+    <div id="display-canal"><div id="digitos" class="vazio">_</div></div>
+    <div id="instrucao">Digite o número e aperte ENTER</div>
     <button id="btn-enter" onclick="clearTimeout(bufTmr);irCanal()">▶ ENTER</button>
-    <div id="busca-box">
-      <span id="busca-ic">🔍</span>
-      <input type="text" id="busca-input" placeholder="Buscar filme, série ou anime...">
-    </div>
-    <div class="footer">FILMSPACE TV · TMDB · Jikan · vidsrc</div>
+    <div id="busca-box"><span id="busca-ic">🔍</span><input type="text" id="busca-input" placeholder="Buscar filme, série ou anime..."></div>
+    <div id="src-box">Fonte: <select id="sel-src" onchange="mudarFonte(this.value)"><option value="0">vidsrc.icu</option><option value="1">vidsrc.fyi</option><option value="2">vidsrc.to</option><option value="3">vidlink.pro</option></select></div>
+    <div class="footer">FILMSPACE TV · TMDB · Jikan · Multi-Source</div>
   </div>
-  <aside id="home-lado">
-    <div id="favs"></div>
-  </aside>
+  <aside id="home-lado"><div id="favs"></div></aside>
 </div>
-
-<!-- ═══ PLAYER SCREEN ═══ -->
 <div id="tela-player">
-  <iframe id="player-frame" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" referrerpolicy="no-referrer" src="about:blank"></iframe>
-
-  <div id="osd">
-    <div id="osd-num">-</div>
-    <div id="osd-nome">Canal</div>
-    <div id="osd-tipo"></div>
-    <div id="osd-estado">Conectando...</div>
-  </div>
-
-  <div id="carregando">
-    <div id="load-spin"></div>
-    <div id="load-txt">Conectando ao stream...</div>
-  </div>
-
+  <iframe id="player-frame" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation" src="about:blank"></iframe>
+  <div id="osd"><div id="osd-num">-</div><div id="osd-nome">Canal</div><div id="osd-tipo"></div><div id="osd-estado">Conectando...</div></div>
+  <div id="carregando"><div id="load-spin"></div><div id="load-txt">Conectando ao stream...</div></div>
   <div id="ep-ctrl"></div>
-
   <div id="p-canal"><div id="p-canal-val">_</div></div>
-
   <div id="controles">
-    <button class="btn-ch" id="btn-ch-baixo" title="Canal anterior">▼</button>
+    <button class="btn-ch" id="btn-ch-baixo">▼</button>
     <button id="btn-voltar">◀ Voltar</button>
-    <button class="btn-ch" id="btn-ch-cima" title="Próximo canal">▲</button>
-    <button id="btn-fav" title="Favoritar">★</button>
+    <button class="btn-ch" id="btn-ch-cima">▲</button>
+    <button id="btn-fav">★</button>
+    <button id="btn-src" title="Trocar fonte">SRC</button>
   </div>
 </div>
-
-<div id="toast"><p>Canal indisponível</p><small>Pulando para o próximo...</small></div>
-
 <script>
-// ══════════════════════════════════════════════════════════════
-// FILMSPACE TV — Cinema por números
-// ══════════════════════════════════════════════════════════════
+var T_KEY='8265bd1679663a7ea12ac168da84d2e8',T_BASE='https://api.themoviedb.org/3',T_IMG='https://image.tmdb.org/t/p/w342';
+var SOURCES=[
+  {nome:'vidsrc.icu',movie:function(id){return'https://vidsrc.icu/embed/movie/'+id},tv:function(id,s,e){return'https://vidsrc.icu/embed/tv/'+id+'/'+s+'/'+e},anime:function(id,e){return'https://vidsrc.icu/embed/movie/'+id}},
+  {nome:'vidsrc.fyi',movie:function(id){return'https://vidsrc.fyi/embed/movie/'+id},tv:function(id,s,e){return'https://vidsrc.fyi/embed/tv/'+id+'/'+s+'/'+e},anime:function(id,e){return'https://vidsrc.fyi/embed/movie/'+id}},
+  {nome:'vidsrc.to',movie:function(id){return'https://vidsrc.to/embed/movie/'+id},tv:function(id,s,e){return'https://vidsrc.to/embed/tv/'+id+'/'+s+'/'+e},anime:function(id,e){return'https://vidsrc.xyz/embed/anime?id='+id+'&e='+(e||1)}},
+  {nome:'vidlink.pro',movie:function(id){return'https://vidlink.pro/movie/'+id},tv:function(id,s,e){return'https://vidlink.pro/tv/'+id+'/'+s+'/'+e},anime:function(id,e){return'https://vidlink.pro/movie/'+id}}
+];
+var srcIdx=0;try{srcIdx=parseInt(localStorage.getItem('fs_src')||'0',10)||0}catch(e){}
+if(srcIdx>=SOURCES.length)srcIdx=0;
 
-// ── CONFIG ──────────────────────────────────────
-var T_KEY  = '8265bd1679663a7ea12ac168da84d2e8';
-var T_BASE = 'https://api.themoviedb.org/3';
-var T_IMG  = 'https://image.tmdb.org/t/p/w342';
+var canais=[],todosCanais=[],curCh=-1,pronto=false,buf='',bufTmr=null,pBuf='',pBufTmr=null,osdTmr,failTmr,buscaTimer,MAX_DIGITOS=3,catFiltro='';
+var $=function(id){return document.getElementById(id)};
 
-// ── ESTADO ──────────────────────────────────────
-var canais = [];       // lista filtrada ativa
-var todosCanais = [];  // lista completa
-var curCh = -1;
-var pronto = false;
-var buf = '', bufTmr = null;
-var pBuf = '', pBufTmr = null;
-var osdTmr, failTmr;
-var MAX_DIGITOS = 3;
-var catFiltro = '';
-var buscaTimer = null;
+function mudarFonte(v){srcIdx=parseInt(v,10)||0;try{localStorage.setItem('fs_src',String(srcIdx))}catch(e){}}
+function getEmbed(ch,s,e){var src=SOURCES[srcIdx]||SOURCES[0];if(ch.tipo==='anime')return src.anime(ch.malId||ch.tmdbId,e||1);if(ch.tipo==='serie')return src.tv(ch.tmdbId,s||1,e||1);return src.movie(ch.tmdbId)}
 
-// ── HELPERS ─────────────────────────────────────
-var $ = function(id) { return document.getElementById(id); };
+function tmdb(path,extra){return fetch(T_BASE+path+'?api_key='+T_KEY+'&language=pt-BR'+(extra||'')).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()})}
 
-async function tmdb(path, extra) {
-  extra = extra || '';
-  var r = await fetch(T_BASE + path + '?api_key=' + T_KEY + '&language=pt-BR' + extra);
-  if (!r.ok) throw new Error(r.status);
-  return r.json();
+function carregarTudo(){
+  $('status-line').innerHTML='⏳ Carregando filmes...';
+  tmdb('/movie/popular','&page=1').then(function(d){addTMDB(d.results,'filme');return tmdb('/movie/popular','&page=2')}).then(function(d){addTMDB(d.results,'filme')}).catch(function(){}).then(function(){
+    $('status-line').innerHTML='⏳ Carregando séries...';
+    return tmdb('/tv/popular','&page=1').then(function(d){addTMDB(d.results,'serie');return tmdb('/tv/popular','&page=2')}).then(function(d){addTMDB(d.results,'serie')}).catch(function(){})
+  }).then(function(){
+    $('status-line').innerHTML='⏳ Carregando anime...';
+    return fetch('https://api.jikan.moe/v4/top/anime?filter=bypopularity&limit=25&page=1').then(function(r){return r.json()}).then(function(d){addAnime(d.data)}).catch(function(){})
+  }).then(function(){
+    return new Promise(function(ok){setTimeout(ok,1200)})
+  }).then(function(){
+    return fetch('https://api.jikan.moe/v4/top/anime?filter=bypopularity&limit=25&page=2').then(function(r){return r.json()}).then(function(d){addAnime(d.data)}).catch(function(){})
+  }).then(function(){
+    $('status-line').innerHTML='⏳ Carregando documentários...';
+    return tmdb('/discover/movie','&with_genres=99&sort_by=popularity.desc&vote_count.gte=50&page=1').then(function(d){addTMDB(d.results,'doc')}).catch(function(){})
+  }).then(function(){
+    todosCanais.sort(function(a,b){var o={filme:0,serie:1,anime:2,doc:3};return(o[a.tipo]||0)-(o[b.tipo]||0)});
+    for(var i=0;i<todosCanais.length;i++)todosCanais[i]._num=i+1;
+    aplicarFiltro();pronto=true;atualizarTela();
+    if(todosCanais.length===0)$('status-line').innerHTML='<span style="color:#ff5555">Erro ao carregar. Verifique conexão e recarregue.</span>';
+  })
 }
 
-// ── CARREGAR CATÁLOGO ───────────────────────────
-var loadState = { filmes: false, series: false, anime: false, docs: false };
+function addTMDB(results,tipo){
+  if(!results)return;
+  results.forEach(function(m){
+    todosCanais.push({tipo:tipo,titulo:m.title||m.name||'',ano:((m.release_date||m.first_air_date||'')+'').substring(0,4),nota:m.vote_average>0?(+m.vote_average).toFixed(1):'',desc:m.overview||'',tmdbId:m.id,poster:m.poster_path?T_IMG+m.poster_path:''})
+  })
+}
 
-async function carregarTudo() {
-  $('status-line').innerHTML = 'Carregando catálogo...';
+function addAnime(data){
+  if(!data)return;
+  data.forEach(function(a){
+    todosCanais.push({tipo:'anime',titulo:a.title_english||a.title||'',ano:a.year||((a.aired&&a.aired.from)||'').substring(0,4),nota:a.score?(+a.score).toFixed(1):'',desc:(a.synopsis||'').replace(/<[^>]+>/g,''),malId:a.mal_id,tmdbId:a.mal_id,episodes:a.episodes||24,poster:(a.images&&a.images.jpg&&a.images.jpg.large_image_url)||''})
+  })
+}
 
-  // Carregar em paralelo
-  var promises = [
-    carregarFilmes(),
-    carregarSeries(),
-    carregarAnime(),
-    carregarDocs()
-  ];
-  await Promise.allSettled(promises);
+function aplicarFiltro(){
+  var favs=getFavs(),favIds={};
+  favs.forEach(function(f,i){favIds[f.tmdbId+'_'+f.tipo]=i});
+  var filtrado=catFiltro?todosCanais.filter(function(c){return c.tipo===catFiltro}):todosCanais.slice();
+  var fc=[],ot=[];
+  filtrado.forEach(function(c){var k=c.tmdbId+'_'+c.tipo;if(favIds.hasOwnProperty(k))fc.push(c);else ot.push(c)});
+  fc.sort(function(a,b){return favIds[a.tmdbId+'_'+a.tipo]-favIds[b.tmdbId+'_'+b.tipo]});
+  canais=fc.concat(ot);
+  for(var i=0;i<canais.length;i++)canais[i]._num=i+1;
+  MAX_DIGITOS=Math.max(3,String(canais.length).length)
+}
 
-  // Ordenar: filmes, series, anime, docs
-  todosCanais.sort(function(a, b) {
-    var ordem = { filme: 0, serie: 1, anime: 2, doc: 3 };
-    return (ordem[a.tipo] || 0) - (ordem[b.tipo] || 0);
+function setFiltro(cat){catFiltro=cat||'';aplicarFiltro();atualizarTela()}
+
+function atualizarTela(){
+  var total=canais.length;if(total===0)return;
+  $('status-line').innerHTML='Total: <span>'+total+'</span> canais | Digite 1 a '+total;
+  var lb={filme:'🎬 Filmes',serie:'📺 Séries',anime:'⚡ Anime',doc:'📖 Docs'},ct={},html='',cur=0;
+  canais.forEach(function(c){ct[c.tipo]=(ct[c.tipo]||0)+1});
+  ['filme','serie','anime','doc'].forEach(function(t){
+    if(ct[t]){html+='<div'+(cur===0?' class="dest"':'')+'><b>'+(lb[t]||t)+':</b> '+(cur+1)+' a '+(cur+ct[t])+'</div>';cur+=ct[t]}
   });
-
-  // Numerar
-  for (var i = 0; i < todosCanais.length; i++) {
-    todosCanais[i]._num = i + 1;
-  }
-
-  aplicarFiltro();
-  pronto = true;
-  atualizarTela();
+  $('faixas').innerHTML=html
 }
 
-async function carregarFilmes() {
-  try {
-    var results = [];
-    for (var p = 1; p <= 3; p++) {
-      var d = await tmdb('/movie/popular', '&page=' + p);
-      results = results.concat(d.results || []);
-    }
-    results.forEach(function(m) {
-      todosCanais.push({
-        tipo: 'filme',
-        titulo: m.title || m.name || '',
-        ano: ((m.release_date || '') + '').substring(0, 4),
-        nota: m.vote_average > 0 ? (+m.vote_average).toFixed(1) : '',
-        desc: m.overview || '',
-        tmdbId: m.id,
-        poster: m.poster_path ? T_IMG + m.poster_path : '',
-        embedUrl: 'https://vidsrc.to/embed/movie/' + m.id
-      });
-    });
-    loadState.filmes = true;
-    atualizarTela();
-  } catch (e) { console.error('Erro filmes:', e); }
+function atualizarDisplay(){
+  var el=$('digitos'),box=$('display-canal');
+  if(buf===''){el.textContent='_';el.className='vazio';box.className=''}
+  else{el.textContent=buf;el.className='';box.className='ativo'}
 }
 
-async function carregarSeries() {
-  try {
-    var results = [];
-    for (var p = 1; p <= 3; p++) {
-      var d = await tmdb('/tv/popular', '&page=' + p);
-      results = results.concat(d.results || []);
-    }
-    results.forEach(function(s) {
-      todosCanais.push({
-        tipo: 'serie',
-        titulo: s.name || s.title || '',
-        ano: ((s.first_air_date || '') + '').substring(0, 4),
-        nota: s.vote_average > 0 ? (+s.vote_average).toFixed(1) : '',
-        desc: s.overview || '',
-        tmdbId: s.id,
-        poster: s.poster_path ? T_IMG + s.poster_path : '',
-        embedUrl: 'https://vidsrc.to/embed/tv/' + s.id + '/1/1'
-      });
-    });
-    loadState.series = true;
-    atualizarTela();
-  } catch (e) { console.error('Erro series:', e); }
+function irCanal(){
+  if(!pronto||!buf)return;var n=parseInt(buf,10);buf='';atualizarDisplay();
+  if(n>=1&&n<=canais.length)tocar(n-1);
+  else{$('status-line').innerHTML='Canal '+n+' não existe. Digite 1 a <span>'+canais.length+'</span>';setTimeout(atualizarTela,2500)}
 }
 
-async function carregarAnime() {
-  try {
-    var results = [];
-    for (var p = 1; p <= 3; p++) {
-      var r = await fetch('https://api.jikan.moe/v4/top/anime?filter=bypopularity&limit=25&page=' + p);
-      var d = await r.json();
-      results = results.concat(d.data || []);
-      // Jikan rate limit
-      if (p < 3) await new Promise(function(ok) { setTimeout(ok, 1200); });
-    }
-    results.forEach(function(a) {
-      todosCanais.push({
-        tipo: 'anime',
-        titulo: a.title_english || a.title || '',
-        ano: a.year || ((a.aired && a.aired.from) || '').substring(0, 4),
-        nota: a.score ? (+a.score).toFixed(1) : '',
-        desc: (a.synopsis || '').replace(/<[^>]+>/g, ''),
-        malId: a.mal_id,
-        episodes: a.episodes || 24,
-        poster: (a.images && a.images.jpg && a.images.jpg.large_image_url) || '',
-        embedUrl: 'https://vidsrc.xyz/embed/anime?id=' + a.mal_id
-      });
-    });
-    loadState.anime = true;
-    atualizarTela();
-  } catch (e) { console.error('Erro anime:', e); }
+function tocar(idx){
+  var ch=canais[idx];if(!ch)return;curCh=idx;
+  $('tela-home').style.display='none';$('tela-player').style.display='block';
+  $('carregando').style.display='block';$('load-txt').textContent='Conectando...';
+  $('ep-ctrl').style.display='none';$('ep-ctrl').innerHTML='';
+  $('osd-num').textContent=String(idx+1);$('osd-nome').textContent=ch.titulo;
+  var tl={filme:'Filme',serie:'Série',anime:'Anime',doc:'Doc'};
+  $('osd-tipo').textContent=(tl[ch.tipo]||'')+(ch.ano?' · '+ch.ano:'')+(ch.nota?' · ★ '+ch.nota:'')+' · '+SOURCES[srcIdx].nome;
+  $('osd-estado').textContent='Conectando...';mostrarOSD();atualizarBtnFav();
+  loadFrame(getEmbed(ch,1,1));
+  if(ch.tipo==='serie')loadSerieCtrl(ch);
+  else if(ch.tipo==='anime')loadAnimeCtrl(ch)
 }
 
-async function carregarDocs() {
-  try {
-    var results = [];
-    for (var p = 1; p <= 2; p++) {
-      var d = await tmdb('/discover/movie', '&with_genres=99&sort_by=popularity.desc&vote_count.gte=50&page=' + p);
-      results = results.concat(d.results || []);
-    }
-    results.forEach(function(m) {
-      todosCanais.push({
-        tipo: 'doc',
-        titulo: m.title || m.name || '',
-        ano: ((m.release_date || '') + '').substring(0, 4),
-        nota: m.vote_average > 0 ? (+m.vote_average).toFixed(1) : '',
-        desc: m.overview || '',
-        tmdbId: m.id,
-        poster: m.poster_path ? T_IMG + m.poster_path : '',
-        embedUrl: 'https://vidsrc.to/embed/movie/' + m.id
-      });
-    });
-    loadState.docs = true;
-    atualizarTela();
-  } catch (e) { console.error('Erro docs:', e); }
+function loadFrame(url){
+  $('carregando').style.display='block';
+  var frame=$('player-frame');frame.src='about:blank';
+  setTimeout(function(){
+    frame.src=url;
+    frame.onload=function(){$('carregando').style.display='none';$('osd-estado').textContent='▶ Reproduzindo'};
+    clearTimeout(failTmr);failTmr=setTimeout(function(){$('carregando').style.display='none';$('osd-estado').textContent='▶ Em buffer...'},12000)
+  },200)
 }
 
-// ── FILTRO ──────────────────────────────────────
-function aplicarFiltro() {
-  var urlAtual = (curCh >= 0 && canais[curCh]) ? canais[curCh].embedUrl : null;
-
-  // Favoritos primeiro
-  var favs = getFavs();
-  var favUrls = {};
-  favs.forEach(function(f, i) { favUrls[f.embedUrl] = i; });
-
-  var filtrado = catFiltro
-    ? todosCanais.filter(function(c) { return c.tipo === catFiltro; })
-    : todosCanais.slice();
-
-  var favCh = [], outros = [];
-  filtrado.forEach(function(c) {
-    if (favUrls.hasOwnProperty(c.embedUrl)) favCh.push(c);
-    else outros.push(c);
-  });
-  favCh.sort(function(a, b) { return favUrls[a.embedUrl] - favUrls[b.embedUrl]; });
-  canais = favCh.concat(outros);
-
-  // Renumerar
-  for (var i = 0; i < canais.length; i++) canais[i]._num = i + 1;
-  MAX_DIGITOS = Math.max(3, String(canais.length).length);
-
-  if (urlAtual) {
-    var idx = canais.findIndex(function(c) { return c.embedUrl === urlAtual; });
-    if (idx !== -1) curCh = idx;
-  }
+function loadSerieCtrl(ch){
+  tmdb('/tv/'+ch.tmdbId).then(function(d){
+    var ss=(d.seasons||[]).filter(function(s){return s.season_number>0});if(!ss.length)return;
+    var opts=ss.map(function(s){return'<option value="'+s.season_number+'">'+(s.name||'T'+s.season_number)+'</option>'}).join('');
+    $('ep-ctrl').innerHTML='Temp: <select id="sel-season" onchange="mudarTemp('+ch.tmdbId+')">'+opts+'</select> Ep: <select id="sel-ep">'+epOpts(ss[0].episode_count||24)+'</select><button onclick="irEpS('+ch.tmdbId+')">▶</button>';
+    $('ep-ctrl').style.display='block'
+  }).catch(function(){})
 }
-
-function setFiltro(cat) {
-  catFiltro = cat || '';
-  aplicarFiltro();
-  atualizarTela();
+function loadAnimeCtrl(ch){
+  $('ep-ctrl').innerHTML='Ep: <select id="sel-ep">'+epOpts(ch.episodes||24)+'</select><button onclick="irEpA('+ch.malId+')">▶</button>';
+  $('ep-ctrl').style.display='block'
 }
+function epOpts(n){var h='';for(var i=1;i<=n;i++)h+='<option value="'+i+'">'+i+'</option>';return h}
 
-// ── TELA HOME ───────────────────────────────────
-function atualizarTela() {
-  if (todosCanais.length === 0) return;
-  var total = canais.length;
-  $('status-line').innerHTML = 'Total: <span>' + total + '</span> canais | Digite 1 a ' + total;
+window.mudarTemp=function(id){var s=$('sel-season').value;tmdb('/tv/'+id+'/season/'+s).then(function(d){$('sel-ep').innerHTML=epOpts((d.episodes||[]).length||24);irEpS(id)}).catch(function(){$('sel-ep').innerHTML=epOpts(24)})};
+window.irEpS=function(id){var s=$('sel-season')?$('sel-season').value:1,e=$('sel-ep')?$('sel-ep').value:1;$('osd-estado').textContent='S'+s+'E'+e+'...';loadFrame(SOURCES[srcIdx].tv(id,s,e))};
+window.irEpA=function(id){var e=$('sel-ep')?$('sel-ep').value:1;$('osd-estado').textContent='Ep '+e+'...';loadFrame(SOURCES[srcIdx].anime(id,e))};
 
-  var labels = { filme: '🎬 Filmes', serie: '📺 Séries', anime: '⚡ Anime', doc: '📖 Docs' };
-  var counts = {};
-  canais.forEach(function(c) { counts[c.tipo] = (counts[c.tipo] || 0) + 1; });
-
-  var html = '', cursor = 0;
-  ['filme', 'serie', 'anime', 'doc'].forEach(function(t) {
-    if (counts[t]) {
-      var label = labels[t] || t;
-      html += '<div' + (cursor === 0 ? ' class="dest"' : '') + '><b>' + label + ':</b> ' + (cursor + 1) + ' a ' + (cursor + counts[t]) + '</div>';
-      cursor += counts[t];
-    }
-  });
-  $('faixas').innerHTML = html;
-}
-
-// ── DISPLAY NUMERO ──────────────────────────────
-function atualizarDisplay() {
-  var el = $('digitos'), box = $('display-canal');
-  if (buf === '') { el.textContent = '_'; el.className = 'vazio'; box.className = ''; }
-  else { el.textContent = buf; el.className = ''; box.className = 'ativo'; }
-}
-
-function irCanal() {
-  if (!pronto || !buf) return;
-  var n = parseInt(buf, 10);
-  buf = ''; atualizarDisplay();
-  if (n >= 1 && n <= canais.length) { tocar(n - 1); }
-  else {
-    $('status-line').innerHTML = 'Canal ' + n + ' não existe. Digite 1 a <span>' + canais.length + '</span>';
-    setTimeout(atualizarTela, 2500);
-  }
-}
-
-// ── PLAYER ──────────────────────────────────────
-function tocar(idx) {
-  var ch = canais[idx]; if (!ch) return;
-  curCh = idx;
-
-  // Show player
-  $('tela-home').style.display = 'none';
-  $('tela-player').style.display = 'block';
-  $('carregando').style.display = 'block';
-  $('ep-ctrl').style.display = 'none';
-  $('ep-ctrl').innerHTML = '';
-
-  // OSD
-  $('osd-num').textContent = String(idx + 1);
-  $('osd-nome').textContent = ch.titulo;
-  var tipoLabels = { filme: 'Filme', serie: 'Série', anime: 'Anime', doc: 'Documentário' };
-  var info = (tipoLabels[ch.tipo] || '') + (ch.ano ? ' · ' + ch.ano : '') + (ch.nota ? ' · ★ ' + ch.nota : '');
-  $('osd-tipo').textContent = info;
-  $('osd-estado').textContent = 'Conectando...';
-  mostrarOSD();
-  atualizarBtnFav();
-
-  // Load iframe
-  $('player-frame').src = 'about:blank';
-  setTimeout(function() {
-    $('player-frame').src = ch.embedUrl;
-    $('player-frame').onload = function() {
-      $('carregando').style.display = 'none';
-      $('osd-estado').textContent = '▶ Reproduzindo';
-    };
-    // Fallback hide loading after 12s
-    clearTimeout(failTmr);
-    failTmr = setTimeout(function() {
-      $('carregando').style.display = 'none';
-      $('osd-estado').textContent = '▶ Em buffer...';
-    }, 12000);
-  }, 300);
-
-  // Controles de episódio
-  if (ch.tipo === 'serie') {
-    carregarCtrlSerie(ch);
-  } else if (ch.tipo === 'anime') {
-    carregarCtrlAnime(ch);
-  }
-}
-
-async function carregarCtrlSerie(ch) {
-  try {
-    var d = await tmdb('/tv/' + ch.tmdbId);
-    var seasons = (d.seasons || []).filter(function(s) { return s.season_number > 0; });
-    if (!seasons.length) return;
-    var selS = seasons.map(function(s) {
-      return '<option value="' + s.season_number + '">' + (s.name || 'Temporada ' + s.season_number) + '</option>';
-    }).join('');
-    var firstEps = seasons[0].episode_count || 24;
-    $('ep-ctrl').innerHTML =
-      'Temporada: <select id="sel-season" onchange="mudarTemporada(' + ch.tmdbId + ')">' + selS + '</select>' +
-      ' Ep: <select id="sel-ep">' + epOpts(firstEps) + '</select>' +
-      '<button onclick="irEpSerie(' + ch.tmdbId + ')">▶ Ir</button>';
-    $('ep-ctrl').style.display = 'block';
-  } catch (e) {}
-}
-
-function carregarCtrlAnime(ch) {
-  var eps = ch.episodes || 24;
-  $('ep-ctrl').innerHTML =
-    'Episódio: <select id="sel-ep">' + epOpts(eps) + '</select>' +
-    '<button onclick="irEpAnime(' + ch.malId + ')">▶ Ir</button>';
-  $('ep-ctrl').style.display = 'block';
-}
-
-function epOpts(n) {
-  var h = '';
-  for (var i = 1; i <= n; i++) h += '<option value="' + i + '">Ep ' + i + '</option>';
-  return h;
-}
-
-window.mudarTemporada = async function(tmdbId) {
-  try {
-    var s = $('sel-season').value;
-    var d = await tmdb('/tv/' + tmdbId + '/season/' + s);
-    var count = (d.episodes || []).length || 24;
-    $('sel-ep').innerHTML = epOpts(count);
-    irEpSerie(tmdbId);
-  } catch (e) {
-    $('sel-ep').innerHTML = epOpts(24);
-  }
+$('btn-src').onclick=function(){
+  srcIdx=(srcIdx+1)%SOURCES.length;try{localStorage.setItem('fs_src',String(srcIdx))}catch(e){}
+  $('sel-src').value=String(srcIdx);
+  if(curCh>=0&&canais[curCh]){$('osd-estado').textContent='Trocando → '+SOURCES[srcIdx].nome;loadFrame(getEmbed(canais[curCh],$('sel-season')?$('sel-season').value:1,$('sel-ep')?$('sel-ep').value:1))}
 };
 
-window.irEpSerie = function(tmdbId) {
-  var s = $('sel-season') ? $('sel-season').value : 1;
-  var e = $('sel-ep') ? $('sel-ep').value : 1;
-  $('carregando').style.display = 'block';
-  $('osd-estado').textContent = 'Carregando S' + s + 'E' + e + '...';
-  $('player-frame').src = 'https://vidsrc.to/embed/tv/' + tmdbId + '/' + s + '/' + e;
-  $('player-frame').onload = function() {
-    $('carregando').style.display = 'none';
-    $('osd-estado').textContent = '▶ S' + s + 'E' + e;
-  };
-  clearTimeout(failTmr);
-  failTmr = setTimeout(function() { $('carregando').style.display = 'none'; }, 12000);
-};
+function voltarHome(){clearTimeout(failTmr);$('player-frame').src='about:blank';$('tela-player').style.display='none';$('tela-home').style.display='';buf='';atualizarDisplay()}
+function canalCima(){if(canais.length){curCh=(curCh+1)%canais.length;tocar(curCh)}}
+function canalBaixo(){if(canais.length){curCh=((curCh-1)+canais.length)%canais.length;tocar(curCh)}}
+function mostrarOSD(){$('osd').classList.remove('hide');clearTimeout(osdTmr);osdTmr=setTimeout(function(){$('osd').classList.add('hide')},5000)}
 
-window.irEpAnime = function(malId) {
-  var e = $('sel-ep') ? $('sel-ep').value : 1;
-  $('carregando').style.display = 'block';
-  $('osd-estado').textContent = 'Carregando Ep ' + e + '...';
-  $('player-frame').src = 'https://vidsrc.xyz/embed/anime?id=' + malId + '&e=' + e;
-  $('player-frame').onload = function() {
-    $('carregando').style.display = 'none';
-    $('osd-estado').textContent = '▶ Episódio ' + e;
-  };
-  clearTimeout(failTmr);
-  failTmr = setTimeout(function() { $('carregando').style.display = 'none'; }, 12000);
-};
-
-// ── NAVEGAÇÃO ───────────────────────────────────
-function voltarHome() {
-  clearTimeout(failTmr);
-  $('player-frame').src = 'about:blank';
-  $('tela-player').style.display = 'none';
-  $('tela-home').style.display = '';
-  buf = ''; atualizarDisplay();
+function digitarNoPlayer(n){
+  if(pBuf.length>=MAX_DIGITOS)return;pBuf+=String(n);$('p-canal-val').textContent=pBuf+'_';$('p-canal').style.display='block';
+  clearTimeout(pBufTmr);pBufTmr=setTimeout(function(){var idx=parseInt(pBuf,10)-1;pBuf='';$('p-canal-val').textContent='_';$('p-canal').style.display='none';if(idx>=0&&idx<canais.length)tocar(idx)},pBuf.length>=MAX_DIGITOS?600:2000)
 }
 
-function canalCima() {
-  if (canais.length) { curCh = (curCh + 1) % canais.length; tocar(curCh); }
-}
-
-function canalBaixo() {
-  if (canais.length) { curCh = ((curCh - 1) + canais.length) % canais.length; tocar(curCh); }
-}
-
-function mostrarOSD() {
-  $('osd').classList.remove('hide');
-  clearTimeout(osdTmr);
-  osdTmr = setTimeout(function() { $('osd').classList.add('hide'); }, 5000);
-}
-
-function digitarNoPlayer(n) {
-  if (pBuf.length >= MAX_DIGITOS) return;
-  pBuf += String(n);
-  $('p-canal-val').textContent = pBuf + '_';
-  $('p-canal').style.display = 'block';
-  clearTimeout(pBufTmr);
-  pBufTmr = setTimeout(function() {
-    var idx = parseInt(pBuf, 10) - 1; pBuf = '';
-    $('p-canal-val').textContent = '_';
-    $('p-canal').style.display = 'none';
-    if (idx >= 0 && idx < canais.length) tocar(idx);
-  }, pBuf.length >= MAX_DIGITOS ? 600 : 2000);
-}
-
-// ── TECLADO ─────────────────────────────────────
-document.onkeydown = function(e) {
-  var k = e.keyCode || e.which;
-  var naHome = $('tela-home').style.display !== 'none';
-  var eNum = (k >= 48 && k <= 57) || (k >= 96 && k <= 105);
-  var num = k >= 96 ? k - 96 : k - 48;
-  var ok = k === 13 || k === 32;
-  var del = k === 8;
-  var voltar = k === 27 || k === 8 || k === 36;
-  var cima = k === 33 || k === 38;
-  var baixo = k === 34 || k === 40;
-
-  // Não capturar se estiver no input de busca
-  if (document.activeElement === $('busca-input')) return;
-
-  if (e.preventDefault && (eNum || ok || del || voltar || cima || baixo)) e.preventDefault();
-
-  if (naHome) {
-    if (eNum && pronto) {
-      if (buf.length >= MAX_DIGITOS + 1) return;
-      buf += String(num); atualizarDisplay(); clearTimeout(bufTmr);
-      if (buf.length > MAX_DIGITOS) irCanal();
-      else bufTmr = setTimeout(irCanal, 2500);
-    } else if (del && buf.length > 0) {
-      buf = buf.slice(0, -1); atualizarDisplay(); clearTimeout(bufTmr);
-    } else if (ok) { clearTimeout(bufTmr); irCanal(); }
-  } else {
+document.onkeydown=function(e){
+  var k=e.keyCode||e.which,naHome=$('tela-home').style.display!=='none',eNum=(k>=48&&k<=57)||(k>=96&&k<=105),num=k>=96?k-96:k-48;
+  if(document.activeElement===$('busca-input'))return;
+  if(naHome){
+    if(eNum&&pronto){if(buf.length>=MAX_DIGITOS+1)return;buf+=String(num);atualizarDisplay();clearTimeout(bufTmr);if(buf.length>MAX_DIGITOS)irCanal();else bufTmr=setTimeout(irCanal,2500)}
+    else if(k===8&&buf.length>0){buf=buf.slice(0,-1);atualizarDisplay();clearTimeout(bufTmr)}
+    else if(k===13||k===32){clearTimeout(bufTmr);irCanal()}
+  }else{
     mostrarOSD();
-    if (voltar && !eNum) voltarHome();
-    else if (cima) canalCima();
-    else if (baixo) canalBaixo();
-    else if (eNum) digitarNoPlayer(num);
+    if((k===27||k===8)&&!eNum)voltarHome();
+    else if(k===38||k===33)canalCima();
+    else if(k===40||k===34)canalBaixo();
+    else if(eNum)digitarNoPlayer(num)
   }
 };
 
-// ── FAVORITOS ───────────────────────────────────
-function getFavs() { try { return JSON.parse(localStorage.getItem('fs_favs') || '[]'); } catch(e) { return []; } }
-function saveFavs(f) { try { localStorage.setItem('fs_favs', JSON.stringify(f)); } catch(e) {} }
-function isFav(url) { return getFavs().some(function(f) { return f.embedUrl === url; }); }
-
-function toggleFav() {
-  if (curCh < 0 || !canais[curCh]) return;
-  var ch = canais[curCh];
-  var favs = getFavs();
-  var idx = favs.findIndex(function(f) { return f.embedUrl === ch.embedUrl; });
-  if (idx === -1) favs.push({ titulo: ch.titulo, tipo: ch.tipo, embedUrl: ch.embedUrl });
-  else favs.splice(idx, 1);
-  saveFavs(favs);
-  aplicarFiltro();
-  curCh = canais.findIndex(function(c) { return c.embedUrl === ch.embedUrl; });
-  if (curCh >= 0) $('osd-num').textContent = String(curCh + 1);
-  atualizarBtnFav();
-  renderFavs();
+function getFavs(){try{return JSON.parse(localStorage.getItem('fs_favs')||'[]')}catch(e){return[]}}
+function saveFavs(f){try{localStorage.setItem('fs_favs',JSON.stringify(f))}catch(e){}}
+function isFav(ch){var k=ch.tmdbId+'_'+ch.tipo;return getFavs().some(function(f){return(f.tmdbId+'_'+f.tipo)===k})}
+function toggleFav(){
+  if(curCh<0||!canais[curCh])return;var ch=canais[curCh],favs=getFavs(),k=ch.tmdbId+'_'+ch.tipo;
+  var idx=favs.findIndex(function(f){return(f.tmdbId+'_'+f.tipo)===k});
+  if(idx===-1)favs.push({titulo:ch.titulo,tipo:ch.tipo,tmdbId:ch.tmdbId,malId:ch.malId});else favs.splice(idx,1);
+  saveFavs(favs);aplicarFiltro();curCh=canais.findIndex(function(c){return(c.tmdbId+'_'+c.tipo)===k});
+  if(curCh>=0)$('osd-num').textContent=String(curCh+1);atualizarBtnFav();renderFavs()
 }
-
-function atualizarBtnFav() {
-  var btn = $('btn-fav');
-  if (curCh >= 0 && canais[curCh] && isFav(canais[curCh].embedUrl)) btn.classList.add('favoritado');
-  else btn.classList.remove('favoritado');
+function atualizarBtnFav(){if(curCh>=0&&canais[curCh]&&isFav(canais[curCh]))$('btn-fav').classList.add('favoritado');else $('btn-fav').classList.remove('favoritado')}
+function renderFavs(){
+  var favs=getFavs(),el=$('favs');
+  if(!favs.length){el.innerHTML='<div id="favs-titulo">★ FAVORITOS</div><div style="font-size:12px;color:#6B6888;padding:8px">Nenhum favorito. Use ★ no player.</div>';return}
+  var tl={filme:'FIL',serie:'SER',anime:'ANI',doc:'DOC'},html='<div id="favs-titulo">★ FAVORITOS ('+favs.length+')</div>';
+  favs.forEach(function(f,i){html+='<div class="fav-item"><span class="fav-nome" onclick="tocarFav('+i+')">'+f.titulo+'</span><span class="fav-tipo">'+(tl[f.tipo]||'')+'</span><button class="fav-del" onclick="deletarFav('+i+')">✕</button></div>'});
+  el.innerHTML=html
 }
+window.tocarFav=function(i){var f=getFavs()[i];if(!f)return;var idx=canais.findIndex(function(c){return(c.tmdbId+'_'+c.tipo)===(f.tmdbId+'_'+f.tipo)});if(idx!==-1)tocar(idx)};
+window.deletarFav=function(i){var favs=getFavs();favs.splice(i,1);saveFavs(favs);aplicarFiltro();renderFavs();atualizarBtnFav()};
 
-function renderFavs() {
-  var favs = getFavs();
-  var el = $('favs');
-  if (favs.length === 0) { el.innerHTML = '<div id="favs-titulo">★ FAVORITOS</div><div style="font-size:12px;color:#6B6888;padding:8px">Nenhum favorito ainda. Use ★ no player.</div>'; return; }
-  var tipoLabels = { filme: 'FIL', serie: 'SER', anime: 'ANI', doc: 'DOC' };
-  var html = '<div id="favs-titulo">★ FAVORITOS (' + favs.length + ')</div>';
-  favs.forEach(function(f, i) {
-    html += '<div class="fav-item">'
-      + '<span class="fav-nome" onclick="tocarFav(' + i + ')">' + f.titulo + '</span>'
-      + '<span class="fav-tipo">' + (tipoLabels[f.tipo] || '') + '</span>'
-      + '<button class="fav-del" onclick="deletarFav(' + i + ')" title="Remover">✕</button>'
-      + '</div>';
-  });
-  el.innerHTML = html;
-}
-
-window.tocarFav = function(i) {
-  var f = getFavs()[i];
-  if (!f) return;
-  var idx = canais.findIndex(function(c) { return c.embedUrl === f.embedUrl; });
-  if (idx !== -1) tocar(idx);
-};
-
-window.deletarFav = function(i) {
-  var urlAtual = (curCh >= 0 && canais[curCh]) ? canais[curCh].embedUrl : null;
-  var favs = getFavs();
-  favs.splice(i, 1);
-  saveFavs(favs);
-  aplicarFiltro();
-  if (urlAtual) {
-    curCh = canais.findIndex(function(c) { return c.embedUrl === urlAtual; });
-    if (curCh >= 0) $('osd-num').textContent = String(curCh + 1);
-  }
-  renderFavs();
-  atualizarBtnFav();
-};
-
-// ── BUSCA ───────────────────────────────────────
-$('busca-input').addEventListener('input', function() {
-  var q = this.value.trim().toLowerCase();
-  clearTimeout(buscaTimer);
-  if (!q) {
-    catFiltro = $('sel-cat').value || '';
-    aplicarFiltro();
-    atualizarTela();
-    return;
-  }
-  buscaTimer = setTimeout(function() {
-    canais = todosCanais.filter(function(c) {
-      return c.titulo.toLowerCase().indexOf(q) !== -1 ||
-             (c.desc && c.desc.toLowerCase().indexOf(q) !== -1);
-    });
-    for (var i = 0; i < canais.length; i++) canais[i]._num = i + 1;
-    MAX_DIGITOS = Math.max(3, String(canais.length).length);
-    $('status-line').innerHTML = 'Busca: <span>' + canais.length + '</span> resultado(s) para "' + q + '"';
-    var html = '';
-    canais.slice(0, 20).forEach(function(c) {
-      var tipoLabels = { filme: '🎬', serie: '📺', anime: '⚡', doc: '📖' };
-      html += '<div><b>' + c._num + '</b> ' + (tipoLabels[c.tipo] || '') + ' ' + c.titulo + (c.ano ? ' (' + c.ano + ')' : '') + '</div>';
-    });
-    if (canais.length > 20) html += '<div style="color:#6B6888">... e mais ' + (canais.length - 20) + '</div>';
-    $('faixas').innerHTML = html;
-  }, 350);
+$('busca-input').addEventListener('input',function(){
+  var q=this.value.trim().toLowerCase();clearTimeout(buscaTimer);
+  if(!q){catFiltro=$('sel-cat').value||'';aplicarFiltro();atualizarTela();return}
+  buscaTimer=setTimeout(function(){
+    canais=todosCanais.filter(function(c){return c.titulo.toLowerCase().indexOf(q)!==-1});
+    for(var i=0;i<canais.length;i++)canais[i]._num=i+1;MAX_DIGITOS=Math.max(3,String(canais.length).length);
+    $('status-line').innerHTML='Busca: <span>'+canais.length+'</span> resultado(s)';
+    var ic={filme:'🎬',serie:'📺',anime:'⚡',doc:'📖'},html='';
+    canais.slice(0,15).forEach(function(c){html+='<div><b>'+c._num+'</b> '+(ic[c.tipo]||'')+' '+c.titulo+(c.ano?' ('+c.ano+')':'')+'</div>'});
+    if(canais.length>15)html+='<div style="color:#6B6888">... +' +(canais.length-15)+'</div>';
+    $('faixas').innerHTML=html
+  },350)
 });
 
-// ── AUTO-OCULTAR CONTROLES ──────────────────────
 var hideTmr;
-function mostrarControles() {
-  $('controles').classList.remove('oculto');
-  clearTimeout(hideTmr);
-  hideTmr = setTimeout(function() { $('controles').classList.add('oculto'); }, 3500);
-}
-['mousemove', 'mousedown', 'touchstart', 'keydown'].forEach(function(ev) {
-  document.addEventListener(ev, mostrarControles);
-});
+function mostrarControles(){$('controles').classList.remove('oculto');clearTimeout(hideTmr);hideTmr=setTimeout(function(){$('controles').classList.add('oculto')},3500)}
+['mousemove','mousedown','touchstart','keydown'].forEach(function(ev){document.addEventListener(ev,mostrarControles)});
 
-// ── BOTÕES ──────────────────────────────────────
-$('btn-voltar').onclick = voltarHome;
-$('btn-ch-cima').onclick = canalCima;
-$('btn-ch-baixo').onclick = canalBaixo;
-$('btn-fav').onclick = toggleFav;
-
-// ── INIT ────────────────────────────────────────
-renderFavs();
-carregarTudo();
+$('btn-voltar').onclick=voltarHome;$('btn-ch-cima').onclick=canalCima;$('btn-ch-baixo').onclick=canalBaixo;$('btn-fav').onclick=toggleFav;
+$('sel-src').value=String(srcIdx);renderFavs();carregarTudo();
 </script>
 </body>
 </html>

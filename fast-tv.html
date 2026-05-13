@@ -198,12 +198,47 @@ var FONTES = [
   { nome:'Fetch TV AU', url:'https://www.apsattv.com/fetchtv.m3u' }
 ];
 
+// ── Proxies com rodízio inteligente ───────────────────────────
 var PROXIES = [
   'https://corsproxy.io/?url=',
   'https://api.allorigins.win/raw?url=',
   'https://api.codetabs.com/v1/proxy/?quest=',
-  'https://thingproxy.freeboard.io/fetch/'
+  'https://proxy.cors.sh/',
+  'https://crossorigin.me/',
+  'https://cors-anywhere.herokuapp.com/'
 ];
+
+// Contadores de uso e bloqueio por proxy
+var proxyStats = PROXIES.map(function() { return { usos: 0, erros: 0, bloqueado: false, cooldown: 0 }; });
+var proxyIdx = 0; // índice do rodízio atual
+
+// Retorna o próximo proxy disponível (rodízio, pula bloqueados)
+function proximoProxy() {
+  var agora = Date.now();
+  for (var tentativas = 0; tentativas < PROXIES.length; tentativas++) {
+    proxyIdx = (proxyIdx + 1) % PROXIES.length;
+    var s = proxyStats[proxyIdx];
+    if (s.bloqueado && agora < s.cooldown) continue; // ainda em cooldown
+    if (s.bloqueado && agora >= s.cooldown) { s.bloqueado = false; s.erros = 0; } // reabilita
+    return proxyIdx;
+  }
+  return 0; // fallback
+}
+
+function marcarErroProxy(pi) {
+  var s = proxyStats[pi];
+  s.erros++;
+  if (s.erros >= 3) {
+    s.bloqueado = true;
+    s.cooldown = Date.now() + 30000; // 30s de cooldown
+  }
+}
+
+function marcarOkProxy(pi) {
+  proxyStats[pi].erros = 0;
+  proxyStats[pi].bloqueado = false;
+  proxyStats[pi].usos++;
+}
 
 // ── Estado ─────────────────────────────────────────────────────
 var canais = [], seenUrls = {};
@@ -215,24 +250,42 @@ var platFiltro = null, catFiltro = null;
 var canaisBrutos = [];
 var skipCount = 0;
 
-// ── XHR com fallback proxy ─────────────────────────────────────
+// ── XHR com fallback proxy e rodízio ──────────────────────────
 function fetchM3u(url, cb) {
-  var tentativas = [url];
-  for (var i = 0; i < PROXIES.length; i++) tentativas.push(PROXIES[i] + encodeURIComponent(url));
+  // Tenta direto primeiro, depois proxies em rodízio
+  var tentativas = [{ url: url, pi: -1 }];
+  // Monta lista de proxies disponíveis na ordem do rodízio atual
+  var startIdx = proxyIdx;
+  for (var i = 0; i < PROXIES.length; i++) {
+    var pi = (startIdx + i) % PROXIES.length;
+    if (!proxyStats[pi].bloqueado || Date.now() >= proxyStats[pi].cooldown) {
+      tentativas.push({ url: PROXIES[pi] + encodeURIComponent(url), pi: pi });
+    }
+  }
   var ti = 0;
   function next() {
     if (ti >= tentativas.length) { cb('erro'); return; }
+    var t = tentativas[ti++];
     var r = new XMLHttpRequest();
-    r.open('GET', tentativas[ti++], true);
-    try { r.timeout = 12000; } catch(e){}
+    r.open('GET', t.url, true);
+    try { r.timeout = 15000; } catch(e){}
     r.onreadystatechange = function() {
       if (r.readyState !== 4) return;
+      if (r.status === 429 || r.status === 503) {
+        if (t.pi >= 0) marcarErroProxy(t.pi);
+        next(); return;
+      }
       if (r.status === 200 && r.responseText &&
           (r.responseText.indexOf('#EXTM3U') !== -1 || r.responseText.indexOf('#EXTINF') !== -1)) {
+        if (t.pi >= 0) marcarOkProxy(t.pi);
         cb(null, r.responseText);
-      } else { next(); }
+      } else {
+        if (t.pi >= 0 && r.status >= 400) marcarErroProxy(t.pi);
+        next();
+      }
     };
-    r.onerror = next; r.ontimeout = next;
+    r.onerror = function() { if (t.pi >= 0) marcarErroProxy(t.pi); next(); };
+    r.ontimeout = function() { if (t.pi >= 0) marcarErroProxy(t.pi); next(); };
     try { r.send(); } catch(e) { next(); }
   }
   next();
@@ -703,9 +756,15 @@ function sintonizarCanais() {
   var lista = canaisBrutos.slice();
   var total = lista.length;
   var idx = 0, ok = 0, fail = 0, ativos = 0;
-  var removidos = []; // para o relatório
+  var removidos = [];
+
+  // Paralelo adaptativo: começa em 4, reduz se muitos proxies bloquearem
   var PARALELO = 4;
-  var TIMEOUT  = 5000;
+  var TIMEOUT  = 6000;
+  // Lote por proxy: a cada 100 canais muda o proxy preferencial
+  var LOTE_PROXY = 100;
+  // Contador de 429 recentes para reduzir paralelo
+  var erros429 = 0;
 
   prog.innerHTML = '&#9851; Testando ' + total + ' canais...';
 
@@ -716,37 +775,83 @@ function sintonizarCanais() {
       + (nome ? '<br><small style="color:#666">' + nome + '</small>' : '');
   }
 
-  function testarCanal(ch, cb) {
+  function testarCanal(ch, canalIdx, cb) {
     var url = ch.url;
-    var tentativas = [url];
-    for (var pi = 0; pi < PROXIES.length; pi++) tentativas.push(PROXIES[pi] + encodeURIComponent(url));
+
+    // Proxy preferencial para este lote (rodízio por lote)
+    var loteProxy = Math.floor(canalIdx / LOTE_PROXY) % PROXIES.length;
+    // Garante que não está bloqueado
+    var agora = Date.now();
+    if (proxyStats[loteProxy].bloqueado && agora < proxyStats[loteProxy].cooldown) {
+      loteProxy = proximoProxy();
+    }
+
+    // Ordem de tentativa: direto → proxy do lote → outros proxies
+    var ordemProxies = [loteProxy];
+    for (var pi2 = 0; pi2 < PROXIES.length; pi2++) {
+      if (pi2 !== loteProxy) ordemProxies.push(pi2);
+    }
+
+    var tentativas = [{ url: url, pi: -1 }];
+    for (var oi = 0; oi < ordemProxies.length; oi++) {
+      var px = ordemProxies[oi];
+      var ps = proxyStats[px];
+      if (ps.bloqueado && Date.now() < ps.cooldown) continue;
+      tentativas.push({ url: PROXIES[px] + encodeURIComponent(url), pi: px });
+    }
+
     var ti = 0, resolvido = false;
-    var tmr = setTimeout(function() { resolver(false); }, TIMEOUT + 2000);
-    function resolver(s) { if (resolvido) return; resolvido = true; clearTimeout(tmr); try { cb(s); } catch(e) {} }
+    var tmr = setTimeout(function() { resolver(false); }, TIMEOUT + 3000);
+    function resolver(s) {
+      if (resolvido) return;
+      resolvido = true;
+      clearTimeout(tmr);
+      try { cb(s); } catch(e) {}
+    }
     function next() {
       if (ti >= tentativas.length) { resolver(false); return; }
-      var u = tentativas[ti++];
+      var t = tentativas[ti++];
       try {
         var r = new XMLHttpRequest();
-        r.open('HEAD', u, true);
-        try { r.timeout = Math.floor(TIMEOUT * 0.55); } catch(e) {}
+        r.open('HEAD', t.url, true);
+        try { r.timeout = Math.floor(TIMEOUT * 0.5); } catch(e) {}
         r.onreadystatechange = function() {
           if (r.readyState !== 4) return;
-          if (r.status >= 200 && r.status < 400) { resolver(true); }
-          else if (r.status === 405) {
+          if (r.status === 429) {
+            if (t.pi >= 0) marcarErroProxy(t.pi);
+            erros429++;
+            // Reduz paralelo se muitos 429
+            if (erros429 > 10 && PARALELO > 2) { PARALELO = Math.max(2, PARALELO - 1); erros429 = 0; }
+            next(); return;
+          }
+          if (r.status >= 200 && r.status < 400) {
+            if (t.pi >= 0) marcarOkProxy(t.pi);
+            resolver(true);
+          } else if (r.status === 405) {
+            // HEAD não permitido, tenta GET parcial
             try {
               var r2 = new XMLHttpRequest();
-              r2.open('GET', u, true);
+              r2.open('GET', t.url, true);
               try { r2.timeout = Math.floor(TIMEOUT * 0.45); } catch(e) {}
               r2.onreadystatechange = function() {
-                if (r2.readyState >= 2) { try { r2.abort(); } catch(e) {} if (r2.status >= 200 && r2.status < 400) resolver(true); else next(); }
+                if (r2.readyState >= 2) {
+                  try { r2.abort(); } catch(e) {}
+                  if (r2.status >= 200 && r2.status < 400) {
+                    if (t.pi >= 0) marcarOkProxy(t.pi);
+                    resolver(true);
+                  } else { next(); }
+                }
               };
-              r2.onerror = r2.ontimeout = function() { try { next(); } catch(e) { resolver(false); } };
+              r2.onerror = r2.ontimeout = function() { next(); };
               r2.send();
             } catch(e2) { next(); }
-          } else { next(); }
+          } else {
+            if (t.pi >= 0 && r.status >= 400 && r.status !== 404) marcarErroProxy(t.pi);
+            next();
+          }
         };
-        r.onerror = r.ontimeout = function() { try { next(); } catch(e) { resolver(false); } };
+        r.onerror = function() { if (t.pi >= 0) marcarErroProxy(t.pi); next(); };
+        r.ontimeout = function() { next(); };
         r.send();
       } catch(e) { next(); }
     }
@@ -769,10 +874,10 @@ function sintonizarCanais() {
       return;
     }
     while (ativos < PARALELO && idx < total) {
-      (function(ch) {
+      (function(ch, ci) {
         ativos++;
         atualizar(ch.nome);
-        testarCanal(ch, function(sucesso) {
+        testarCanal(ch, ci, function(sucesso) {
           if (!sucesso) {
             fail++;
             removidos.push({ nome: ch.nome, plat: ch.plat, url: ch.url });
@@ -785,7 +890,8 @@ function sintonizarCanais() {
           atualizar('');
           lancar();
         });
-      })(lista[idx++]);
+      })(lista[idx], idx);
+      idx++;
     }
   }
 
@@ -813,6 +919,16 @@ function sintonizarCanais() {
     linhas.push('Testados: ' + total + '  |  OK: ' + ok + '  |  Removidos: ' + fail + '  |  Restantes: ' + canaisBrutos.length);
     linhas.push('');
 
+    // Estatísticas dos proxies
+    linhas.push('── Proxies ──');
+    for (var xi = 0; xi < PROXIES.length; xi++) {
+      var ps2 = proxyStats[xi];
+      var pnome2 = PROXIES[xi].replace('https://','').split('/')[0];
+      var estado2 = ps2.bloqueado ? '⚠ bloqueado' : '✓ ok';
+      linhas.push('  ' + pnome2 + ' — usos:' + ps2.usos + ' erros:' + ps2.erros + ' ' + estado2);
+    }
+    linhas.push('');
+
     // Por plataforma
     var platOk = {}, platFail = {};
     for (var ri = 0; ri < lista.length; ri++) {
@@ -826,18 +942,13 @@ function sintonizarCanais() {
     var plats = Object.keys(platOk).concat(Object.keys(platFail).filter(function(k){ return !platOk[k]; }));
     plats = plats.filter(function(v,i,a){ return a.indexOf(v)===i; }).sort();
 
-    // Plataformas com 0 canais OK
     var semOk = plats.filter(function(pn){ return (platOk[pn]||0) === 0; });
-    if (semOk.length) {
-      linhas.push('Sem canais OK: ' + semOk.join(', '));
-      linhas.push('');
-    }
+    if (semOk.length) { linhas.push('Sem canais OK: ' + semOk.join(', ')); linhas.push(''); }
 
-    // Resumo por plataforma (só nome: ok/total)
     linhas.push('Plataforma         | OK  | Rem');
     linhas.push('-------------------|-----|-----');
-    for (var pi = 0; pi < plats.length; pi++) {
-      var pn = plats[pi];
+    for (var pi3 = 0; pi3 < plats.length; pi3++) {
+      var pn = plats[pi3];
       var po = platOk[pn] || 0;
       var pf = platFail[pn] || 0;
       var pad = pn.length < 18 ? pn + Array(19-pn.length).join(' ') : pn.substring(0,18);

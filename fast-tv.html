@@ -808,16 +808,9 @@ function sintonizarCanais() {
     var agora = new Date();
     var dataStr = agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR');
     var linhas = [];
-    linhas.push('════════════════════════════════════════════');
-    linhas.push('  RELATÓRIO DE SINTONIA — K60 FAST TV');
-    linhas.push('  ' + dataStr);
-    linhas.push('════════════════════════════════════════════');
-    linhas.push('');
+    linhas.push('K60 FAST TV — ' + dataStr);
     linhas.push('STATUS: ' + msg);
-    linhas.push('Canais testados : ' + total);
-    linhas.push('Funcionando     : ' + ok);
-    linhas.push('Removidos       : ' + fail);
-    linhas.push('Canais restantes: ' + canaisBrutos.length);
+    linhas.push('Testados: ' + total + '  |  OK: ' + ok + '  |  Removidos: ' + fail + '  |  Restantes: ' + canaisBrutos.length);
     linhas.push('');
 
     // Por plataforma
@@ -830,34 +823,26 @@ function sintonizarCanais() {
         platOk[p] = (platOk[p] || 0) + 1;
       }
     }
-    linhas.push('────────────────────────────────────────────');
-    linhas.push('  RESULTADO POR PLATAFORMA');
-    linhas.push('────────────────────────────────────────────');
     var plats = Object.keys(platOk).concat(Object.keys(platFail).filter(function(k){ return !platOk[k]; }));
     plats = plats.filter(function(v,i,a){ return a.indexOf(v)===i; }).sort();
+
+    // Plataformas com 0 canais OK
+    var semOk = plats.filter(function(pn){ return (platOk[pn]||0) === 0; });
+    if (semOk.length) {
+      linhas.push('Sem canais OK: ' + semOk.join(', '));
+      linhas.push('');
+    }
+
+    // Resumo por plataforma (só nome: ok/total)
+    linhas.push('Plataforma         | OK  | Rem');
+    linhas.push('-------------------|-----|-----');
     for (var pi = 0; pi < plats.length; pi++) {
       var pn = plats[pi];
       var po = platOk[pn] || 0;
       var pf = platFail[pn] || 0;
-      linhas.push('  ' + pn + ': ✓ ' + po + ' ok  ✗ ' + pf + ' removidos');
+      var pad = pn.length < 18 ? pn + Array(19-pn.length).join(' ') : pn.substring(0,18);
+      linhas.push(pad + '| ' + String(po).padStart(3) + ' | ' + String(pf).padStart(3));
     }
-    linhas.push('');
-
-    if (removidos.length > 0) {
-      linhas.push('────────────────────────────────────────────');
-      linhas.push('  CANAIS REMOVIDOS (' + removidos.length + ')');
-      linhas.push('────────────────────────────────────────────');
-      for (var ri2 = 0; ri2 < removidos.length; ri2++) {
-        var r = removidos[ri2];
-        linhas.push('  [' + r.plat + '] ' + r.nome);
-        linhas.push('    URL: ' + r.url);
-      }
-      linhas.push('');
-    }
-
-    linhas.push('════════════════════════════════════════════');
-    linhas.push('  FIM DO RELATÓRIO');
-    linhas.push('════════════════════════════════════════════');
 
     sintRelatorio = linhas.join('\n');
     document.getElementById('btn-relatorio-wrap').style.display = 'block';

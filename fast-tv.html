@@ -247,11 +247,48 @@ var platFiltro = null, catFiltro = null;
 var canaisBrutos = [];
 var skipCount = 0;
 
+// ── Normalização global de macros de anúncio ─────────────────
+// Substitui placeholders não preenchidos para evitar erro 400.
+// Escopo GLOBAL: usada tanto na sintonia quanto na reprodução.
+function normalizarUrl(url) {
+  if (!url) return url;
+  return url
+    .replace(/\[DEVICE_ID\]/gi,        'aaa00000000')
+    .replace(/\[IFA\]/gi,              'aaa00000000')
+    .replace(/\[IFA_TYPE\]/gi,         'idfa')
+    .replace(/\[LMT\]/gi,              '0')
+    .replace(/\[DNS\]/gi,              '0')
+    .replace(/\[DNT\]/gi,              '0')
+    .replace(/\[UA\]/gi,               'Mozilla%2F5.0')
+    .replace(/\[IP\]/gi,               '0.0.0.0')
+    .replace(/\[GDPR\]/gi,             '0')
+    .replace(/\[GDPR_CONSENT\]/gi,     '')
+    .replace(/\[COUNTRY\]/gi,          'US')
+    .replace(/\[US_PRIVACY\]/gi,       '1---')
+    .replace(/\[APP_STOREURL\]/gi,     '')
+    .replace(/\[APP_BUNDLE\]/gi,       'com.test.app')
+    .replace(/\[APP_NAME\]/gi,         'TestApp')
+    .replace(/\[APP_VERSION\]/gi,      '1.0')
+    .replace(/\[DEVICE_TYPE\]/gi,      'tv')
+    .replace(/\[DEVICE_MAKE\]/gi,      'LG')
+    .replace(/\[DEVICE_MODEL\]/gi,     'OLED55')
+    .replace(/\[TARGETAD_ALLOWED\]/gi, '1')
+    .replace(/\[FCK\]/gi,              '')
+    .replace(/\[VIEWSIZE\]/gi,         '1920x1080')
+    .replace(/\[NONCE\]/gi,            '')
+    .replace(/\[IC\]/gi,               '')
+    .replace(/\[IAB_CATEGORY\]/gi,     '')
+    .replace(/\[PCS\]/gi,              '')
+    .replace(/\[HOTEL_TYPE\]/gi,       '')
+    .replace(/\{\{[^}]+\}\}/g,         '')   // {{MACRO}}
+    .replace(/\{[A-Z_]{2,}\}/g,        '')   // {MACRO}
+    .replace(/REPLACE_ME/g,            '')
+    .replace(/REPLACEME/g,             '');
+}
+
 // ── XHR com fallback proxy e rodízio ──────────────────────────
 function fetchM3u(url, cb) {
-  // Tenta direto primeiro, depois proxies em rodízio
   var tentativas = [{ url: url, pi: -1 }];
-  // Monta lista de proxies disponíveis na ordem do rodízio atual
   var startIdx = proxyIdx;
   for (var i = 0; i < PROXIES.length; i++) {
     var pi = (startIdx + i) % PROXIES.length;
@@ -265,7 +302,8 @@ function fetchM3u(url, cb) {
     var t = tentativas[ti++];
     var r = new XMLHttpRequest();
     r.open('GET', t.url, true);
-    try { r.timeout = 15000; } catch(e){}
+    // 22s: M3Us grandes (Roku/Pluto/Tubi têm 400+ canais)
+    try { r.timeout = 22000; } catch(e){}
     r.onreadystatechange = function() {
       if (r.readyState !== 4) return;
       if (r.status === 429 || r.status === 503) {
@@ -277,13 +315,17 @@ function fetchM3u(url, cb) {
         if (t.pi >= 0) marcarOkProxy(t.pi);
         cb(null, r.responseText);
       } else {
-        // 400/404 = problema do stream, não do proxy — não penaliza
-        if (t.pi >= 0 && (r.status === 429 || r.status === 503)) marcarErroProxy(t.pi);
+        // 400/404 = problema da fonte, não do proxy — não penaliza
         next();
       }
     };
+    // onerror direto = CORS bloqueado (esperado); via proxy = falha de rede real
     r.onerror = function() { if (t.pi >= 0) marcarErroProxy(t.pi); next(); };
-    r.ontimeout = function() { if (t.pi >= 0) marcarErroProxy(t.pi); next(); };
+    // Timeout do proxy = proxy lento; penaliza 0.5 (suave) e tenta próximo
+    r.ontimeout = function() {
+      if (t.pi >= 0) { proxyStats[t.pi].erros = Math.min(proxyStats[t.pi].erros + 0.5, 19); }
+      next();
+    };
     try { r.send(); } catch(e) { next(); }
   }
   next();
@@ -565,7 +607,8 @@ function tocarCanal(idx) {
   clearTimeout(osdTmr);
   osdTmr = setTimeout(function(){ document.getElementById('osd').style.display='none'; }, 5000);
   atualizarFav();
-  iniciarStream(ch.url);
+  // Normaliza macros na URL antes de reproduzir (caso sintonia não tenha sido executada)
+  iniciarStream(normalizarUrl(ch.url));
 }
 
 function iniciarStream(url) {
@@ -763,44 +806,7 @@ function sintonizarCanais() {
   var LOTE_PROXY = 100;
   // Contador de 429 recentes para reduzir paralelo
   var erros429 = 0;
-
-  // Substitui macros de anúncio por valores dummy para evitar erro 400
-  function normalizarUrl(url) {
-    return url
-      // Padrão [MACRO]
-      .replace(/\[DEVICE_ID\]/gi,   'aaa00000000')
-      .replace(/\[IFA\]/gi,          'aaa00000000')
-      .replace(/\[IFA_TYPE\]/gi,     'idfa')
-      .replace(/\[LMT\]/gi,          '0')
-      .replace(/\[DNS\]/gi,          '0')
-      .replace(/\[UA\]/gi,           'Mozilla')
-      .replace(/\[IP\]/gi,           '0.0.0.0')
-      .replace(/\[GDPR\]/gi,         '0')
-      .replace(/\[GDPR_CONSENT\]/gi, '')
-      .replace(/\[COUNTRY\]/gi,      'US')
-      .replace(/\[US_PRIVACY\]/gi,   '1---')
-      .replace(/\[APP_STOREURL\]/gi, '')
-      .replace(/\[APP_BUNDLE\]/gi,   'com.test.app')
-      .replace(/\[APP_NAME\]/gi,     'TestApp')
-      .replace(/\[APP_VERSION\]/gi,  '1.0')
-      .replace(/\[DEVICE_TYPE\]/gi,  'tv')
-      .replace(/\[DEVICE_MAKE\]/gi,  'LG')
-      .replace(/\[DEVICE_MODEL\]/gi, 'OLED')
-      .replace(/\[TARGETAD_ALLOWED\]/gi, '1')
-      .replace(/\[FCK\]/gi,          '')
-      .replace(/\[VIEWSIZE\]/gi,     '1920x1080')
-      .replace(/\[NONCE\]/gi,        '')
-      .replace(/\[IC\]/gi,           '')
-      .replace(/\[DNT\]/gi,          '0')
-      .replace(/\[IAB_CATEGORY\]/gi, '')
-      .replace(/\[PCS\]/gi,          '')
-      .replace(/\[HOTEL_TYPE\]/gi,   '')
-      // Padrão {{MACRO}}
-      .replace(/\{\{[^}]+\}\}/g,    '')
-      // Padrão REPLACE_ME / REPLACEME
-      .replace(/REPLACE_ME/g,       '')
-      .replace(/REPLACEME/g,        '');
-  }
+  // normalizarUrl está no escopo global — aplica macros dummy antes de testar
 
   prog.innerHTML = '&#9851; Testando ' + total + ' canais...';
 
@@ -812,7 +818,10 @@ function sintonizarCanais() {
   }
 
   function testarCanal(ch, canalIdx, cb) {
-    var url = normalizarUrl(ch.url);
+    // Normaliza macros e persiste no objeto — garante URL limpa na reprodução também
+    var urlNorm = normalizarUrl(ch.url);
+    if (urlNorm !== ch.url) ch.url = urlNorm;
+    var url = urlNorm;
 
     // Proxy preferencial para este lote (rodízio por lote)
     var loteProxy = Math.floor(canalIdx / LOTE_PROXY) % PROXIES.length;
@@ -837,7 +846,8 @@ function sintonizarCanais() {
     }
 
     var ti = 0, resolvido = false;
-    var tmr = setTimeout(function() { resolver(false); }, TIMEOUT + 3000);
+    // Safety net global: se todas as tentativas falharem silenciosamente
+    var tmr = setTimeout(function() { resolver(false); }, TIMEOUT * 2 + 2000);
     function resolver(s) {
       if (resolvido) return;
       resolvido = true;
@@ -853,10 +863,9 @@ function sintonizarCanais() {
         try { r.timeout = Math.floor(TIMEOUT * 0.5); } catch(e) {}
         r.onreadystatechange = function() {
           if (r.readyState !== 4) return;
-          if (r.status === 429) {
+          if (r.status === 429 || r.status === 503) {
             if (t.pi >= 0) marcarErroProxy(t.pi);
             erros429++;
-            // Reduz paralelo se muitos 429
             if (erros429 > 10 && PARALELO > 2) { PARALELO = Math.max(2, PARALELO - 1); erros429 = 0; }
             next(); return;
           }
@@ -864,7 +873,7 @@ function sintonizarCanais() {
             if (t.pi >= 0) marcarOkProxy(t.pi);
             resolver(true);
           } else if (r.status === 405) {
-            // HEAD não permitido, tenta GET parcial
+            // HEAD não permitido — tenta GET parcial (abort em headers)
             try {
               var r2 = new XMLHttpRequest();
               r2.open('GET', t.url, true);
@@ -882,13 +891,17 @@ function sintonizarCanais() {
               r2.send();
             } catch(e2) { next(); }
           } else {
-            // 400/404 = problema do stream/macros, não do proxy
-            if (t.pi >= 0 && (r.status === 429 || r.status === 503)) marcarErroProxy(t.pi);
+            // 400/404/outros = problema do stream, não do proxy — não penaliza
             next();
           }
         };
+        // onerror via proxy = falha de rede real do proxy
         r.onerror = function() { if (t.pi >= 0) marcarErroProxy(t.pi); next(); };
-        r.ontimeout = function() { next(); };
+        // ontimeout via proxy = proxy lento — penaliza suavemente (0.5)
+        r.ontimeout = function() {
+          if (t.pi >= 0) { proxyStats[t.pi].erros = Math.min(proxyStats[t.pi].erros + 0.5, 19); }
+          next();
+        };
         r.send();
       } catch(e) { next(); }
     }

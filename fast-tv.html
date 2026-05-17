@@ -67,6 +67,9 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
 .fav-del{background:none;border:none;color:#ff5555;font-size:16px;cursor:pointer;padding:0 0 0 10px}
 #btn-fav{background:#111;border:2px solid #ffdd00;color:#ffdd00;font-size:18px;width:48px;height:48px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
 #btn-fav.favoritado{background:#ffdd00;color:#000}
+#btn-fs{background:#111;border:2px solid #aaa;color:#aaa;font-size:18px;width:48px;height:48px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .1s}
+#btn-fs:active{transform:scale(.92)}
+#btn-fs:hover{border-color:#fff;color:#fff}
 #volume-ctrl{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.75);border:2px solid #ff6600;border-radius:30px;padding:7px 16px;transition:opacity .4s;z-index:10}
 #volume-ctrl.oculto{opacity:0;pointer-events:none}
 #btn-mute{background:none;border:none;color:#ff6600;font-size:20px;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0}
@@ -148,6 +151,7 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
     <button id="btn-voltar">&#9664; Voltar</button>
     <button class="btn-ch" id="btn-ch-cima" title="Próximo canal">&#9650;</button>
     <button id="btn-fav" title="Favoritar">&#9733;</button>
+    <button id="btn-fs" title="Tela cheia / Restaurar">&#x26F6;</button>
   </div>
 </div>
 
@@ -729,6 +733,29 @@ document.getElementById('btn-fav').onclick = function() {
   try { localStorage.setItem('k60fast_favs', JSON.stringify(favs)); } catch(e){}
   atualizarFav(); renderFavs(); aplicarFiltro();
 };
+
+// ── Tela cheia (fullscreen toggle) ────────────────────────────
+function toggleFullscreen() {
+  var el = document.documentElement;
+  var isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+  if (!isFs) {
+    if (el.requestFullscreen) el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    else if (el.msRequestFullscreen) el.msRequestFullscreen();
+  } else {
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    else if (document.msExitFullscreen) document.msExitFullscreen();
+  }
+}
+function _atualizarIconeFs() {
+  var isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+  var btn = document.getElementById('btn-fs');
+  if (btn) { btn.innerHTML = isFs ? '&#x2750;' : '&#x26F6;'; btn.title = isFs ? 'Restaurar tela' : 'Tela cheia'; }
+}
+document.addEventListener('fullscreenchange', _atualizarIconeFs);
+document.addEventListener('webkitfullscreenchange', _atualizarIconeFs);
+document.getElementById('btn-fs').onclick = toggleFullscreen;
 
 function renderFavs() {
   var el = document.getElementById('favs');

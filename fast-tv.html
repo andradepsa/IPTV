@@ -24,7 +24,7 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
 #instrucao{font-size:11px;color:#444;margin-top:6px}
 #btn-enter{margin-top:12px;background:#111;border:2px solid #ff6600;color:#ff6600;font-size:15px;font-weight:bold;padding:10px 44px;border-radius:30px;cursor:pointer;display:inline-block}
 #btn-enter:active{background:#ff660022;transform:scale(.95)}
-#teclado{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:280px;margin:12px auto 0}
+#teclado{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-wrap:wrap;flex-wrap:wrap;max-width:280px;margin:12px auto 0}.tk{width:calc(33.33% - 6px);margin:3px}
 .tk{background:#111;border:2px solid #333;color:#fff;font-size:26px;font-weight:bold;font-family:monospace;height:56px;border-radius:14px;cursor:pointer;transition:background .12s,border-color .12s,transform .1s;user-select:none;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:center}
 .tk:active{background:#ff660022;border-color:#ff6600;transform:scale(.93)}
 .tk-num:hover{border-color:#ff6600}

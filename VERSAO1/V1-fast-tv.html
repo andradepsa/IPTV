@@ -22,8 +22,18 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
 #digitos{font-size:52px;font-weight:bold;color:#ff6600;font-family:monospace;letter-spacing:4px;min-height:62px;line-height:1}
 #digitos.vazio{color:#222}
 #instrucao{font-size:11px;color:#444;margin-top:6px}
-#btn-enter{margin-top:12px;background:#111;border:2px solid #ff6600;color:#ff6600;font-size:15px;font-weight:bold;padding:10px 44px;border-radius:30px;cursor:pointer}
+#btn-enter{margin-top:12px;background:#111;border:2px solid #ff6600;color:#ff6600;font-size:15px;font-weight:bold;padding:10px 44px;border-radius:30px;cursor:pointer;display:none}
 #btn-enter:active{background:#ff660022;transform:scale(.95)}
+#teclado{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-wrap:wrap;flex-wrap:wrap;max-width:280px;margin:12px auto 0}.tk{width:calc(33.33% - 6px);margin:3px}
+.tk{background:#111;border:2px solid #333;color:#fff;font-size:26px;font-weight:bold;font-family:monospace;height:56px;border-radius:14px;cursor:pointer;transition:background .12s,border-color .12s,transform .1s;user-select:none;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:center}
+.tk:active{background:#ff660022;border-color:#ff6600;transform:scale(.93)}
+.tk-num:hover{border-color:#ff6600}
+.tk-del{color:#ff6666;font-size:20px;border-color:#442222}
+.tk-del:hover{border-color:#ff6666}
+.tk-del:active{background:#ff666622;border-color:#ff6666}
+.tk-go{background:#ff660018;color:#ff6600;font-size:18px;border-color:#ff6600;font-family:Arial,sans-serif}
+.tk-go:hover{background:#ff660033}
+.tk-go:active{background:#ff660044;transform:scale(.93)}
 #log-fontes{margin-top:10px;font-size:11px;color:#444;line-height:1.7;max-height:80px;overflow-y:auto;text-align:left;padding:0 8px}
 #log-fontes .ok{color:#00cc66}
 #log-fontes .err{color:#ff4444}
@@ -57,6 +67,9 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
 .fav-del{background:none;border:none;color:#ff5555;font-size:16px;cursor:pointer;padding:0 0 0 10px}
 #btn-fav{background:#111;border:2px solid #ffdd00;color:#ffdd00;font-size:18px;width:48px;height:48px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
 #btn-fav.favoritado{background:#ffdd00;color:#000}
+#btn-fs{background:#111;border:2px solid #aaa;color:#aaa;font-size:18px;width:48px;height:48px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .1s}
+#btn-fs:active{transform:scale(.92)}
+#btn-fs:hover{border-color:#fff;color:#fff}
 #volume-ctrl{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.75);border:2px solid #ff6600;border-radius:30px;padding:7px 16px;transition:opacity .4s;z-index:10}
 #volume-ctrl.oculto{opacity:0;pointer-events:none}
 #btn-mute{background:none;border:none;color:#ff6600;font-size:20px;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0}
@@ -93,6 +106,20 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
     </div>
     <div id="instrucao">Digite o número do canal e pressione ENTER</div>
     <button id="btn-enter" onclick="clearTimeout(bufTmr);irCanal()">&#9654; ENTER</button>
+    <div id="teclado">
+      <button class="tk tk-num" onclick="teclarNum(1)">1</button>
+      <button class="tk tk-num" onclick="teclarNum(2)">2</button>
+      <button class="tk tk-num" onclick="teclarNum(3)">3</button>
+      <button class="tk tk-num" onclick="teclarNum(4)">4</button>
+      <button class="tk tk-num" onclick="teclarNum(5)">5</button>
+      <button class="tk tk-num" onclick="teclarNum(6)">6</button>
+      <button class="tk tk-num" onclick="teclarNum(7)">7</button>
+      <button class="tk tk-num" onclick="teclarNum(8)">8</button>
+      <button class="tk tk-num" onclick="teclarNum(9)">9</button>
+      <button class="tk tk-del" onclick="teclarDel()">&#9003;</button>
+      <button class="tk tk-num" onclick="teclarNum(0)">0</button>
+      <button class="tk tk-go" onclick="clearTimeout(bufTmr);irCanal()">IR &#9654;</button>
+    </div>
     <div><button id="btn-sintonizar" onclick="sintonizarCanais()">&#128225; Sintonizar canais</button></div>
     <div id="sint-progresso"></div>
     <div><button id="btn-limpar-sint" onclick="limparSintonizacao()" style="margin-top:6px;background:#111;border:2px solid #ff5555;color:#ff5555;font-size:12px;font-weight:bold;padding:7px 20px;border-radius:30px;cursor:pointer;display:none">&#128465; Limpar sintonização</button></div>
@@ -124,6 +151,7 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
     <button id="btn-voltar">&#9664; Voltar</button>
     <button class="btn-ch" id="btn-ch-cima" title="Próximo canal">&#9650;</button>
     <button id="btn-fav" title="Favoritar">&#9733;</button>
+    <button id="btn-fs" title="Tela cheia / Restaurar">&#x26F6;</button>
   </div>
 </div>
 
@@ -520,6 +548,24 @@ function atualizarDisplay() {
   else { el.textContent = buf; el.className = ''; box.className = 'ativo'; }
 }
 
+function teclarNum(n) {
+  if (!pronto) return;
+  if (buf.length >= MAX_DIGITOS + 1) return;
+  buf += String(n);
+  atualizarDisplay();
+  clearTimeout(bufTmr);
+  if (buf.length > MAX_DIGITOS) irCanal();
+  else bufTmr = setTimeout(irCanal, 2000);
+}
+
+function teclarDel() {
+  if (buf.length > 0) {
+    buf = buf.slice(0, -1);
+    atualizarDisplay();
+    clearTimeout(bufTmr);
+  }
+}
+
 function irCanal() {
   var n = parseInt(buf, 10);
   buf = ''; atualizarDisplay();
@@ -688,6 +734,29 @@ document.getElementById('btn-fav').onclick = function() {
   atualizarFav(); renderFavs(); aplicarFiltro();
 };
 
+// ── Tela cheia (fullscreen toggle) ────────────────────────────
+function toggleFullscreen() {
+  var el = document.documentElement;
+  var isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+  if (!isFs) {
+    if (el.requestFullscreen) el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    else if (el.msRequestFullscreen) el.msRequestFullscreen();
+  } else {
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    else if (document.msExitFullscreen) document.msExitFullscreen();
+  }
+}
+function _atualizarIconeFs() {
+  var isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+  var btn = document.getElementById('btn-fs');
+  if (btn) { btn.innerHTML = isFs ? '&#x2750;' : '&#x26F6;'; btn.title = isFs ? 'Restaurar tela' : 'Tela cheia'; }
+}
+document.addEventListener('fullscreenchange', _atualizarIconeFs);
+document.addEventListener('webkitfullscreenchange', _atualizarIconeFs);
+document.getElementById('btn-fs').onclick = toggleFullscreen;
+
 function renderFavs() {
   var el = document.getElementById('favs');
   var favs = [];
@@ -752,10 +821,20 @@ function mostrarControles() {
   document.addEventListener(ev, mostrarControles);
 });
 
-// ── Sintonizador de canais ─────────────────────────────────────
+// ── Sintonizador de canais (em LOTES com retomada) ─────────────
 var sintRodando = false;
 var sintAbortar = false;
 var sintRelatorio = null; // guarda dados do último relatório
+
+// Detecta TV / dispositivo limitado para reduzir paralelo
+function _ehTV() {
+  try {
+    var ua = (navigator.userAgent || '').toLowerCase();
+    if (/smart-tv|smarttv|googletv|appletv|hbbtv|pov_tv|netcast|nettv|webos|tizen|viera|bravia|aquos|crkey|chromecast|aftb|aftt|afts|aftn|aftm|silk|dtv|tv\s*build/.test(ua)) return true;
+    if (window.innerWidth >= 1280 && !('ontouchstart' in window) && navigator.maxTouchPoints === 0 && /linux armv|arm; |aarch64/.test(ua)) return true;
+  } catch(e) {}
+  return false;
+}
 
 function sintonizarCanais() {
   var btn  = document.getElementById('btn-sintonizar');
@@ -778,20 +857,45 @@ function sintonizarCanais() {
   btn.innerHTML = '&#9209; Cancelar sintonia';
   btn.disabled = false;
 
-  var lista = canaisBrutos.slice();
+  // Lista ESTÁVEL ordenada pela URL (para retomar pelo mesmo índice mesmo após reload)
+  var lista = canaisBrutos.slice().sort(function(a,b){
+    return a.url < b.url ? -1 : (a.url > b.url ? 1 : 0);
+  });
   var total = lista.length;
-  var idx = 0, ok = 0, fail = 0, ativos = 0;
+
+  // ── Retomada: se houver progresso salvo, continua de onde parou
+  var idxInicial = 0, okPrev = 0, failPrev = 0;
+  try {
+    var sp = localStorage.getItem('k60fast_sint_progresso');
+    if (sp) {
+      var p = JSON.parse(sp);
+      if (p && p.total === total && typeof p.idx === 'number' && p.idx < total) {
+        idxInicial = p.idx;
+        okPrev = p.ok || 0;
+        failPrev = p.fail || 0;
+        console.log('Retomando sintonia de ' + idxInicial + '/' + total);
+      } else {
+        localStorage.removeItem('k60fast_sint_progresso');
+      }
+    }
+  } catch(e) {}
+
+  var idx = idxInicial, ok = okPrev, fail = failPrev, ativos = 0;
   var removidos = [];
+  var ehTv = _ehTV();
 
-  // Paralelo adaptativo: começa em 4, reduz se muitos proxies bloquearem
-  var PARALELO = 4;
-  var TIMEOUT  = 6000;
-  // Lote por proxy: a cada 100 canais muda o proxy preferencial
+  // Paralelo reduzido em TV; lote menor + pausa entre lotes para não travar a webview
+  var PARALELO   = ehTv ? 2 : 4;
+  var TIMEOUT    = ehTv ? 4000 : 6000;
+  var LOTE       = ehTv ? 25 : 50;   // canais por pacote
+  var PAUSA_LOTE = ehTv ? 500 : 200; // ms de respiro entre pacotes
   var LOTE_PROXY = 100;
-  // Contador de 429 recentes para reduzir paralelo
-  var erros429 = 0;
+  var erros429   = 0;
+  var concluidosLote = 0; // contador desde o último save
 
-  prog.innerHTML = '&#9851; Testando ' + total + ' canais...';
+  prog.innerHTML = '&#9851; Testando ' + total + ' canais'
+    + (idxInicial > 0 ? ' (retomando em ' + idxInicial + ')' : '')
+    + (ehTv ? ' [modo TV]' : '') + '...';
 
   function atualizar(nome) {
     prog.innerHTML = 'Testando ' + Math.min(idx, total) + '/' + total
@@ -890,16 +994,35 @@ function sintonizarCanais() {
     }
   }
 
+  function salvarProgresso() {
+    try {
+      // Salva URLs removidas até agora (resultado parcial)
+      localStorage.setItem('k60fast_removidos', JSON.stringify(urlsRemovidas));
+      // Salva ponteiro para retomada
+      localStorage.setItem('k60fast_sint_progresso', JSON.stringify({
+        total: total, idx: idx, ok: ok, fail: fail, ts: Date.now()
+      }));
+    } catch(e) { console.error('Falha salvar progresso:', e); }
+  }
+
   function lancar() {
     if (sintAbortar) {
-      if (ativos === 0) { _fimSint('Sintonia cancelada.', ok, fail); }
+      if (ativos === 0) { salvarProgresso(); _fimSint('Sintonia cancelada (progresso salvo).', ok, fail); }
       return;
     }
     if (idx >= total) {
       if (ativos === 0) { _fimSint('Sintonia concluída!', ok, fail); }
       return;
     }
-    while (ativos < PARALELO && idx < total) {
+    // Se completou um lote, salva e dá uma pausa para a TV respirar
+    if (concluidosLote >= LOTE) {
+      concluidosLote = 0;
+      salvarProgresso();
+      atualizar('[pausa entre lotes]');
+      setTimeout(lancar, PAUSA_LOTE);
+      return;
+    }
+    while (ativos < PARALELO && idx < total && concluidosLote < LOTE) {
       (function(ch, ci) {
         ativos++;
         atualizar(ch.nome);
@@ -913,6 +1036,7 @@ function sintonizarCanais() {
             ok++;
           }
           ativos--;
+          concluidosLote++;
           atualizar('');
           lancar();
         });
@@ -929,6 +1053,11 @@ function sintonizarCanais() {
     sintAbortar = false;
     btn.disabled = false;
     btn.innerHTML = '&#128225; Sintonizar canais';
+
+    // Se chegou ao fim (não foi cancelado), apaga o ponteiro de retomada
+    if (!/cancelada/i.test(msg)) {
+      try { localStorage.removeItem('k60fast_sint_progresso'); } catch(e) {}
+    }
 
     // Salva TUDO de uma vez no localStorage
     var totalRemovidos = Object.keys(urlsRemovidas).length;
@@ -1038,6 +1167,7 @@ function limparSintonizacao() {
   urlsRemovidas = {};
   sintBloqueados = 0;
   try { localStorage.removeItem('k60fast_removidos'); } catch(e){}
+  try { localStorage.removeItem('k60fast_sint_progresso'); } catch(e){}
   // Recarrega tudo do zero
   canaisBrutos = []; canais = []; seenUrls = {}; nextNum = 1; pronto = false;
   document.getElementById('btn-limpar-sint').style.display = 'none';

@@ -116,7 +116,7 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
       <button class="tk tk-num" onmousedown="teclarNum(7)" onclick="teclarNum(7)">7</button>
       <button class="tk tk-num" onmousedown="teclarNum(8)" onclick="teclarNum(8)">8</button>
       <button class="tk tk-num" onmousedown="teclarNum(9)" onclick="teclarNum(9)">9</button>
-      <button class="tk tk-del" onmousedown="teclarDelSafe()" onclick="teclarDelSafe()">&#9003;</button>
+      <button class="tk tk-del" onmousedown="teclarDel()" onclick="teclarDel()">&#9003;</button>
       <button class="tk tk-num" onmousedown="teclarNum(0)" onclick="teclarNum(0)">0</button>
       <button class="tk tk-go" onmousedown="clearTimeout(bufTmr);irCanal()" onclick="void(0)">IR &#9654;</button>
     </div>
@@ -548,25 +548,14 @@ function atualizarDisplay() {
   else { el.textContent = buf; el.className = ''; box.className = 'ativo'; }
 }
 
-var _tkLast = 0, _tkLastN = -1;
 function teclarNum(n) {
   if (!pronto) return;
-  // Evita disparo duplo (onmousedown + onclick na mesma TV)
-  var agora = Date.now();
-  if (n === _tkLastN && agora - _tkLast < 300) return;
-  _tkLast = agora; _tkLastN = n;
-  if (buf.length >= MAX_DIGITOS) return;
+  if (buf.length >= MAX_DIGITOS + 1) return;
   buf += String(n);
   atualizarDisplay();
   clearTimeout(bufTmr);
-  bufTmr = setTimeout(irCanal, 2000);
-}
-var _delLast = 0;
-function teclarDelSafe() {
-  var agora = Date.now();
-  if (agora - _delLast < 300) return;
-  _delLast = agora;
-  teclarDel();
+  if (buf.length > MAX_DIGITOS) irCanal();
+  else bufTmr = setTimeout(irCanal, 2500);
 }
 
 function teclarDel() {

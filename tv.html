@@ -63,6 +63,14 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
 #sint-progresso{font-size:13px;color:#00ff88;margin-top:8px;min-height:18px}
 #sint-progresso .err{color:#ff5555}
 #sint-progresso .ok{color:#00ff88}
+#volume-ctrl{position:absolute;bottom:96px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.75);border:2px solid #00aaff;border-radius:30px;padding:8px 18px;transition:opacity .4s;z-index:10}
+#volume-ctrl.oculto{opacity:0;pointer-events:none}
+#btn-mute{background:none;border:none;color:#00aaff;font-size:22px;cursor:pointer;width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0}
+#btn-mute:active{transform:scale(.88)}
+#vol-slider{-webkit-appearance:none;appearance:none;width:130px;height:5px;border-radius:4px;background:#333;outline:none;cursor:pointer}
+#vol-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:#00aaff;cursor:pointer;border:2px solid #fff}
+#vol-slider::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#00aaff;cursor:pointer;border:2px solid #fff}
+#vol-label{font-size:13px;color:#00aaff;font-weight:bold;font-family:monospace;width:34px;text-align:right}
 </style>
 </head>
 <body>
@@ -96,7 +104,7 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
   </aside>
 </div>
 
-<div id="tela-player">
+<div id="tela-player" onmousemove="mostrarVolume()">
   <video id="vid" autoplay></video>
   <div id="osd">
     <div id="osd-num">-</div>
@@ -105,6 +113,11 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
   </div>
   <div id="carregando" data-i18n="connecting_channel">Connecting to channel...</div>
   <div id="p-canal"><div id="p-canal-val">_</div></div>
+  <div id="volume-ctrl" class="oculto">
+    <button id="btn-mute" title="Mudo/Som">&#128266;</button>
+    <input id="vol-slider" type="range" min="0" max="100" value="100">
+    <span id="vol-label">100%</span>
+  </div>
   <div id="controles">
     <button class="btn-ch" id="btn-ch-baixo" data-i18n-title="prev_channel" title="Previous channel">&#9660;</button>
     <button id="btn-voltar">&#9664; <span data-i18n="back">Back</span></button>
@@ -910,6 +923,8 @@ function pararVideo() {
   try { vid.src = ''; } catch(e) {}
   try { vid.removeAttribute('src'); } catch(e) {}
   try { vid.load(); } catch(e) {}
+  // Sempre reseta mudo ao trocar de canal
+  try { vid.muted = false; vid.volume = 1; } catch(e) {}
 }
 
 function tocar(idx) {
@@ -920,6 +935,8 @@ function tocar(idx) {
   document.getElementById('osd-num').textContent = String(idx + 1);
   document.getElementById('osd-nome').textContent = ch.nome;
   document.getElementById('osd-estado').textContent = 'Conectando...';
+  // Sincroniza slider de volume com estado atual
+  setTimeout(sincVolSlider, 100);
   document.getElementById('carregando').style.display = 'block';
   document.getElementById('tela-home').style.display = 'none';
   document.getElementById('tela-player').style.display = 'block';
@@ -933,6 +950,8 @@ function tocar(idx) {
     skipCount = 0;
     document.getElementById('carregando').style.display = 'none';
     document.getElementById('osd-estado').textContent = 'Ao vivo';
+    // Garante que o áudio está ativado quando o vídeo começa
+    try { if (vid.muted) { vid.muted = false; vid.volume = 1; } } catch(e) {}
   }
   vid.oncanplay  = onOk;
   vid.onplaying  = onOk;
@@ -980,7 +999,18 @@ function tocar(idx) {
       vid.load();
       var p = vid.play();
       if (p && p.catch) p.catch(function() {
-        try { vid.muted = true; vid.play(); } catch(e) {}
+        // Tenta mudo apenas para contornar política de autoplay do navegador,
+        // depois desmuta assim que o usuário interagir ou o vídeo começar
+        try {
+          vid.muted = true;
+          var p2 = vid.play();
+          if (p2 && p2.then) p2.then(function() {
+            // Desmuta após 800ms (tempo para o stream iniciar)
+            setTimeout(function() {
+              try { vid.muted = false; vid.volume = 1; } catch(e) {}
+            }, 800);
+          }).catch(function(){});
+        } catch(e) {}
       });
     } catch(e) {
       window.__ultimoMotivoErro = 'app';
@@ -1063,6 +1093,94 @@ function digitarNoPlayer(n) {
 function canalCima()  { if (canais.length) { skipCount = 0; curCh = (curCh + 1) % canais.length; tocar(curCh); } }
 function canalBaixo() { if (canais.length) { skipCount = 0; curCh = ((curCh - 1) + canais.length) % canais.length; tocar(curCh); } }
 
+// ── Controle de Volume ─────────────────────────────────────────
+var volTmr = null;
+var volVisivel = false;
+
+function atualizarIconeMute() {
+  var vid = document.getElementById('vid');
+  var btn = document.getElementById('btn-mute');
+  var mudo = vid.muted || vid.volume === 0;
+  btn.innerHTML = mudo ? '&#128264;' : (vid.volume < 0.4 ? '&#128265;' : '&#128266;');
+}
+
+function mostrarVolume() {
+  var ctrl = document.getElementById('volume-ctrl');
+  ctrl.classList.remove('oculto');
+  volVisivel = true;
+  clearTimeout(volTmr);
+  volTmr = setTimeout(function() {
+    ctrl.classList.add('oculto');
+    volVisivel = false;
+  }, 3500);
+}
+
+function ocultarVolume() {
+  clearTimeout(volTmr);
+  document.getElementById('volume-ctrl').classList.add('oculto');
+  volVisivel = false;
+}
+
+function sincVolSlider() {
+  var vid = document.getElementById('vid');
+  var v = vid.muted ? 0 : Math.round(vid.volume * 100);
+  document.getElementById('vol-slider').value = v;
+  document.getElementById('vol-label').textContent = v + '%';
+  atualizarIconeMute();
+}
+
+document.getElementById('btn-mute').onclick = function() {
+  var vid = document.getElementById('vid');
+  vid.muted = !vid.muted;
+  if (!vid.muted && vid.volume === 0) vid.volume = 0.5;
+  sincVolSlider();
+  mostrarVolume();
+};
+
+document.getElementById('vol-slider').oninput = function() {
+  var vid = document.getElementById('vid');
+  var v = parseInt(this.value, 10) / 100;
+  vid.volume = v;
+  vid.muted = (v === 0);
+  document.getElementById('vol-label').textContent = this.value + '%';
+  atualizarIconeMute();
+  mostrarVolume();
+};
+
+// Teclado: + / - para volume no player
+(function() {
+  var _orig = document.onkeydown;
+  document.onkeydown = function(e) {
+    var k = e.keyCode || e.which;
+    var naHome = document.getElementById('tela-home').style.display !== 'none';
+    if (!naHome) {
+      var vid = document.getElementById('vid');
+      // + ou seta direita = volume +10
+      if (k === 107 || k === 187 || k === 39) {
+        var nv = Math.min(1, (vid.muted ? 0 : vid.volume) + 0.1);
+        vid.volume = nv; vid.muted = false;
+        sincVolSlider(); mostrarVolume();
+        e.preventDefault(); return;
+      }
+      // - ou seta esquerda = volume -10
+      if (k === 109 || k === 189 || k === 37) {
+        var nv2 = Math.max(0, (vid.muted ? 0 : vid.volume) - 0.1);
+        vid.volume = nv2; vid.muted = (nv2 === 0);
+        sincVolSlider(); mostrarVolume();
+        e.preventDefault(); return;
+      }
+      // M = mute toggle
+      if (k === 77) {
+        vid.muted = !vid.muted;
+        if (!vid.muted && vid.volume === 0) vid.volume = 0.5;
+        sincVolSlider(); mostrarVolume();
+        e.preventDefault(); return;
+      }
+    }
+    if (_orig) return _orig.call(document, e);
+  };
+})();
+
 // ── Teclado ────────────────────────────────────────────────────
 document.onkeydown = function(e) {
   var k = e.keyCode || e.which;
@@ -1107,7 +1225,12 @@ function toggleFav() {
   else favs.splice(idx, 1);
   saveFavs(favs);
   aplicarFiltro();
+  // Reconecta curCh ao canal atual após reordenação
   curCh = canais.findIndex(function(c){ return c.url === ch.url; });
+  // Atualiza o número exibido no OSD sem interromper a reprodução
+  if (curCh >= 0) {
+    document.getElementById('osd-num').textContent = String(curCh + 1);
+  }
   atualizarBtnFav();
   renderFavs();
 }
@@ -1145,9 +1268,18 @@ function tocarFav(i) {
 }
 
 function deletarFav(i) {
+  var urlAtual = (curCh >= 0 && canais[curCh]) ? canais[curCh].url : null;
   var favs = getFavs();
   favs.splice(i, 1);
   saveFavs(favs);
+  aplicarFiltro();
+  // Reconecta curCh ao canal atual após reordenação
+  if (urlAtual) {
+    curCh = canais.findIndex(function(c){ return c.url === urlAtual; });
+    if (curCh >= 0) {
+      document.getElementById('osd-num').textContent = String(curCh + 1);
+    }
+  }
   renderFavs();
   atualizarBtnFav();
 }

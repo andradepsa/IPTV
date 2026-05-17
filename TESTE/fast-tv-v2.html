@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>K60 FAST TV</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
+#tela-home{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:flex-start;justify-content:center;gap:20px;padding:0 20px;overflow:hidden}
+#home-centro{flex:1;max-width:580px;height:100%;overflow-y:auto;padding-bottom:20px;text-align:center}
+#home-lado{width:320px;max-width:35%;height:100%;padding:30px 0 20px;display:flex;flex-direction:column}
+@media(max-width:720px){#tela-home{flex-direction:column;align-items:stretch;padding:0 10px;overflow-y:auto}#home-centro{height:auto;max-width:none;overflow:visible}#home-lado{width:100%;max-width:none;height:300px;padding:0 0 20px}}
+#titulo{font-size:32px;font-weight:bold;color:#ff6600;padding-top:30px;margin-bottom:4px}
+#subtitulo{font-size:12px;color:#555;margin-bottom:12px}
+#status-line{font-size:14px;color:#888;margin-bottom:8px}
+#status-line span{color:#ff6600;font-weight:bold}
+#filtros{margin-bottom:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+#filtros select{background:#111;color:#ff6600;border:2px solid #ff6600;border-radius:20px;padding:6px 14px;font-size:13px;font-weight:bold;cursor:pointer;outline:none}
+#filtros select:focus{border-color:#ffaa00;color:#ffaa00}
+#display-canal{display:inline-block;border:3px solid #333;border-radius:12px;padding:12px 36px;margin-bottom:8px;min-width:240px}
+#display-canal.ativo{border-color:#ff6600}
+#digitos{font-size:52px;font-weight:bold;color:#ff6600;font-family:monospace;letter-spacing:4px;min-height:62px;line-height:1}
+#digitos.vazio{color:#222}
+#instrucao{font-size:11px;color:#444;margin-top:6px}
+#btn-enter{margin-top:12px;background:#111;border:2px solid #ff6600;color:#ff6600;font-size:15px;font-weight:bold;padding:10px 44px;border-radius:30px;cursor:pointer}
+#btn-enter:active{background:#ff660022;transform:scale(.95)}
+#log-fontes{margin-top:10px;font-size:11px;color:#444;line-height:1.7;max-height:120px;overflow-y:auto;text-align:left;padding:0 8px}
+#log-fontes .ok{color:#00cc66}
+#log-fontes .err{color:#ff4444}
+#log-fontes .load{color:#888}
+#tela-player{position:absolute;top:0;left:0;width:100%;height:100%;background:#000;display:none}
+#vid{width:100%;height:100%;display:block}
+#osd{position:absolute;top:0;left:0;right:0;background:rgba(0,0,0,0.88);padding:14px 22px}
+#osd-num{font-size:38px;font-weight:bold;color:#ff6600;font-family:monospace}
+#osd-nome{font-size:18px;color:#fff;margin-top:2px}
+#osd-plat{font-size:11px;color:#ff6600;margin-top:3px;text-transform:uppercase;letter-spacing:2px}
+#osd-estado{font-size:11px;color:#888;margin-top:2px}
+#carregando{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:16px;color:#888;text-align:center}
+#p-canal{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:#111;border:2px solid #ffaa00;border-radius:10px;padding:10px 28px;text-align:center;display:none}
+#p-canal-val{font-size:34px;font-weight:bold;color:#ffaa00;font-family:monospace;letter-spacing:6px}
+#controles{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;transition:opacity .4s}
+#controles.oculto{opacity:0;pointer-events:none}
+#btn-voltar{background:#111;border:2px solid #ff6600;color:#ff6600;font-size:14px;font-weight:bold;padding:10px 36px;border-radius:30px;cursor:pointer}
+.btn-ch{background:#111;border:2px solid #ffaa00;color:#ffaa00;font-size:20px;font-weight:bold;width:48px;height:48px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .1s;user-select:none}
+.btn-ch:active{background:#ffaa0033;transform:scale(.92)}
+#toast{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#111;border:2px solid #ff5555;border-radius:12px;padding:22px 36px;text-align:center;display:none;z-index:99}
+#toast p{font-size:15px;color:#ff8888}
+#toast small{font-size:11px;color:#555}
+#favs{margin:0;width:100%;height:100%;overflow-y:auto;background:#0a0a0a;border:2px solid #333;border-radius:12px;padding:10px;text-align:left;scrollbar-width:thin;scrollbar-color:#ff6600 #111}
+#favs::-webkit-scrollbar{width:8px}
+#favs::-webkit-scrollbar-thumb{background:#ff6600;border-radius:5px}
+#favs-titulo{font-size:12px;color:#ff6600;margin-bottom:6px;font-weight:bold}
+.fav-item{display:flex;align-items:center;justify-content:space-between;background:#111;border:1px solid #333;border-radius:8px;padding:7px 12px;margin-bottom:5px;cursor:pointer;transition:border-color .15s}
+.fav-item:hover{border-color:#ff6600}
+.fav-nome{font-size:13px;color:#fff;flex:1}
+.fav-plat{font-size:10px;color:#ff6600;margin-right:8px}
+.fav-del{background:none;border:none;color:#ff5555;font-size:16px;cursor:pointer;padding:0 0 0 10px}
+#btn-fav{background:#111;border:2px solid #ffdd00;color:#ffdd00;font-size:18px;width:48px;height:48px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#btn-fav.favoritado{background:#ffdd00;color:#000}
+#volume-ctrl{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.75);border:2px solid #ff6600;border-radius:30px;padding:7px 16px;transition:opacity .4s;z-index:10}
+#volume-ctrl.oculto{opacity:0;pointer-events:none}
+#btn-mute{background:none;border:none;color:#ff6600;font-size:20px;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0}
+#vol-slider{-webkit-appearance:none;appearance:none;width:120px;height:5px;border-radius:4px;background:#333;outline:none;cursor:pointer}
+#vol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#ff6600;cursor:pointer;border:2px solid #fff}
+#vol-label{font-size:12px;color:#ff6600;font-weight:bold;font-family:monospace;width:34px;text-align:right}
+#btn-sintonizar{margin-top:10px;background:#111;border:2px solid #00ff88;color:#00ff88;font-size:13px;font-weight:bold;padding:9px 26px;border-radius:30px;cursor:pointer}
+#btn-sintonizar:disabled{opacity:.6;cursor:not-allowed;border-color:#ffaa00;color:#ffaa00}
+#sint-progresso{font-size:12px;color:#00ff88;margin-top:7px;min-height:16px}
+#sint-progresso .err{color:#ff5555}
+#sint-progresso .ok{color:#00ff88}
+</style>
+</head>
+<body>
+
+<div id="tela-home">
+  <div id="home-centro">
+    <div id="titulo">&#127916; K60 FAST TV</div>
+    <div id="subtitulo">Pluto &middot; Tubi &middot; Roku &middot; LG &middot; Vizio &middot; XUMO &middot; Distro &middot; Cineverse &middot; e mais</div>
+    <div id="status-line">Carregando fontes...</div>
+    <div id="filtros">
+      <select id="sel-plat" onchange="setFiltroPlatforma(this.value)">
+        <option value="">&#9788; Todas as plataformas</option>
+      </select>
+      <select id="sel-cat" onchange="setFiltroCategoria(this.value)">
+        <option value="">&#9788; Todas as categorias</option>
+      </select>
+    </div>
+    <div id="display-canal">
+      <div id="digitos" class="vazio">_</div>
+    </div>
+    <div id="instrucao">Digite o numero do canal e pressione ENTER</div>
+    <button id="btn-enter" onclick="clearTimeout(bufTmr);irCanal()">&#9654; ENTER</button>
+    <div><button id="btn-sintonizar" onclick="sintonizarCanais()">&#128225; Sintonizar canais</button></div>
+    <div id="sint-progresso"></div>
+    <div id="log-fontes"></div>
+  </div>
+  <aside id="home-lado">
+    <div id="favs"></div>
+  </aside>
+</div>
+
+<div id="tela-player" onmousemove="mostrarVolume()">
+  <video id="vid" autoplay playsinline></video>
+  <div id="osd">
+    <div id="osd-num">-</div>
+    <div id="osd-nome">Canal</div>
+    <div id="osd-plat"></div>
+    <div id="osd-estado">Conectando...</div>
+  </div>
+  <div id="carregando">Conectando ao canal...</div>
+  <div id="p-canal"><div id="p-canal-val">_</div></div>
+  <div id="volume-ctrl" class="oculto">
+    <button id="btn-mute">&#128266;</button>
+    <input id="vol-slider" type="range" min="0" max="100" value="100">
+    <span id="vol-label">100%</span>
+  </div>
+  <div id="controles">
+    <button class="btn-ch" id="btn-ch-baixo" title="Canal anterior">&#9660;</button>
+    <button id="btn-voltar">&#9664; Voltar</button>
+    <button class="btn-ch" id="btn-ch-cima" title="Proximo canal">&#9650;</button>
+    <button id="btn-fav" title="Favoritar">&#9733;</button>
+  </div>
+</div>
+
+<div id="toast"><p>Canal indisponivel</p><small>Pulando para o proximo...</small></div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js" onerror="var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.8/hls.min.js';document.head.appendChild(s)"></script>
+<script>
+
+// ── localStorage seguro (fallback em memoria para TV) ──────────
+var _mem = {};
+var _lsOk = (function(){
+  try { localStorage.setItem('_t','1'); var v=localStorage.getItem('_t'); localStorage.removeItem('_t'); return v==='1'; }
+  catch(e){ return false; }
+})();
+var LS = {
+  get: function(k){ if(_lsOk){ try{ return localStorage.getItem(k); }catch(e){} } return _mem.hasOwnProperty(k)?_mem[k]:null; },
+  set: function(k,v){ if(_lsOk){ try{ localStorage.setItem(k,String(v)); return; }catch(e){} } _mem[k]=String(v); },
+  del: function(k){ if(_lsOk){ try{ localStorage.removeItem(k); }catch(e){} } delete _mem[k]; }
+};
+
+// ── Deteccao de TV ─────────────────────────────────────────────
+var _ua = (navigator.userAgent||'').toLowerCase();
+var IS_TV = /smart-?tv|smarttv|tizen|webos|web0s|hbbtv|netcast|viera|bravia|aquos|googletv|appletv|crkey|inettvbrowser|samsung.*tv|lg.*tv|tv.*browser/.test(_ua);
+if (!_lsOk) IS_TV = true;
+
+// Tamanho do chunk por dispositivo (IGUAL ao tv.html)
+var CHUNK_SIZE  = IS_TV ? 20  : 100;
+var CHUNK_PAUSE = IS_TV ? 150 : 30;
+
+// ── Fontes FAST ────────────────────────────────────────────────
+var FONTES = [
+  { nome:'Pluto TV',    url:'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/plutotv_us.m3u' },
+  { nome:'Tubi TV',     url:'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/tubi_all.m3u' },
+  { nome:'Roku',        url:'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/roku_all.m3u' },
+  { nome:'Vizio',       url:'https://www.apsattv.com/vizio.m3u' },
+  { nome:'XUMO',        url:'https://www.apsattv.com/xumo.m3u' },
+  { nome:'Distro',      url:'https://www.apsattv.com/distro.m3u' },
+  { nome:'Local Now',   url:'https://www.apsattv.com/localnow.m3u' },
+  { nome:'Cineverse',   url:'https://www.apsattv.com/cineverse.m3u' },
+  { nome:'Vidaa',       url:'https://www.apsattv.com/vidaa.m3u' },
+  { nome:'Whale TV',    url:'https://www.apsattv.com/whaletvplus_all.m3u' },
+  { nome:'TCL TV Plus', url:'https://www.apsattv.com/tclplus.m3u' },
+  { nome:'Metax',       url:'https://www.apsattv.com/metax.m3u' },
+  { nome:'Galxy.TV',    url:'https://www.apsattv.com/galxytv.m3u' },
+  { nome:'Rewardedtv',  url:'https://www.apsattv.com/rewardedtv.m3u' },
+  { nome:'HP Fast',     url:'https://www.apsattv.com/hp.m3u' },
+  { nome:'Orka TV',     url:'https://www.apsattv.com/orka.m3u' },
+  { nome:'Xiaomi',      url:'https://www.apsattv.com/xiaomi.m3u' },
+  { nome:'LG BR',       url:'https://www.apsattv.com/brlg.m3u' },
+  { nome:'LG US',       url:'https://www.apsattv.com/uslg.m3u' },
+  { nome:'LG UK',       url:'https://www.apsattv.com/gblg.m3u' },
+  { nome:'LG CA',       url:'https://www.apsattv.com/calg.m3u' },
+  { nome:'LG AU',       url:'https://www.apsattv.com/aulg.m3u' },
+  { nome:'LG DE',       url:'https://www.apsattv.com/delg.m3u' },
+  { nome:'LG FR',       url:'https://www.apsattv.com/frlg.m3u' },
+  { nome:'LG ES',       url:'https://www.apsattv.com/eslg.m3u' },
+  { nome:'LG IT',       url:'https://www.apsattv.com/itlg.m3u' },
+  { nome:'LG MX',       url:'https://www.apsattv.com/mxlg.m3u' },
+  { nome:'LG AR',       url:'https://www.apsattv.com/arlg.m3u' },
+  { nome:'LG PT',       url:'https://www.apsattv.com/ptlg.m3u' },
+  { nome:'Movieark BR', url:'https://www.apsattv.com/moviearkbr.m3u' },
+  { nome:'Rede ITV',    url:'https://www.apsattv.com/redeitv.m3u' },
+  { nome:'Soul TV',     url:'https://www.apsattv.com/soultv.m3u' },
+  { nome:'9fast AU',    url:'https://www.apsattv.com/9fast.m3u' },
+  { nome:'Fetch TV AU', url:'https://www.apsattv.com/fetchtv.m3u' }
+];
+
+// ── Proxies multiplos ─────────────────────────────────────────
+// workers.dev funciona com apsattv.com; os outros sao fallback
+var PROXIES = [
+  'https://sweet-dust-4bfe.andradepsa-633.workers.dev/?url=',
+  'https://corsproxy.io/?url=',
+  'https://api.allorigins.win/raw?url=',
+  'https://api.codetabs.com/v1/proxy/?quest='
+];
+
+// ── Estado ─────────────────────────────────────────────────────
+var canaisBrutos = [];
+var canais = [];
+var seenUrls = {};
+var buf = '', bufTmr = null, pBuf = '', pBufTmr = null;
+var curCh = -1, pronto = false;
+var osdTmr, errTmr, failTmr, hlsObj;
+var MAX_DIGITOS = 3;
+var platFiltro = null, catFiltro = null;
+var skipCount = 0;
+
+// ── XHR M3U com proxies multiplos ─────────────────────────────
+function fetchM3u(url, cb) {
+  var tentativas = [url];
+  for (var i = 0; i < PROXIES.length; i++) tentativas.push(PROXIES[i] + encodeURIComponent(url));
+  var ti = 0;
+  function next() {
+    if (ti >= tentativas.length) { cb('erro'); return; }
+    var u = tentativas[ti++];
+    var r = new XMLHttpRequest();
+    r.open('GET', u, true);
+    try { r.timeout = 15000; } catch(e){}
+    r.onreadystatechange = function() {
+      if (r.readyState !== 4) return;
+      if (r.status === 200 && r.responseText &&
+          (r.responseText.indexOf('#EXTM3U') !== -1 || r.responseText.indexOf('#EXTINF') !== -1)) {
+        cb(null, r.responseText);
+      } else { next(); }
+    };
+    r.onerror = next; r.ontimeout = next;
+    try { r.send(); } catch(e) { next(); }
+  }
+  next();
+}
+
+// ── Parse M3U ──────────────────────────────────────────────────
+function parseM3u(txt, plat) {
+  var result = [], cur = null;
+  var lines = txt.split('\n');
+  for (var i = 0; i < lines.length; i++) {
+    var l = lines[i].trim();
+    if (l.indexOf('#EXTINF') === 0) {
+      var nm = l.match(/,(.+)$/);
+      var gt = l.match(/group-title="([^"]*)"/i);
+      var logo = l.match(/tvg-logo="([^"]*)"/i);
+      var cats = [];
+      if (gt && gt[1]) {
+        var parts = gt[1].toLowerCase().split(/[;,\/|]/);
+        for (var p = 0; p < parts.length; p++) { var s = parts[p].trim(); if (s) cats.push(s); }
+      }
+      cur = { nome: nm ? nm[1].trim() : 'Canal', cats: cats, plat: plat,
+              logo: (logo && logo[1]) ? logo[1] : null };
+    } else if (l && l.indexOf('#') !== 0 && cur) {
+      if (l.indexOf('http') === 0) { cur.url = l; result.push(cur); }
+      cur = null;
+    }
+  }
+  return result;
+}
+
+// ── Adicionar canais em CHUNKS — MESMA ARQUITETURA DO tv.html ──
+var nextNum = 1;
+
+function _processarChunk(lista, idx) {
+  var fim = Math.min(idx + CHUNK_SIZE, lista.length);
+  var mudou = false;
+  for (var i = idx; i < fim; i++) {
+    var c = lista[i];
+    if (!c || !c.url || seenUrls[c.url]) continue;
+    seenUrls[c.url] = true;
+    c._num = nextNum++;
+    canaisBrutos.push(c);
+    mudou = true;
+  }
+  if (mudou) {
+    aplicarFiltro();
+    atualizarTela();
+  }
+  if (fim < lista.length) {
+    setTimeout(function(){ _processarChunk(lista, fim); }, CHUNK_PAUSE);
+  }
+}
+
+function addCanais(lista) {
+  if (!lista || !lista.length) return;
+  _processarChunk(lista, 0);
+}
+
+// ── Filtros ────────────────────────────────────────────────────
+function aplicarFiltro() {
+  var urlAtual = (curCh >= 0 && canais[curCh]) ? canais[curCh].url : null;
+  var todos = canaisBrutos.filter(function(c) {
+    if (platFiltro && c.plat !== platFiltro) return false;
+    if (catFiltro) {
+      var ok = false;
+      for (var i = 0; i < c.cats.length; i++) { if (c.cats[i].indexOf(catFiltro) !== -1) { ok = true; break; } }
+      if (!ok) return false;
+    }
+    return true;
+  });
+  var favs = getFavs();
+  if (favs.length) {
+    var favMap = {};
+    for (var i = 0; i < favs.length; i++) favMap[favs[i].url] = i;
+    var favCh = [], outros = [];
+    for (var j = 0; j < todos.length; j++) {
+      if (favMap.hasOwnProperty(todos[j].url)) favCh.push(todos[j]);
+      else outros.push(todos[j]);
+    }
+    favCh.sort(function(a,b){ return favMap[a.url]-favMap[b.url]; });
+    canais = favCh.concat(outros);
+  } else {
+    canais = todos;
+  }
+  for (var k = 0; k < canais.length; k++) canais[k]._idx = k + 1;
+  if (urlAtual) {
+    for (var m = 0; m < canais.length; m++) { if (canais[m].url === urlAtual) { curCh = m; break; } }
+  }
+}
+
+function setFiltroPlatforma(v) {
+  platFiltro = v || null;
+  try { platFiltro ? LS.set('kfast_plat',platFiltro) : LS.del('kfast_plat'); } catch(e){}
+  aplicarFiltro(); atualizarTela();
+}
+function setFiltroCategoria(v) {
+  catFiltro = v || null;
+  try { catFiltro ? LS.set('kfast_cat',catFiltro) : LS.del('kfast_cat'); } catch(e){}
+  aplicarFiltro(); atualizarTela();
+}
+
+// ── Popula selects ─────────────────────────────────────────────
+function popularPlataformas() {
+  var sel = document.getElementById('sel-plat');
+  var plats = {};
+  for (var i = 0; i < canaisBrutos.length; i++) plats[canaisBrutos[i].plat] = true;
+  var arr = []; for (var k in plats) arr.push(k); arr.sort();
+  while (sel.options.length > 1) sel.remove(1);
+  for (var j = 0; j < arr.length; j++) {
+    var o = document.createElement('option'); o.value = arr[j]; o.textContent = arr[j]; sel.appendChild(o);
+  }
+  if (platFiltro) sel.value = platFiltro;
+}
+
+function popularCategorias() {
+  var sel = document.getElementById('sel-cat');
+  var cats = {};
+  for (var i = 0; i < canaisBrutos.length; i++)
+    for (var j = 0; j < canaisBrutos[i].cats.length; j++) cats[canaisBrutos[i].cats[j]] = true;
+  var arr = []; for (var k in cats) if (k) arr.push(k); arr.sort();
+  while (sel.options.length > 1) sel.remove(1);
+  for (var m = 0; m < arr.length; m++) {
+    var o = document.createElement('option'); o.value = arr[m];
+    o.textContent = arr[m].charAt(0).toUpperCase() + arr[m].slice(1); sel.appendChild(o);
+  }
+  if (catFiltro) sel.value = catFiltro;
+}
+
+// ── Status ─────────────────────────────────────────────────────
+function setStatus(txt) { document.getElementById('status-line').innerHTML = txt; }
+
+function atualizarTela() {
+  if (!canais.length) return;
+  pronto = true;
+  var total = canais.length;
+  var dig = String(total).length; if (dig < 3) dig = 3;
+  MAX_DIGITOS = dig;
+  setStatus('Total: <span>' + total + '</span> canais  |  Digite 1 a ' + total);
+}
+
+// ── Log de fontes ──────────────────────────────────────────────
+var logEl;
+function logFonte(nome, estado, count) {
+  if (!logEl) logEl = document.getElementById('log-fontes');
+  var id = 'log-' + nome.replace(/[\s.]/g,'_');
+  var div = document.getElementById(id);
+  if (!div) { div = document.createElement('div'); div.id = id; logEl.appendChild(div); }
+  if (estado === 'load') div.innerHTML = '<span class="load">&#9679; ' + nome + ': carregando...</span>';
+  else if (estado === 'ok') div.innerHTML = '<span class="ok">&#10003; ' + nome + ': +' + count + '</span>';
+  else div.innerHTML = '<span class="err">&#10005; ' + nome + ': falhou</span>';
+}
+
+// ── Carregar todas as fontes ───────────────────────────────────
+function carregar() {
+  var total = FONTES.length, done = 0;
+  function fimFonte() {
+    done++;
+    if (done === total) {
+      setStatus('Completo: <span>' + canaisBrutos.length + '</span> canais unicos');
+      popularPlataformas(); popularCategorias();
+    }
+  }
+  for (var i = 0; i < FONTES.length; i++) {
+    (function(fonte) {
+      logFonte(fonte.nome, 'load');
+      fetchM3u(fonte.url, function(e, txt) {
+        if (e) { logFonte(fonte.nome, 'err'); fimFonte(); return; }
+        var lista = parseM3u(txt, fonte.nome);
+        logFonte(fonte.nome, 'ok', lista.length);
+        addCanais(lista);
+        popularPlataformas(); popularCategorias();
+        fimFonte();
+      });
+    })(FONTES[i]);
+  }
+}
+
+// ── Input numerico ─────────────────────────────────────────────
+function atualizarDisplay() {
+  var el = document.getElementById('digitos');
+  var box = document.getElementById('display-canal');
+  if (buf === '') { el.textContent = '_'; el.className = 'vazio'; box.className = ''; }
+  else { el.textContent = buf; el.className = ''; box.className = 'ativo'; }
+}
+
+function irCanal() {
+  var n = parseInt(buf, 10);
+  buf = ''; atualizarDisplay();
+  if (!pronto || isNaN(n) || n < 1 || n > canais.length) { if (!pronto) return; mostrarToast(); return; }
+  tocarCanal(n - 1);
+}
+
+document.addEventListener('keydown', function(e) {
+  var c = e.key;
+  var naPlayer = document.getElementById('tela-player').style.display === 'block';
+  if (c >= '0' && c <= '9') {
+    if (naPlayer) {
+      pBuf += c;
+      document.getElementById('p-canal-val').textContent = pBuf;
+      document.getElementById('p-canal').style.display = 'block';
+      clearTimeout(pBufTmr);
+      pBufTmr = setTimeout(function() {
+        var n = parseInt(pBuf, 10); pBuf = '';
+        document.getElementById('p-canal').style.display = 'none';
+        if (!isNaN(n) && n >= 1 && n <= canais.length) tocarCanal(n - 1);
+      }, 1800);
+    } else {
+      buf += c; if (buf.length > MAX_DIGITOS) buf = buf.slice(1);
+      atualizarDisplay(); clearTimeout(bufTmr);
+      bufTmr = setTimeout(irCanal, 2000);
+    }
+  } else if (c === 'Enter') { clearTimeout(bufTmr); irCanal(); }
+  else if (c === 'Backspace') { buf = buf.slice(0,-1); atualizarDisplay(); }
+  else if (c === 'Escape') { if (naPlayer) voltarHome(); }
+  else if (c === 'ArrowUp' || c === 'PageUp') { if (naPlayer) canalCima(); }
+  else if (c === 'ArrowDown' || c === 'PageDown') { if (naPlayer) canalBaixo(); }
+});
+
+// Keycodes controle remoto TV
+document.addEventListener('keydown', function(e) {
+  var k = e.keyCode;
+  var naPlayer = document.getElementById('tela-player').style.display === 'block';
+  if (k===33||k===38||k===427) { if (naPlayer) canalCima(); }
+  if (k===34||k===40||k===428) { if (naPlayer) canalBaixo(); }
+  if (k===8||k===27||k===461||k===36||k===88||k===166) { if (naPlayer) voltarHome(); }
+});
+
+function canalCima()  { if (canais.length) { skipCount=0; tocarCanal((curCh+1)%canais.length); } }
+function canalBaixo() { if (canais.length) { skipCount=0; tocarCanal((curCh-1+canais.length)%canais.length); } }
+
+// ── Player robusto (mesma logica do tv.html) ───────────────────
+function pararHls() {
+  if (hlsObj) { try { hlsObj.destroy(); } catch(e){} hlsObj = null; }
+}
+
+function pararVideo() {
+  pararHls();
+  var vid = document.getElementById('vid');
+  vid.onerror = null; vid.oncanplay = null; vid.onloadedmetadata = null; vid.onplaying = null;
+  clearTimeout(failTmr);
+  try { vid.pause(); } catch(e){}
+  try { vid.src = ''; } catch(e){}
+  try { vid.removeAttribute('src'); } catch(e){}
+  try { vid.load(); } catch(e){}
+}
+
+function tocarCanal(idx) {
+  curCh = idx;
+  skipCount = 0;
+  var ch = canais[idx];
+  pararVideo();
+  var vid = document.getElementById('vid');
+  document.getElementById('tela-home').style.display = 'none';
+  document.getElementById('tela-player').style.display = 'block';
+  document.getElementById('osd-num').textContent = String(idx+1).padStart(3,'0');
+  document.getElementById('osd-nome').textContent = ch.nome;
+  document.getElementById('osd-plat').textContent = ch.plat || '';
+  document.getElementById('osd-estado').textContent = 'Conectando...';
+  document.getElementById('osd').style.display = 'block';
+  document.getElementById('carregando').style.display = 'block';
+  clearTimeout(osdTmr);
+  osdTmr = setTimeout(function(){ document.getElementById('osd').style.display='none'; }, 5000);
+  atualizarBtnFav();
+
+  failTmr = setTimeout(mostrarErro, IS_TV ? 25000 : 12000);
+  var okJa = false;
+  function onOk() {
+    if (okJa) return; okJa = true;
+    clearTimeout(failTmr); skipCount = 0;
+    document.getElementById('carregando').style.display = 'none';
+    document.getElementById('osd-estado').textContent = 'Ao vivo';
+    try { if (vid.muted) { vid.muted = false; vid.volume = 1; } } catch(e){}
+  }
+  vid.oncanplay = onOk;
+  vid.onplaying = onOk;
+  vid.onloadedmetadata = function() { try { vid.play(); } catch(e){} };
+
+  var url = ch.url;
+  var ehHls = /\.m3u8?($|\?)/i.test(url);
+  var nativeHls = !!(vid.canPlayType && (
+    vid.canPlayType('application/vnd.apple.mpegurl') !== '' ||
+    vid.canPlayType('application/x-mpegURL') !== ''
+  ));
+  var temHlsJs = (typeof Hls !== 'undefined') && Hls.isSupported && Hls.isSupported();
+  // TV usa player nativo; PC pode usar HLS.js
+  var usarHlsJs = !IS_TV && ehHls && temHlsJs && !nativeHls;
+
+  function onErroNativo() {
+    vid.onerror = null;
+    if (usarHlsJs) { tentarHlsJs(); return; }
+    clearTimeout(failTmr); mostrarErro();
+  }
+  vid.onerror = onErroNativo;
+
+  function tentarHlsJs() {
+    try {
+      hlsObj = new Hls({ enableWorker:false, lowLatencyMode:false,
+        backBufferLength:20, maxBufferLength:20, maxMaxBufferLength:40,
+        maxBufferSize:40*1000*1000, capLevelToPlayerSize:true });
+      hlsObj.loadSource(url);
+      hlsObj.attachMedia(vid);
+      hlsObj.on(Hls.Events.MANIFEST_PARSED, function() { try { vid.play(); } catch(e){} });
+      hlsObj.on(Hls.Events.ERROR, function(ev, d) {
+        if (!d || !d.fatal) return;
+        clearTimeout(failTmr); mostrarErro();
+      });
+    } catch(e) { mostrarErro(); }
+  }
+
+  if (usarHlsJs) {
+    tentarHlsJs();
+  } else {
+    try {
+      vid.src = url; vid.load();
+      var p = vid.play();
+      if (p && p.catch) p.catch(function() {
+        try {
+          vid.muted = true;
+          var p2 = vid.play();
+          if (p2 && p2.then) p2.then(function() {
+            setTimeout(function() { try { vid.muted=false; vid.volume=1; }catch(e){} }, 800);
+          }).catch(function(){});
+        } catch(e){}
+      });
+    } catch(e) { clearTimeout(failTmr); mostrarErro(); }
+  }
+}
+
+function mostrarErro() {
+  clearTimeout(failTmr);
+  skipCount++;
+  if (skipCount >= canais.length) skipCount = 1;
+  document.getElementById('carregando').style.display = 'none';
+  document.getElementById('osd-estado').textContent = 'Sem sinal - pulando...';
+  document.getElementById('osd').style.display = 'block';
+  errTmr = setTimeout(function() {
+    curCh = (curCh+1) % canais.length;
+    tocarCanal(curCh);
+  }, IS_TV ? 2000 : 1000);
+}
+
+function mostrarToast() {
+  var t = document.getElementById('toast'); t.style.display='block';
+  setTimeout(function(){ t.style.display='none'; }, 2500);
+}
+
+function voltarHome() {
+  pararVideo(); clearTimeout(errTmr); clearTimeout(failTmr); clearTimeout(osdTmr);
+  skipCount = 0;
+  document.getElementById('toast').style.display = 'none';
+  document.getElementById('tela-player').style.display = 'none';
+  document.getElementById('tela-home').style.display = 'flex';
+  document.getElementById('osd').style.display = 'block';
+  buf = ''; atualizarDisplay();
+}
+
+// ── Favoritos ──────────────────────────────────────────────────
+function getFavs() { try { return JSON.parse(LS.get('kfast_favs')||'[]'); } catch(e){ return []; } }
+function saveFavs(f) { LS.set('kfast_favs', JSON.stringify(f)); }
+function isFav(url) { return getFavs().some(function(f){ return f.url===url; }); }
+
+function atualizarBtnFav() {
+  var btn = document.getElementById('btn-fav');
+  if (curCh>=0 && canais[curCh] && isFav(canais[curCh].url)) btn.classList.add('favoritado');
+  else btn.classList.remove('favoritado');
+}
+
+document.getElementById('btn-fav').onclick = function() {
+  if (curCh < 0) return;
+  var ch = canais[curCh];
+  var favs = getFavs();
+  var idx = -1;
+  for (var i=0;i<favs.length;i++) if (favs[i].url===ch.url){idx=i;break;}
+  if (idx===-1) favs.push({nome:ch.nome,url:ch.url,plat:ch.plat});
+  else favs.splice(idx,1);
+  saveFavs(favs);
+  atualizarBtnFav(); renderFavs(); aplicarFiltro();
+  for (var m=0;m<canais.length;m++) if(canais[m].url===ch.url){curCh=m;break;}
+  if (curCh>=0) document.getElementById('osd-num').textContent=String(curCh+1).padStart(3,'0');
+};
+
+function renderFavs() {
+  var el = document.getElementById('favs');
+  var favs = getFavs();
+  if (!favs.length) {
+    el.innerHTML='<div id="favs-titulo">&#9733; Favoritos</div><div style="font-size:12px;color:#444;padding:8px">Nenhum favorito ainda.</div>';
+    return;
+  }
+  var html='<div id="favs-titulo">&#9733; Favoritos ('+favs.length+')</div>';
+  for (var i=0;i<favs.length;i++) {
+    html+='<div class="fav-item" onclick="irFav('+i+')">'
+      +'<span class="fav-plat">'+(favs[i].plat||'')+'</span>'
+      +'<span class="fav-nome">'+favs[i].nome+'</span>'
+      +'<button class="fav-del" onclick="delFav(event,'+i+')">&#10005;</button></div>';
+  }
+  el.innerHTML=html;
+}
+
+function irFav(i) {
+  var f=getFavs()[i]; if(!f) return;
+  for (var j=0;j<canais.length;j++) if(canais[j].url===f.url){tocarCanal(j);return;}
+}
+function delFav(e,i) {
+  e.stopPropagation();
+  var urlAtual=(curCh>=0&&canais[curCh])?canais[curCh].url:null;
+  var favs=getFavs(); favs.splice(i,1); saveFavs(favs);
+  renderFavs(); aplicarFiltro(); atualizarTela();
+  if(urlAtual){for(var m=0;m<canais.length;m++)if(canais[m].url===urlAtual){curCh=m;break;}}
+}
+
+// ── Volume ─────────────────────────────────────────────────────
+var hideTmrVol;
+function mostrarVolume() {
+  var vc=document.getElementById('volume-ctrl');
+  vc.classList.remove('oculto'); clearTimeout(hideTmrVol);
+  hideTmrVol=setTimeout(function(){ vc.classList.add('oculto'); },3000);
+}
+document.getElementById('btn-mute').onclick = function() {
+  var vid=document.getElementById('vid');
+  vid.muted=!vid.muted;
+  if(!vid.muted&&vid.volume===0) vid.volume=0.5;
+  this.innerHTML=vid.muted?'&#128264;':'&#128266;';
+};
+document.getElementById('vol-slider').oninput = function() {
+  var vid=document.getElementById('vid');
+  vid.volume=this.value/100; vid.muted=(this.value==0);
+  document.getElementById('vol-label').textContent=this.value+'%';
+};
+
+// ── Auto-ocultar controles ─────────────────────────────────────
+var hideTmr;
+function mostrarControles() {
+  document.getElementById('controles').classList.remove('oculto'); clearTimeout(hideTmr);
+  hideTmr=setTimeout(function(){ document.getElementById('controles').classList.add('oculto'); },3000);
+}
+['mousemove','mousedown','touchstart','keydown'].forEach(function(ev){
+  document.addEventListener(ev,mostrarControles);
+});
+
+// ── Sintonizador (lotes com pausa — igual tv.html) ─────────────
+var sintRodando=false, sintAbortar=false;
+
+function sintonizarCanais() {
+  var btn=document.getElementById('btn-sintonizar');
+  var prog=document.getElementById('sint-progresso');
+
+  if (sintRodando) {
+    sintAbortar=true;
+    prog.innerHTML='Cancelando...';
+    btn.innerHTML='&#9209; Cancelando...';
+    btn.disabled=true;
+    return;
+  }
+  if (!pronto||canaisBrutos.length===0) {
+    prog.innerHTML='<span class="err">Aguarde o carregamento dos canais.</span>';
+    return;
+  }
+
+  sintRodando=true; sintAbortar=false;
+  btn.innerHTML='&#9209; Cancelar sintonia'; btn.disabled=false;
+
+  var lista=canaisBrutos.slice();
+  var total=lista.length;
+  var idx=0, ok=0, fail=0, ativos=0;
+  var PARALELO=IS_TV?2:3;
+  var TIMEOUT=IS_TV?5000:6000;
+  var LOTE=IS_TV?20:50;
+  var PAUSA=IS_TV?500:150;
+  var loteCount=0;
+
+  prog.innerHTML='&#9851; Testando '+total+' canais'+(IS_TV?' [modo TV]':'')+'...';
+
+  function atualizar(nome) {
+    prog.innerHTML='Testando '+Math.min(idx,total)+'/'+total
+      +' &nbsp;<span class="ok">&#10003; '+ok+'</span>'
+      +' &nbsp;<span class="err">&#10005; '+fail+'</span>'
+      +(nome?'<br><small style="color:#666">'+nome+'</small>':'');
+  }
+
+  function testarCanal(ch, cb) {
+    var url=ch.url;
+    var tentativas=[url];
+    for (var pi=0;pi<PROXIES.length;pi++) tentativas.push(PROXIES[pi]+encodeURIComponent(url));
+    var ti=0, resolvido=false;
+    var tmr=setTimeout(function(){ resolver(false); },TIMEOUT+3000);
+    function resolver(s){if(resolvido)return;resolvido=true;clearTimeout(tmr);try{cb(s);}catch(e){}}
+    function next(){
+      if(ti>=tentativas.length){resolver(false);return;}
+      var u=tentativas[ti++];
+      try {
+        var r=new XMLHttpRequest(); r.open('HEAD',u,true);
+        try{r.timeout=Math.floor(TIMEOUT*0.5);}catch(e){}
+        r.onreadystatechange=function(){
+          if(r.readyState!==4)return;
+          if(r.status>=200&&r.status<400){resolver(true);}
+          else if(r.status===405){
+            try{
+              var r2=new XMLHttpRequest(); r2.open('GET',u,true);
+              try{r2.timeout=Math.floor(TIMEOUT*0.45);}catch(e){}
+              r2.onreadystatechange=function(){
+                if(r2.readyState>=2){try{r2.abort();}catch(e){} if(r2.status>=200&&r2.status<400)resolver(true);else next();}
+              };
+              r2.onerror=r2.ontimeout=function(){next();}; r2.send();
+            }catch(e2){next();}
+          } else{next();}
+        };
+        r.onerror=r.ontimeout=function(){next();}; r.send();
+      }catch(e){next();}
+    }
+    next();
+  }
+
+  function removerUrl(url) {
+    for(var i=canaisBrutos.length-1;i>=0;i--){if(canaisBrutos[i]&&canaisBrutos[i].url===url){canaisBrutos.splice(i,1);break;}}
+    delete seenUrls[url];
+  }
+
+  function lancar() {
+    if(sintAbortar){if(ativos===0)_fim('Sintonia cancelada.',ok,fail);return;}
+    if(idx>=total){if(ativos===0)_fim('Sintonia concluida!',ok,fail);return;}
+    if(loteCount>=LOTE){
+      loteCount=0; atualizar('[pausa]');
+      setTimeout(lancar,PAUSA); return;
+    }
+    while(ativos<PARALELO&&idx<total&&loteCount<LOTE){
+      (function(ch){
+        ativos++; loteCount++;
+        atualizar(ch.nome);
+        testarCanal(ch,function(s){
+          if(!s){fail++;removerUrl(ch.url);}else{ok++;}
+          ativos--; atualizar(''); lancar();
+        });
+      })(lista[idx++]);
+    }
+  }
+  setTimeout(lancar,200);
+
+  function _fim(msg,ok,fail){
+    sintRodando=false; sintAbortar=false;
+    btn.disabled=false; btn.innerHTML='&#128225; Sintonizar canais';
+    aplicarFiltro(); atualizarTela(); popularPlataformas(); popularCategorias();
+    prog.innerHTML=msg
+      +(ok||fail?' &nbsp;<span class="ok">&#10003; '+ok+'</span> <span class="err">&#10005; '+fail+'</span>':'');
+  }
+}
+
+// ── Init ───────────────────────────────────────────────────────
+document.getElementById('btn-voltar').onclick=voltarHome;
+document.getElementById('btn-ch-cima').onclick=canalCima;
+document.getElementById('btn-ch-baixo').onclick=canalBaixo;
+
+try{platFiltro=LS.get('kfast_plat')||null;}catch(e){}
+try{catFiltro=LS.get('kfast_cat')||null;}catch(e){}
+
+renderFavs();
+carregar();
+</script>
+</body>
+</html>

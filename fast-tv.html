@@ -22,8 +22,18 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
 #digitos{font-size:52px;font-weight:bold;color:#ff6600;font-family:monospace;letter-spacing:4px;min-height:62px;line-height:1}
 #digitos.vazio{color:#222}
 #instrucao{font-size:11px;color:#444;margin-top:6px}
-#btn-enter{margin-top:12px;background:#111;border:2px solid #ff6600;color:#ff6600;font-size:15px;font-weight:bold;padding:10px 44px;border-radius:30px;cursor:pointer}
+#btn-enter{margin-top:12px;background:#111;border:2px solid #ff6600;color:#ff6600;font-size:15px;font-weight:bold;padding:10px 44px;border-radius:30px;cursor:pointer;display:none}
 #btn-enter:active{background:#ff660022;transform:scale(.95)}
+#teclado{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:280px;margin:12px auto 0}
+.tk{background:#111;border:2px solid #333;color:#fff;font-size:26px;font-weight:bold;font-family:monospace;height:56px;border-radius:14px;cursor:pointer;transition:background .12s,border-color .12s,transform .1s;user-select:none;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:center}
+.tk:active{background:#ff660022;border-color:#ff6600;transform:scale(.93)}
+.tk-num:hover{border-color:#ff6600}
+.tk-del{color:#ff6666;font-size:20px;border-color:#442222}
+.tk-del:hover{border-color:#ff6666}
+.tk-del:active{background:#ff666622;border-color:#ff6666}
+.tk-go{background:#ff660018;color:#ff6600;font-size:18px;border-color:#ff6600;font-family:Arial,sans-serif}
+.tk-go:hover{background:#ff660033}
+.tk-go:active{background:#ff660044;transform:scale(.93)}
 #log-fontes{margin-top:10px;font-size:11px;color:#444;line-height:1.7;max-height:80px;overflow-y:auto;text-align:left;padding:0 8px}
 #log-fontes .ok{color:#00cc66}
 #log-fontes .err{color:#ff4444}
@@ -93,6 +103,20 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
     </div>
     <div id="instrucao">Digite o número do canal e pressione ENTER</div>
     <button id="btn-enter" onclick="clearTimeout(bufTmr);irCanal()">&#9654; ENTER</button>
+    <div id="teclado">
+      <button class="tk tk-num" onclick="teclarNum(1)">1</button>
+      <button class="tk tk-num" onclick="teclarNum(2)">2</button>
+      <button class="tk tk-num" onclick="teclarNum(3)">3</button>
+      <button class="tk tk-num" onclick="teclarNum(4)">4</button>
+      <button class="tk tk-num" onclick="teclarNum(5)">5</button>
+      <button class="tk tk-num" onclick="teclarNum(6)">6</button>
+      <button class="tk tk-num" onclick="teclarNum(7)">7</button>
+      <button class="tk tk-num" onclick="teclarNum(8)">8</button>
+      <button class="tk tk-num" onclick="teclarNum(9)">9</button>
+      <button class="tk tk-del" onclick="teclarDel()">&#9003;</button>
+      <button class="tk tk-num" onclick="teclarNum(0)">0</button>
+      <button class="tk tk-go" onclick="clearTimeout(bufTmr);irCanal()">IR &#9654;</button>
+    </div>
     <div><button id="btn-sintonizar" onclick="sintonizarCanais()">&#128225; Sintonizar canais</button></div>
     <div id="sint-progresso"></div>
     <div><button id="btn-limpar-sint" onclick="limparSintonizacao()" style="margin-top:6px;background:#111;border:2px solid #ff5555;color:#ff5555;font-size:12px;font-weight:bold;padding:7px 20px;border-radius:30px;cursor:pointer;display:none">&#128465; Limpar sintonização</button></div>
@@ -518,6 +542,24 @@ function atualizarDisplay() {
   var box = document.getElementById('display-canal');
   if (buf === '') { el.textContent = '_'; el.className = 'vazio'; box.className = ''; }
   else { el.textContent = buf; el.className = ''; box.className = 'ativo'; }
+}
+
+function teclarNum(n) {
+  if (!pronto) return;
+  if (buf.length >= MAX_DIGITOS + 1) return;
+  buf += String(n);
+  atualizarDisplay();
+  clearTimeout(bufTmr);
+  if (buf.length > MAX_DIGITOS) irCanal();
+  else bufTmr = setTimeout(irCanal, 2000);
+}
+
+function teclarDel() {
+  if (buf.length > 0) {
+    buf = buf.slice(0, -1);
+    atualizarDisplay();
+    clearTimeout(bufTmr);
+  }
 }
 
 function irCanal() {

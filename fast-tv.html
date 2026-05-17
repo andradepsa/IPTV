@@ -98,6 +98,7 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
     <div><button id="btn-limpar-sint" onclick="limparSintonizacao()" style="margin-top:6px;background:#111;border:2px solid #ff5555;color:#ff5555;font-size:12px;font-weight:bold;padding:7px 20px;border-radius:30px;cursor:pointer;display:none">&#128465; Limpar sintonização</button></div>
     <div id="btn-relatorio-wrap" style="display:none"><button id="btn-relatorio" onclick="abrirRelatorio()">&#128196; Ver relatório</button></div>
     <div id="log-fontes"></div>
+    <div id="tv-info" style="margin-top:8px;font-size:11px;color:#444;text-align:center"></div>
   </div>
   <aside id="home-lado">
     <div id="favs"></div>
@@ -143,8 +144,33 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js" onerror="var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.8/hls.min.js';document.head.appendChild(s)"></script>
 <script>
+// ── localStorage seguro para TV (fallback em memória) ──────────
+var _memStore = {};
+var _lsOk = (function() {
+  try {
+    LS.setItem('_tv_test', '1');
+    var v = LS.getItem('_tv_test');
+    LS.removeItem('_tv_test');
+    return v === '1';
+  } catch(e) { return false; }
+})();
+var LS = {
+  getItem: function(k) {
+    if (_lsOk) { try { return LS.getItem(k); } catch(e){} }
+    return _memStore.hasOwnProperty(k) ? _memStore[k] : null;
+  },
+  setItem: function(k, v) {
+    if (_lsOk) { try { LS.setItem(k, v); return; } catch(e){} }
+    _memStore[k] = String(v);
+  },
+  removeItem: function(k) {
+    if (_lsOk) { try { LS.removeItem(k); } catch(e){} }
+    delete _memStore[k];
+  }
+};
+
 // ── Fontes FAST ────────────────────────────────────────────────
 var FONTES = [
   // GitHub / BuddyChewChew
@@ -251,7 +277,7 @@ var sintBloqueados = 0; // canais bloqueados por sintonização anterior
 var urlsRemovidas = {};
 var removidasCarregadas = 0;
 try {
-  var _raw = localStorage.getItem('k60fast_removidos');
+  var _raw = LS.getItem('k60fast_removidos');
   if (_raw) {
     urlsRemovidas = JSON.parse(_raw);
     removidasCarregadas = Object.keys(urlsRemovidas).length;
@@ -261,7 +287,7 @@ try {
 function salvarRemovidas() {
   try {
     var json = JSON.stringify(urlsRemovidas);
-    localStorage.setItem('k60fast_removidos', json);
+    LS.setItem('k60fast_removidos', json);
   } catch(e) {
     console.error('ERRO localStorage:', e);
   }
@@ -381,7 +407,7 @@ function aplicarFiltro() {
   });
   // Favoritos primeiro
   var favs = [];
-  try { favs = JSON.parse(localStorage.getItem('k60fast_favs') || '[]'); } catch(e){}
+  try { favs = JSON.parse(LS.getItem('k60fast_favs') || '[]'); } catch(e){}
   if (favs.length) {
     var favMap = {};
     for (var i = 0; i < favs.length; i++) favMap[favs[i].url] = i;
@@ -406,12 +432,12 @@ function aplicarFiltro() {
 
 function setFiltroPlatforma(v) {
   platFiltro = v || null;
-  try { platFiltro ? localStorage.setItem('k60fast_plat', platFiltro) : localStorage.removeItem('k60fast_plat'); } catch(e){}
+  try { platFiltro ? LS.setItem('k60fast_plat', platFiltro) : LS.removeItem('k60fast_plat'); } catch(e){}
   aplicarFiltro(); atualizarTela();
 }
 function setFiltroCategoria(v) {
   catFiltro = v || null;
-  try { catFiltro ? localStorage.setItem('k60fast_cat', catFiltro) : localStorage.removeItem('k60fast_cat'); } catch(e){}
+  try { catFiltro ? LS.setItem('k60fast_cat', catFiltro) : LS.removeItem('k60fast_cat'); } catch(e){}
   aplicarFiltro(); atualizarTela();
 }
 
@@ -601,7 +627,8 @@ function iniciarStream(url) {
   if (hlsObj) { try { hlsObj.destroy(); } catch(e){} hlsObj = null; }
   vid.pause(); vid.src = '';
   errTmr = setTimeout(onFalha, 12000);
-  if (Hls.isSupported()) {
+  var hlsDisp = (typeof Hls !== 'undefined') && Hls.isSupported && Hls.isSupported();
+  if (hlsDisp) {
     hlsObj = new Hls({ enableWorker: false });
     hlsObj.loadSource(url);
     hlsObj.attachMedia(vid);
@@ -670,7 +697,7 @@ function voltarHome() {
 function atualizarFav() {
   var ch = canais[curCh];
   var favs = [];
-  try { favs = JSON.parse(localStorage.getItem('k60fast_favs') || '[]'); } catch(e){}
+  try { favs = JSON.parse(LS.getItem('k60fast_favs') || '[]'); } catch(e){}
   var isFav = favs.some(function(f){ return f.url === ch.url; });
   var btn = document.getElementById('btn-fav');
   btn.className = isFav ? 'favoritado' : '';
@@ -679,19 +706,19 @@ function atualizarFav() {
 document.getElementById('btn-fav').onclick = function() {
   var ch = canais[curCh];
   var favs = [];
-  try { favs = JSON.parse(localStorage.getItem('k60fast_favs') || '[]'); } catch(e){}
+  try { favs = JSON.parse(LS.getItem('k60fast_favs') || '[]'); } catch(e){}
   var idx = -1;
   for (var i = 0; i < favs.length; i++) if (favs[i].url === ch.url) { idx = i; break; }
   if (idx === -1) favs.push({ nome: ch.nome, url: ch.url, plat: ch.plat });
   else favs.splice(idx, 1);
-  try { localStorage.setItem('k60fast_favs', JSON.stringify(favs)); } catch(e){}
+  try { LS.setItem('k60fast_favs', JSON.stringify(favs)); } catch(e){}
   atualizarFav(); renderFavs(); aplicarFiltro();
 };
 
 function renderFavs() {
   var el = document.getElementById('favs');
   var favs = [];
-  try { favs = JSON.parse(localStorage.getItem('k60fast_favs') || '[]'); } catch(e){}
+  try { favs = JSON.parse(LS.getItem('k60fast_favs') || '[]'); } catch(e){}
   if (!favs.length) { el.innerHTML = '<div id="favs-titulo">&#9733; Favoritos</div><div style="font-size:12px;color:#444;padding:8px">Nenhum favorito ainda.</div>'; return; }
   var html = '<div id="favs-titulo">&#9733; Favoritos (' + favs.length + ')</div>';
   for (var i = 0; i < favs.length; i++) {
@@ -706,7 +733,7 @@ function renderFavs() {
 
 function irFav(i) {
   var favs = [];
-  try { favs = JSON.parse(localStorage.getItem('k60fast_favs') || '[]'); } catch(e){}
+  try { favs = JSON.parse(LS.getItem('k60fast_favs') || '[]'); } catch(e){}
   var fav = favs[i]; if (!fav) return;
   for (var j = 0; j < canais.length; j++) {
     if (canais[j].url === fav.url) { tocarCanal(j); return; }
@@ -716,9 +743,9 @@ function irFav(i) {
 function delFav(e, i) {
   e.stopPropagation();
   var favs = [];
-  try { favs = JSON.parse(localStorage.getItem('k60fast_favs') || '[]'); } catch(e2){}
+  try { favs = JSON.parse(LS.getItem('k60fast_favs') || '[]'); } catch(e2){}
   favs.splice(i, 1);
-  try { localStorage.setItem('k60fast_favs', JSON.stringify(favs)); } catch(e2){}
+  try { LS.setItem('k60fast_favs', JSON.stringify(favs)); } catch(e2){}
   renderFavs(); aplicarFiltro(); atualizarTela();
 }
 
@@ -797,7 +824,7 @@ function sintonizarCanais() {
   // ── Retomada: se houver progresso salvo, continua de onde parou
   var idxInicial = 0, okPrev = 0, failPrev = 0;
   try {
-    var sp = localStorage.getItem('k60fast_sint_progresso');
+    var sp = LS.getItem('k60fast_sint_progresso');
     if (sp) {
       var p = JSON.parse(sp);
       if (p && p.total === total && typeof p.idx === 'number' && p.idx < total) {
@@ -806,7 +833,7 @@ function sintonizarCanais() {
         failPrev = p.fail || 0;
         console.log('Retomando sintonia de ' + idxInicial + '/' + total);
       } else {
-        localStorage.removeItem('k60fast_sint_progresso');
+        LS.removeItem('k60fast_sint_progresso');
       }
     }
   } catch(e) {}
@@ -928,9 +955,9 @@ function sintonizarCanais() {
   function salvarProgresso() {
     try {
       // Salva URLs removidas até agora (resultado parcial)
-      localStorage.setItem('k60fast_removidos', JSON.stringify(urlsRemovidas));
+      LS.setItem('k60fast_removidos', JSON.stringify(urlsRemovidas));
       // Salva ponteiro para retomada
-      localStorage.setItem('k60fast_sint_progresso', JSON.stringify({
+      LS.setItem('k60fast_sint_progresso', JSON.stringify({
         total: total, idx: idx, ok: ok, fail: fail, ts: Date.now()
       }));
     } catch(e) { console.error('Falha salvar progresso:', e); }
@@ -987,7 +1014,7 @@ function sintonizarCanais() {
 
     // Se chegou ao fim (não foi cancelado), apaga o ponteiro de retomada
     if (!/cancelada/i.test(msg)) {
-      try { localStorage.removeItem('k60fast_sint_progresso'); } catch(e) {}
+      try { LS.removeItem('k60fast_sint_progresso'); } catch(e) {}
     }
 
     // Salva TUDO de uma vez no localStorage
@@ -995,9 +1022,9 @@ function sintonizarCanais() {
     var salvoOk = false;
     try {
       var json = JSON.stringify(urlsRemovidas);
-      localStorage.setItem('k60fast_removidos', json);
+      LS.setItem('k60fast_removidos', json);
       // Verifica se salvou corretamente
-      var check = localStorage.getItem('k60fast_removidos');
+      var check = LS.getItem('k60fast_removidos');
       if (check && check.length === json.length) {
         salvoOk = true;
       }
@@ -1097,8 +1124,8 @@ function limparSintonizacao() {
   if (!confirm('Limpar dados da sintonização anterior?\nTodos os canais removidos voltarão.')) return;
   urlsRemovidas = {};
   sintBloqueados = 0;
-  try { localStorage.removeItem('k60fast_removidos'); } catch(e){}
-  try { localStorage.removeItem('k60fast_sint_progresso'); } catch(e){}
+  try { LS.removeItem('k60fast_removidos'); } catch(e){}
+  try { LS.removeItem('k60fast_sint_progresso'); } catch(e){}
   // Recarrega tudo do zero
   canaisBrutos = []; canais = []; seenUrls = {}; nextNum = 1; pronto = false;
   document.getElementById('btn-limpar-sint').style.display = 'none';
@@ -1116,11 +1143,23 @@ document.getElementById('btn-voltar').onclick = voltarHome;
 document.getElementById('btn-ch-cima').onclick = canalCima;
 document.getElementById('btn-ch-baixo').onclick = canalBaixo;
 
-try { platFiltro = localStorage.getItem('k60fast_plat') || null; } catch(e){}
-try { catFiltro = localStorage.getItem('k60fast_cat') || null; } catch(e){}
+try { platFiltro = LS.getItem('k60fast_plat') || null; } catch(e){}
+try { catFiltro = LS.getItem('k60fast_cat') || null; } catch(e){}
 
 renderFavs();
 carregar();
+
+// Informa modo de armazenamento
+(function() {
+  var el = document.getElementById('tv-info');
+  if (!el) return;
+  if (_lsOk) {
+    el.innerHTML = '&#128190; Armazenamento: <span style="color:#00cc66">localStorage OK</span>';
+  } else {
+    el.innerHTML = '&#9888; TV: localStorage indisponível — favoritos e sintonia funcionam só nesta sessão';
+    el.style.color = '#ffaa00';
+  }
+})();
 </script>
 </body>
 </html>

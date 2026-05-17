@@ -27,8 +27,8 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
 #instrucao{font-size:12px;color:#444;margin-top:8px}
 #btn-enter{margin-top:14px;background:#111;border:2px solid #00aaff;color:#00aaff;font-size:16px;font-weight:bold;padding:12px 48px;border-radius:30px;cursor:pointer;transition:background .15s,transform .1s;display:none}
 #btn-enter:active{background:#00aaff22;transform:scale(.95)}
-#teclado{max-width:280px;margin:14px auto 0;text-align:center;letter-spacing:-4px}
-.tk{background:#111;border:2px solid #333;color:#fff;font-size:26px;font-weight:bold;font-family:monospace;width:80px;height:56px;border-radius:14px;cursor:pointer;user-select:none;display:inline-block;text-align:center;line-height:52px;vertical-align:top;margin:4px;letter-spacing:0}
+#teclado{max-width:280px;margin:14px auto 0;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-wrap:wrap;flex-wrap:wrap}
+.tk{background:#111;border:2px solid #333;color:#fff;font-size:26px;font-weight:bold;font-family:monospace;width:calc(33.33% - 8px);height:56px;border-radius:14px;cursor:pointer;user-select:none;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center;margin:4px;-webkit-box-sizing:border-box;box-sizing:border-box}
 .tk:active{background:#00aaff22;border-color:#00aaff;transform:scale(.93)}
 .tk-num:hover{border-color:#00aaff}
 .tk-del{color:#ff6666;font-size:20px;border-color:#442222}

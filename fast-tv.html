@@ -107,18 +107,18 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
     <div id="instrucao">Digite o número do canal e pressione ENTER</div>
     <button id="btn-enter" onclick="clearTimeout(bufTmr);irCanal()">&#9654; ENTER</button>
     <div id="teclado">
-      <button class="tk tk-num" onmousedown="teclarNum(1)" onclick="teclarNum(1)">1</button>
-      <button class="tk tk-num" onmousedown="teclarNum(2)" onclick="teclarNum(2)">2</button>
-      <button class="tk tk-num" onmousedown="teclarNum(3)" onclick="teclarNum(3)">3</button>
-      <button class="tk tk-num" onmousedown="teclarNum(4)" onclick="teclarNum(4)">4</button>
-      <button class="tk tk-num" onmousedown="teclarNum(5)" onclick="teclarNum(5)">5</button>
-      <button class="tk tk-num" onmousedown="teclarNum(6)" onclick="teclarNum(6)">6</button>
-      <button class="tk tk-num" onmousedown="teclarNum(7)" onclick="teclarNum(7)">7</button>
-      <button class="tk tk-num" onmousedown="teclarNum(8)" onclick="teclarNum(8)">8</button>
-      <button class="tk tk-num" onmousedown="teclarNum(9)" onclick="teclarNum(9)">9</button>
-      <button class="tk tk-del" onmousedown="teclarDel()" onclick="teclarDel()">&#9003;</button>
-      <button class="tk tk-num" onmousedown="teclarNum(0)" onclick="teclarNum(0)">0</button>
-      <button class="tk tk-go" onmousedown="clearTimeout(bufTmr);irCanal()" onclick="void(0)">IR &#9654;</button>
+      <button class="tk tk-num" onclick="teclarNum(1)">1</button>
+      <button class="tk tk-num" onclick="teclarNum(2)">2</button>
+      <button class="tk tk-num" onclick="teclarNum(3)">3</button>
+      <button class="tk tk-num" onclick="teclarNum(4)">4</button>
+      <button class="tk tk-num" onclick="teclarNum(5)">5</button>
+      <button class="tk tk-num" onclick="teclarNum(6)">6</button>
+      <button class="tk tk-num" onclick="teclarNum(7)">7</button>
+      <button class="tk tk-num" onclick="teclarNum(8)">8</button>
+      <button class="tk tk-num" onclick="teclarNum(9)">9</button>
+      <button class="tk tk-del" onclick="teclarDel()">&#9003;</button>
+      <button class="tk tk-num" onclick="teclarNum(0)">0</button>
+      <button class="tk tk-go" onclick="clearTimeout(bufTmr);irCanal()">IR &#9654;</button>
     </div>
     <div><button id="btn-sintonizar" onclick="sintonizarCanais()">&#128225; Sintonizar canais</button></div>
     <div id="sint-progresso"></div>

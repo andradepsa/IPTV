@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>K60 TV</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -71,6 +72,23 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
 #vol-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:#00aaff;cursor:pointer;border:2px solid #fff}
 #vol-slider::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#00aaff;cursor:pointer;border:2px solid #fff}
 #vol-label{font-size:13px;color:#00aaff;font-weight:bold;font-family:monospace;width:34px;text-align:right}
+/* ── Teclado numérico mobile ── */
+#teclado-num{display:none;margin-top:14px;grid-template-columns:repeat(3,1fr);gap:8px;max-width:280px;margin-left:auto;margin-right:auto}
+#teclado-num.visivel{display:grid}
+.tk{background:#111;border:2px solid #00aaff;color:#00aaff;font-size:24px;font-weight:bold;border-radius:12px;padding:14px 0;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:background .1s,transform .1s;text-align:center}
+.tk:active{background:#00aaff33;transform:scale(.93)}
+.tk-del{border-color:#ff5555;color:#ff5555}
+.tk-del:active{background:#ff555533}
+.tk-ok{border-color:#00ff88;color:#00ff88}
+.tk-ok:active{background:#00ff8833}
+/* teclado no player */
+#teclado-player{position:absolute;bottom:85px;left:50%;transform:translateX(-50%);display:none;grid-template-columns:repeat(3,1fr);gap:6px;width:220px;z-index:20;background:rgba(0,0,0,0.88);border:2px solid #ffaa00;border-radius:14px;padding:10px}
+#teclado-player.visivel{display:grid}
+.tkp{background:#111;border:1px solid #ffaa00;color:#ffaa00;font-size:20px;font-weight:bold;border-radius:8px;padding:11px 0;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;text-align:center;transition:background .1s}
+.tkp:active{background:#ffaa0044}
+.tkp-del{border-color:#ff5555;color:#ff5555}
+.tkp-ok{border-color:#00ff88;color:#00ff88}
+#swipe-hint{position:absolute;bottom:145px;left:50%;transform:translateX(-50%);font-size:11px;color:#444;white-space:nowrap;pointer-events:none;display:none}
 </style>
 </head>
 <body>
@@ -91,6 +109,20 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
     </div>
     <div id="instrucao" data-i18n="instruction">Type the channel number and press ENTER</div>
     <button id="btn-enter" onclick="clearTimeout(bufTmr);irCanal()">&#9654; <span data-i18n="enter">ENTER</span></button>
+    <div id="teclado-num">
+      <div class="tk" onclick="tkDigito('1')">1</div>
+      <div class="tk" onclick="tkDigito('2')">2</div>
+      <div class="tk" onclick="tkDigito('3')">3</div>
+      <div class="tk" onclick="tkDigito('4')">4</div>
+      <div class="tk" onclick="tkDigito('5')">5</div>
+      <div class="tk" onclick="tkDigito('6')">6</div>
+      <div class="tk" onclick="tkDigito('7')">7</div>
+      <div class="tk" onclick="tkDigito('8')">8</div>
+      <div class="tk" onclick="tkDigito('9')">9</div>
+      <div class="tk tk-del" onclick="tkApagar()">&#9003;</div>
+      <div class="tk" onclick="tkDigito('0')">0</div>
+      <div class="tk tk-ok" onclick="clearTimeout(bufTmr);irCanal()">OK</div>
+    </div>
     <div><button id="btn-sintonizar" onclick="sintonizarIdioma()">&#128225; <span data-i18n="tune">Sintonizar canais do meu idioma</span></button></div>
     <div id="lang-picker" style="margin-top:10px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">
       &#127760; <label for="sel-lang" style="font-size:14px;">Idioma / Language:</label>
@@ -124,6 +156,21 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;overflow:hidden}
     <button class="btn-ch" id="btn-ch-cima" data-i18n-title="next_channel" title="Next channel">&#9650;</button>
     <button id="btn-fav" data-i18n-title="fav_channel" title="Favorite channel">&#9733;</button>
   </div>
+  <div id="teclado-player">
+    <div class="tkp" onclick="tkpDigito('1')">1</div>
+    <div class="tkp" onclick="tkpDigito('2')">2</div>
+    <div class="tkp" onclick="tkpDigito('3')">3</div>
+    <div class="tkp" onclick="tkpDigito('4')">4</div>
+    <div class="tkp" onclick="tkpDigito('5')">5</div>
+    <div class="tkp" onclick="tkpDigito('6')">6</div>
+    <div class="tkp" onclick="tkpDigito('7')">7</div>
+    <div class="tkp" onclick="tkpDigito('8')">8</div>
+    <div class="tkp" onclick="tkpDigito('9')">9</div>
+    <div class="tkp tkp-del" onclick="tkpApagar()">&#9003;</div>
+    <div class="tkp" onclick="tkpDigito('0')">0</div>
+    <div class="tkp tkp-ok" onclick="tkpConfirmar()">OK</div>
+  </div>
+  <div id="swipe-hint">&#8597; Swipe to change channel</div>
 </div>
 
 <div id="toast"><p data-i18n="unavailable">Canal indisponível</p><small data-i18n="returning">Pulando para o próximo canal...</small></div>
@@ -1715,6 +1762,88 @@ function mostrarControles() {
 ['mousemove','mousedown','touchstart','keydown'].forEach(function(ev){
   document.addEventListener(ev, mostrarControles);
 });
+
+// ── Detecção mobile e teclado numérico ────────────────────────
+var ehMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+if (ehMobile) {
+  document.getElementById('teclado-num').classList.add('visivel');
+  document.getElementById('btn-enter').style.display = 'none';
+  var instrEl = document.getElementById('instrucao');
+  if (instrEl) instrEl.setAttribute('data-i18n-override', 'Type the channel number below');
+  document.getElementById('swipe-hint').style.display = 'block';
+}
+
+function tkDigito(d) {
+  buf += d;
+  if (buf.length > MAX_DIGITOS) buf = buf.slice(1);
+  atualizarDisplay();
+  clearTimeout(bufTmr);
+}
+function tkApagar() {
+  buf = buf.slice(0, -1);
+  atualizarDisplay();
+}
+
+var tkpBuf = '';
+var tkpTmr = null;
+function tkpDigito(d) {
+  mostrarControles();
+  tkpBuf += d;
+  document.getElementById('p-canal-val').textContent = tkpBuf;
+  document.getElementById('p-canal').style.display = 'block';
+  clearTimeout(tkpTmr);
+  tkpTmr = setTimeout(tkpConfirmar, 2500);
+}
+function tkpApagar() {
+  tkpBuf = tkpBuf.slice(0, -1);
+  if (tkpBuf) {
+    document.getElementById('p-canal-val').textContent = tkpBuf;
+  } else {
+    document.getElementById('p-canal').style.display = 'none';
+  }
+  clearTimeout(tkpTmr);
+}
+function tkpConfirmar() {
+  clearTimeout(tkpTmr);
+  var n = parseInt(tkpBuf, 10);
+  tkpBuf = '';
+  document.getElementById('p-canal').style.display = 'none';
+  if (!isNaN(n) && n >= 1 && n <= canais.length) tocarCanal(n - 1);
+}
+
+// Duplo toque no player: toggle teclado numérico
+var lastTap = 0;
+document.getElementById('tela-player').addEventListener('touchend', function(e) {
+  if (e.target.closest && e.target.closest('#controles,#volume-ctrl,#teclado-player,#osd,#btn-fav')) return;
+  var now = Date.now();
+  if (now - lastTap < 300) {
+    document.getElementById('teclado-player').classList.toggle('visivel');
+    lastTap = 0;
+  } else {
+    lastTap = now;
+    mostrarControles();
+    mostrarVolume();
+  }
+}, { passive: true });
+
+// Swipe vertical para trocar canal
+var swipeStartX = 0, swipeStartY = 0, swipeStartT = 0;
+document.getElementById('tela-player').addEventListener('touchstart', function(e) {
+  if (e.target.closest && e.target.closest('#controles,#volume-ctrl,#teclado-player,#vol-slider')) return;
+  swipeStartX = e.touches[0].clientX;
+  swipeStartY = e.touches[0].clientY;
+  swipeStartT = Date.now();
+}, { passive: true });
+document.getElementById('tela-player').addEventListener('touchend', function(e) {
+  if (e.target.closest && e.target.closest('#controles,#volume-ctrl,#teclado-player,#vol-slider')) return;
+  if (Date.now() - swipeStartT > 600) return;
+  var dy = e.changedTouches[0].clientY - swipeStartY;
+  var dx = e.changedTouches[0].clientX - swipeStartX;
+  if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 60) {
+    if (dy < 0) canalCima(); else canalBaixo();
+  }
+}, { passive: true });
+
 renderFavs();
 
 document.getElementById('btn-voltar').onclick = function() { voltarHome(); };

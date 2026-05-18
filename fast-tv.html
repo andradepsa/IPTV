@@ -292,7 +292,9 @@ function salvarRemovidas() {
 // ── XHR com fallback proxy e rodízio ──────────────────────────
 function fetchM3u(url, cb) {
   // Tenta direto primeiro, depois proxies em rodízio
-  var tentativas = [{ url: url, pi: -1 }];
+  // Domínios com CORS bloqueado: pula tentativa direta, vai direto ao proxy
+  var corsBloqueado = /apsattv\.com/i.test(url);
+  var tentativas = corsBloqueado ? [] : [{ url: url, pi: -1 }];
   // Monta lista de proxies disponíveis na ordem do rodízio atual
   var startIdx = proxyIdx;
   for (var i = 0; i < PROXIES.length; i++) {
@@ -874,7 +876,9 @@ function sintonizarCanais() {
       if (pi2 !== loteProxy) ordemProxies.push(pi2);
     }
 
-    var tentativas = [{ url: url, pi: -1 }];
+    // Domínios com CORS bloqueado: pula tentativa direta
+    var corsBloqueadoSint = /apsattv\.com/i.test(url);
+    var tentativas = corsBloqueadoSint ? [] : [{ url: url, pi: -1 }];
     for (var oi = 0; oi < ordemProxies.length; oi++) {
       var px = ordemProxies[oi];
       var ps = proxyStats[px];
